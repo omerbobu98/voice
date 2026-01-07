@@ -59,8 +59,20 @@ CORS(app)
 UPLOAD_FOLDER = 'uploads'
 Path(UPLOAD_FOLDER).mkdir(exist_ok=True)
 
-aai.settings.api_key = os.getenv('ASSEMBLYAI_API_KEY')
-openai_client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+# Initialize API clients with error handling
+ASSEMBLYAI_API_KEY = os.getenv('ASSEMBLYAI_API_KEY')
+OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
+
+if ASSEMBLYAI_API_KEY:
+    aai.settings.api_key = ASSEMBLYAI_API_KEY
+else:
+    print("[app] WARNING: ASSEMBLYAI_API_KEY not set")
+
+openai_client = None
+if OPENAI_API_KEY:
+    openai_client = OpenAI(api_key=OPENAI_API_KEY)
+else:
+    print("[app] WARNING: OPENAI_API_KEY not set")
 
 jobs = {}
 
