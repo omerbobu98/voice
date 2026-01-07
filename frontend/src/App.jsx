@@ -56,7 +56,6 @@ function MainApp() {
   
   // Navigation state
   const [activeTab, setActiveTab] = useState('upload')
-  const [sidebarOpen, setSidebarOpen] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   
   // Admin state
@@ -588,9 +587,8 @@ function MainApp() {
 
       {/* Sidebar */}
       <aside className={`
-        fixed lg:relative inset-y-0 left-0 z-50
+        fixed lg:relative inset-y-0 left-0 z-50 w-64
         ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-        ${sidebarOpen ? 'w-64' : 'w-20'} 
         bg-black/95 lg:bg-black/40 border-r border-white/10 flex flex-col transition-all duration-300
       `}>
         {/* Logo */}
@@ -599,12 +597,10 @@ function MainApp() {
             <div className="w-10 h-10 bg-gradient-to-br from-violet-500 to-fuchsia-500 rounded-xl flex items-center justify-center flex-shrink-0">
               <Phone className="w-5 h-5 text-white" />
             </div>
-            {sidebarOpen && (
-              <div>
-                <h1 className="text-xl font-bold text-white">SalesAI</h1>
-                <p className="text-xs text-gray-500">Conversation Intelligence</p>
-              </div>
-            )}
+            <div>
+              <h1 className="text-xl font-bold text-white">SalesAI</h1>
+              <p className="text-xs text-gray-500">Conversation Intelligence</p>
+            </div>
           </div>
         </div>
 
