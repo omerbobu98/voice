@@ -80,6 +80,16 @@ jobs = {}
 def health():
     return jsonify({'status': 'ok'})
 
+@app.route('/api/debug/api-keys', methods=['GET'])
+def debug_api_keys():
+    """Debug endpoint to check API key status"""
+    return jsonify({
+        'assemblyai_configured': bool(ASSEMBLYAI_API_KEY),
+        'assemblyai_key_length': len(ASSEMBLYAI_API_KEY) if ASSEMBLYAI_API_KEY else 0,
+        'assemblyai_key_prefix': ASSEMBLYAI_API_KEY[:8] + '...' if ASSEMBLYAI_API_KEY and len(ASSEMBLYAI_API_KEY) > 8 else 'NOT SET',
+        'openai_configured': bool(OPENAI_API_KEY),
+    })
+
 @app.route('/api/debug/db', methods=['GET'])
 def debug_db():
     """Debug endpoint to test Supabase connection"""
