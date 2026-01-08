@@ -585,5 +585,54 @@ def admin_get_call(call_id):
         return jsonify({'error': 'Call not found'}), 404
     return jsonify(data)
 
+
+@app.route('/api/tts', methods=['POST'])
+def text_to_speech():
+    """Generate speech audio from text using OpenAI TTS"""
+    if not openai_client:
+        return jsonify({'error': 'OpenAI API not configured'}), 500
+    
+    data = request.json
+    text = data.get('text', '')
+    voice = data.get('voice', 'nova')  # Options: alloy, echo, fable, onyx, nova, shimmer
+    
+    if not text:
+        return jsonify({'error': 'Text is required'}), 400
+    
+    if len(text) > 4096:
+        text = text[:4096]  # OpenAI TTS has a limit
+    
+    try:
+        response = openai_client.audio.speech.create(
+            model="tts-1",
+            voice=voice,
+            input=text
+        )
+        
+        # Generate unique filename
+        audio_filename = f"tts_{uuid.uuid4().hex[:8]}.mp3"
+        audio_path = os.path.join(UPLOAD_FOLDER, audio_filename)
+        
+        # Save audio file
+        response.stream_to_file(audio_path)
+        
+        # Return the audio URL
+        return jsonify({
+            'audio_url': f'/api/audio/{audio_filename}',
+            'text': text
+        })
+        
+    except Exception as e:
+        print(f"TTS error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/audio/<filename>', methods=['GET'])
+def serve_audio(filename):
+    """Serve audio files"""
+    from flask import send_from_directory
+    return send_from_directory(UPLOAD_FOLDER, filename)
+
+
 if __name__ == '__main__':
     app.run(debug=True, port=5001)

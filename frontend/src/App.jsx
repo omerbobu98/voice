@@ -51,6 +51,149 @@ const getAuthHeaders = async () => {
     : {}
 }
 
+// TTS Audio Player Component - Mini player for text-to-speech
+function TTSPlayer({ text, label = "🔊 Listen" }) {
+  const [loading, setLoading] = useState(false)
+  const [audioUrl, setAudioUrl] = useState(null)
+  const [playing, setPlaying] = useState(false)
+  const [currentTime, setCurrentTime] = useState(0)
+  const [duration, setDuration] = useState(0)
+  const audioRef = useRef(null)
+
+  const generateAudio = async () => {
+    if (audioUrl) {
+      // Already generated, just play
+      if (audioRef.current) {
+        if (playing) {
+          audioRef.current.pause()
+          setPlaying(false)
+        } else {
+          audioRef.current.play()
+          setPlaying(true)
+        }
+      }
+      return
+    }
+
+    setLoading(true)
+    try {
+      const response = await axios.post(`${API_URL}/api/tts`, { 
+        text,
+        voice: 'nova'
+      })
+      const fullUrl = `${API_URL}${response.data.audio_url}`
+      setAudioUrl(fullUrl)
+      
+      // Auto-play after generation
+      setTimeout(() => {
+        if (audioRef.current) {
+          audioRef.current.play()
+          setPlaying(true)
+        }
+      }, 100)
+    } catch (err) {
+      console.error('TTS error:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleTimeUpdate = () => {
+    if (audioRef.current) {
+      setCurrentTime(audioRef.current.currentTime)
+    }
+  }
+
+  const handleLoadedMetadata = () => {
+    if (audioRef.current) {
+      setDuration(audioRef.current.duration)
+    }
+  }
+
+  const handleEnded = () => {
+    setPlaying(false)
+    setCurrentTime(0)
+  }
+
+  const handleSeek = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect()
+    const percent = (e.clientX - rect.left) / rect.width
+    if (audioRef.current && duration > 0) {
+      audioRef.current.currentTime = percent * duration
+    }
+  }
+
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = Math.floor(seconds % 60)
+    return `${mins}:${secs.toString().padStart(2, '0')}`
+  }
+
+  return (
+    <div className="mt-3 sm:mt-4">
+      {!audioUrl ? (
+        <button
+          onClick={generateAudio}
+          disabled={loading}
+          className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-violet-500/20 hover:bg-violet-500/30 text-violet-300 rounded-xl transition-all text-sm sm:text-base font-medium disabled:opacity-50"
+        >
+          {loading ? (
+            <>
+              <div className="w-4 h-4 border-2 border-violet-400 border-t-transparent rounded-full animate-spin" />
+              <span>Generating...</span>
+            </>
+          ) : (
+            <>
+              <Volume2 className="w-4 h-4" />
+              <span>{label}</span>
+            </>
+          )}
+        </button>
+      ) : (
+        <div className="bg-black/30 rounded-xl p-3 border border-violet-500/20">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={generateAudio}
+              className="w-10 h-10 bg-gradient-to-br from-violet-500 to-fuchsia-500 rounded-full flex items-center justify-center shadow-lg hover:scale-105 transition-transform flex-shrink-0"
+            >
+              {playing ? (
+                <PauseCircle className="w-6 h-6 text-white" />
+              ) : (
+                <PlayCircle className="w-6 h-6 text-white" />
+              )}
+            </button>
+            <div className="flex-1">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs text-violet-300">AI Voice</span>
+                <span className="text-xs text-gray-400 font-mono">
+                  {formatTime(currentTime)} / {formatTime(duration)}
+                </span>
+              </div>
+              <div 
+                className="h-2 bg-white/10 rounded-full cursor-pointer overflow-hidden"
+                onClick={handleSeek}
+              >
+                <div 
+                  className="h-full bg-gradient-to-r from-violet-500 to-fuchsia-500 rounded-full transition-all"
+                  style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
+                />
+              </div>
+            </div>
+          </div>
+          <audio
+            ref={audioRef}
+            src={audioUrl}
+            onTimeUpdate={handleTimeUpdate}
+            onLoadedMetadata={handleLoadedMetadata}
+            onEnded={handleEnded}
+            className="hidden"
+          />
+        </div>
+      )}
+    </div>
+  )
+}
+
 function MainApp() {
   const { user, signOut } = useAuth()
   
@@ -1571,6 +1714,8 @@ function MainApp() {
                             {obj.why_better && (
                               <p className="text-xs sm:text-sm text-gray-400 mt-2 sm:mt-3 italic">{obj.why_better}</p>
                             )}
+                            {/* TTS Player for Better Response */}
+                            <TTSPlayer text={obj.better_response} label="🔊 שמע תשובה" />
                           </div>
                         </div>
                       </div>
@@ -1615,6 +1760,8 @@ function MainApp() {
                         <div className="p-3 bg-emerald-500/10 rounded-lg border-l-4 border-emerald-500">
                           <p className="text-xs text-emerald-400 font-semibold mb-1">💬 Suggested Close:</p>
                           <p className="text-sm sm:text-base text-emerald-200">"{opp.suggested_close}"</p>
+                          {/* TTS Player for Suggested Close */}
+                          <TTSPlayer text={opp.suggested_close} label="🔊 שמע סגירה" />
                         </div>
                       </div>
                     ))}
@@ -1704,6 +1851,8 @@ function MainApp() {
                               💡 {story.why_better}
                             </p>
                           )}
+                          {/* TTS Player for Improved Story */}
+                          <TTSPlayer text={story.improved_story} label="🔊 שמע סיפור" />
                         </div>
                       </div>
                     ))}
@@ -1733,6 +1882,8 @@ function MainApp() {
                           <div className="p-4 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
                             <p className="text-xs text-emerald-400 mb-2">✅ Improved:</p>
                             <p className="text-emerald-200 font-medium">"{resp.improved_response}"</p>
+                            {/* TTS Player for Improved Response */}
+                            <TTSPlayer text={resp.improved_response} label="🔊 שמע" />
                           </div>
                         </div>
                         <p className="text-sm text-gray-500 mt-3">{resp.expected_impact}</p>
