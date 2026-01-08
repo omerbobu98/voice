@@ -222,6 +222,62 @@ function TTSPlayer({ text, label = "🔊 Listen", onPlay, onStop }) {
   )
 }
 
+// Floating Audio Control - Shows when audio is playing for easy stop access
+function FloatingAudioControl({ isPlaying, currentTime, duration, onStop, onTogglePlay, label = "Call Audio" }) {
+  if (!isPlaying && currentTime === 0) return null
+
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = Math.floor(seconds % 60)
+    return `${mins}:${secs.toString().padStart(2, '0')}`
+  }
+
+  const progress = duration > 0 ? (currentTime / duration) * 100 : 0
+
+  return (
+    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-black/90 backdrop-blur-xl rounded-2xl p-3 sm:p-4 border border-violet-500/30 shadow-2xl shadow-violet-500/20 w-[calc(100%-2rem)] max-w-md">
+      <div className="flex items-center gap-3">
+        {/* Play/Pause Button */}
+        <button
+          onClick={onTogglePlay}
+          className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-violet-500 to-fuchsia-500 rounded-full flex items-center justify-center shadow-lg hover:scale-105 transition-transform flex-shrink-0"
+        >
+          {isPlaying ? (
+            <PauseCircle className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+          ) : (
+            <PlayCircle className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+          )}
+        </button>
+        
+        {/* Progress Info */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs text-violet-300 truncate">{label}</span>
+            <span className="text-xs text-gray-400 font-mono flex-shrink-0 ml-2">
+              {formatTime(currentTime)} / {formatTime(duration)}
+            </span>
+          </div>
+          <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+            <div 
+              className="h-full bg-gradient-to-r from-violet-500 to-fuchsia-500 rounded-full transition-all"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+        </div>
+        
+        {/* Stop Button */}
+        <button
+          onClick={onStop}
+          className="w-10 h-10 sm:w-12 sm:h-12 bg-red-500/20 hover:bg-red-500/30 rounded-full flex items-center justify-center transition-colors flex-shrink-0 border border-red-500/30"
+          title="Stop"
+        >
+          <X className="w-5 h-5 sm:w-6 sm:h-6 text-red-400" />
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // PDF Download Button Component
 function PDFDownloadButton({ analysisResult, fileName = 'call_analysis' }) {
   const [loading, setLoading] = useState(false)
@@ -349,6 +405,16 @@ function MainApp() {
     if (audioRef.current && audioPlaying) {
       audioRef.current.pause()
       setAudioPlaying(false)
+    }
+  }
+
+  // Completely stop and reset main audio
+  const stopAndResetMainAudio = () => {
+    if (audioRef.current) {
+      audioRef.current.pause()
+      audioRef.current.currentTime = 0
+      setAudioPlaying(false)
+      setAudioCurrentTime(0)
     }
   }
 
@@ -815,6 +881,16 @@ function MainApp() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0f] flex">
+      {/* Floating Audio Control - Shows when main audio is playing */}
+      <FloatingAudioControl
+        isPlaying={audioPlaying}
+        currentTime={audioCurrentTime}
+        duration={audioDuration}
+        onStop={stopAndResetMainAudio}
+        onTogglePlay={toggleAudioPlayback}
+        label={result?.file_name || "Call Audio"}
+      />
+
       {/* Mobile Menu Overlay */}
       {mobileMenuOpen && (
         <div 
@@ -978,11 +1054,22 @@ function MainApp() {
                           <Upload className="w-10 h-10 text-white" />
                         </div>
                         <p className="text-lg text-white mb-2">
-                          Drop your audio file here or <span className="text-violet-400 font-semibold">browse</span>
+                          <span className="hidden sm:inline">Drop your audio file here or </span>
+                          <span className="text-violet-400 font-semibold">
+                            <span className="sm:hidden">Tap to select audio file</span>
+                            <span className="hidden sm:inline">browse</span>
+                          </span>
                         </p>
                         <p className="text-sm text-gray-500">
                           Supports MP3, WAV, M4A, and more
                         </p>
+                        {/* Mobile-friendly button */}
+                        <div className="sm:hidden mt-4">
+                          <span className="inline-flex items-center gap-2 px-6 py-3 bg-violet-500/20 border border-violet-500/30 rounded-xl text-violet-300 font-medium">
+                            <Upload className="w-5 h-5" />
+                            Choose File
+                          </span>
+                        </div>
                         {file && (
                           <div className="mt-6 inline-flex items-center gap-2 px-4 py-2 bg-emerald-500/20 border border-emerald-500/30 rounded-full">
                             <CheckCircle2 className="w-4 h-4 text-emerald-400" />
@@ -991,7 +1078,12 @@ function MainApp() {
                         )}
                       </div>
                     </div>
-                    <input type="file" className="hidden" accept="audio/*" onChange={handleFileChange} />
+                    <input 
+                      type="file" 
+                      className="hidden" 
+                      accept="audio/*,audio/mpeg,audio/mp3,audio/wav,audio/m4a,audio/aac,audio/ogg,audio/webm,.mp3,.wav,.m4a,.aac,.ogg,.webm,.flac,.wma"
+                      onChange={handleFileChange} 
+                    />
                   </label>
 
                   <button
@@ -1835,13 +1927,26 @@ function MainApp() {
                         </div>
                         
                         <div className="space-y-3 sm:space-y-4">
-                          {/* Buyer's Objection */}
-                          <div className="p-3 sm:p-4 bg-red-500/10 rounded-xl border-l-4 border-red-500">
-                            <p className="text-xs text-red-400 mb-1 sm:mb-2 font-semibold">🗣️ CUSTOMER OBJECTION:</p>
+                          {/* Buyer's Objection - Click to play original audio */}
+                          <div 
+                            className="p-3 sm:p-4 bg-red-500/10 rounded-xl border-l-4 border-red-500 cursor-pointer hover:bg-red-500/20 transition-all group"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              if (result?.audio_url && obj.timestamp_ms) seekToTime(obj.timestamp_ms)
+                            }}
+                          >
+                            <div className="flex items-center justify-between mb-1 sm:mb-2">
+                              <p className="text-xs text-red-400 font-semibold">🗣️ CUSTOMER OBJECTION:</p>
+                              {result?.audio_url && obj.timestamp_ms && (
+                                <span className="text-xs text-red-400/60 group-hover:text-red-400 flex items-center gap-1 transition-colors">
+                                  <PlayCircle className="w-3 h-3" /> Play from call
+                                </span>
+                              )}
+                            </div>
                             <p className="text-white text-sm sm:text-lg">"{obj.buyer_statement}"</p>
                           </div>
 
-                          {/* Real Concern */}
+                          {/* Real Concern - This is AI analysis, not from audio */}
                           {obj.real_concern && (
                             <div className="p-3 sm:p-4 bg-orange-500/10 rounded-xl border-l-4 border-orange-500">
                               <p className="text-xs text-orange-400 mb-1 sm:mb-2 font-semibold">🎯 REAL CONCERN:</p>
@@ -1849,9 +1954,27 @@ function MainApp() {
                             </div>
                           )}
                           
-                          {/* Seller's Response */}
-                          <div className="p-3 sm:p-4 bg-blue-500/10 rounded-xl border-l-4 border-blue-500">
-                            <p className="text-xs text-blue-400 mb-1 sm:mb-2 font-semibold">💬 SELLER'S RESPONSE:</p>
+                          {/* Seller's Response - Click to play original audio */}
+                          <div 
+                            className="p-3 sm:p-4 bg-blue-500/10 rounded-xl border-l-4 border-blue-500 cursor-pointer hover:bg-blue-500/20 transition-all group"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              if (result?.audio_url && obj.response_timestamp_ms) {
+                                seekToTime(obj.response_timestamp_ms)
+                              } else if (result?.audio_url && obj.timestamp_ms) {
+                                // Fallback to objection timestamp + a few seconds
+                                seekToTime(obj.timestamp_ms + 3000)
+                              }
+                            }}
+                          >
+                            <div className="flex items-center justify-between mb-1 sm:mb-2">
+                              <p className="text-xs text-blue-400 font-semibold">💬 SELLER'S RESPONSE:</p>
+                              {result?.audio_url && (
+                                <span className="text-xs text-blue-400/60 group-hover:text-blue-400 flex items-center gap-1 transition-colors">
+                                  <PlayCircle className="w-3 h-3" /> Play from call
+                                </span>
+                              )}
+                            </div>
                             <p className="text-gray-300 text-sm sm:text-base">"{obj.seller_response}"</p>
                           </div>
                           

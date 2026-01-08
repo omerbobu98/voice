@@ -93,16 +93,12 @@ def create_styles():
         fontName='Helvetica-Bold'
     ))
     
-    # Body text
-    styles.add(ParagraphStyle(
-        name='BodyText',
-        parent=styles['Normal'],
-        fontSize=10,
-        textColor=BRAND_DARK,
-        spaceAfter=6,
-        alignment=TA_JUSTIFY,
-        leading=14
-    ))
+    # Body text - override existing BodyText style
+    styles['BodyText'].fontSize = 10
+    styles['BodyText'].textColor = BRAND_DARK
+    styles['BodyText'].spaceAfter = 6
+    styles['BodyText'].alignment = TA_JUSTIFY
+    styles['BodyText'].leading = 14
     
     # Quote style (for customer/seller statements)
     styles.add(ParagraphStyle(
@@ -163,60 +159,72 @@ def create_styles():
 
 
 def add_header(canvas, doc):
-    """Add header to each page"""
+    """Add professional header to each page"""
     canvas.saveState()
     
-    # Header line
-    canvas.setStrokeColor(BRAND_PRIMARY)
-    canvas.setLineWidth(2)
-    canvas.line(50, A4[1] - 40, A4[0] - 50, A4[1] - 40)
-    
-    # Company name
-    canvas.setFont('Helvetica-Bold', 10)
+    # Gradient-like header bar (using rectangle)
     canvas.setFillColor(BRAND_PRIMARY)
-    canvas.drawString(50, A4[1] - 30, "SalesAI")
+    canvas.rect(0, A4[1] - 50, A4[0], 50, fill=True, stroke=False)
     
-    # Page number
+    # Company name in white on header bar
+    canvas.setFont('Helvetica-Bold', 14)
+    canvas.setFillColor(colors.white)
+    canvas.drawString(50, A4[1] - 32, "SalesAI")
+    
+    # Subtitle
     canvas.setFont('Helvetica', 9)
-    canvas.setFillColor(BRAND_DARK)
-    canvas.drawRightString(A4[0] - 50, A4[1] - 30, f"Page {doc.page}")
+    canvas.setFillColor(colors.HexColor('#E0D4FF'))
+    canvas.drawString(50, A4[1] - 44, "Sales Call Intelligence")
+    
+    # Page number on right
+    canvas.setFont('Helvetica-Bold', 10)
+    canvas.setFillColor(colors.white)
+    canvas.drawRightString(A4[0] - 50, A4[1] - 35, f"Page {doc.page}")
     
     canvas.restoreState()
 
 
 def add_footer(canvas, doc):
-    """Add footer to each page"""
+    """Add professional footer to each page"""
     canvas.saveState()
     
+    # Footer bar
+    canvas.setFillColor(colors.HexColor('#F8F7FF'))
+    canvas.rect(0, 0, A4[0], 45, fill=True, stroke=False)
+    
     # Footer line
-    canvas.setStrokeColor(BRAND_LIGHT)
-    canvas.setLineWidth(1)
-    canvas.line(50, 40, A4[0] - 50, 40)
+    canvas.setStrokeColor(BRAND_PRIMARY)
+    canvas.setLineWidth(2)
+    canvas.line(50, 45, A4[0] - 50, 45)
     
     # Footer text
     canvas.setFont('Helvetica', 8)
-    canvas.setFillColor(colors.HexColor('#9CA3AF'))
-    canvas.drawString(50, 25, f"Generated on {datetime.now().strftime('%Y-%m-%d %H:%M')}")
-    canvas.drawRightString(A4[0] - 50, 25, "Confidential - Sales Call Analysis Report")
+    canvas.setFillColor(colors.HexColor('#6B7280'))
+    canvas.drawString(50, 20, f"Generated: {datetime.now().strftime('%B %d, %Y at %H:%M')}")
+    canvas.drawCentredString(A4[0] / 2, 20, "Confidential")
+    canvas.drawRightString(A4[0] - 50, 20, "salesai.app")
     
     canvas.restoreState()
 
 
 def create_score_box(score, label, color=BRAND_PRIMARY):
-    """Create a score display box"""
-    data = [[Paragraph(f"<font size='24' color='{color.hexval()}'><b>{score}</b></font>", 
+    """Create a professional score display box"""
+    data = [[Paragraph(f"<font size='28' color='{color.hexval()}'><b>{score}</b></font>", 
                        ParagraphStyle('score', alignment=TA_CENTER))],
-            [Paragraph(f"<font size='9' color='#6B7280'>{label}</font>", 
+            [Paragraph(f"<font size='10' color='#4B5563'>{label}</font>", 
                        ParagraphStyle('label', alignment=TA_CENTER))]]
     
-    table = Table(data, colWidths=[80])
+    table = Table(data, colWidths=[120])
     table.setStyle(TableStyle([
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('BOX', (0, 0), (-1, -1), 1, BRAND_LIGHT),
+        ('BOX', (0, 0), (-1, -1), 2, color),
         ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#FAFAFA')),
-        ('TOPPADDING', (0, 0), (-1, -1), 10),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+        ('TOPPADDING', (0, 0), (-1, -1), 15),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 15),
+        ('LEFTPADDING', (0, 0), (-1, -1), 10),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+        ('ROUNDEDCORNERS', [5, 5, 5, 5]),
     ]))
     return table
 
@@ -250,42 +258,52 @@ def generate_analysis_pdf(analysis_data: dict, transcription_data: dict = None) 
     metrics = analysis_data.get('metrics', {})
     
     # ==================== COVER PAGE ====================
-    story.append(Spacer(1, 100))
-    story.append(Paragraph("Sales Call Analysis Report", styles['ReportTitle']))
-    story.append(Spacer(1, 20))
+    story.append(Spacer(1, 80))
+    
+    # Main title with styling
+    story.append(Paragraph("SALES CALL", styles['ReportTitle']))
+    story.append(Paragraph("<font color='#D946EF' size='28'><b>Analysis Report</b></font>", 
+                          ParagraphStyle('subtitle_main', fontSize=28, alignment=TA_CENTER)))
+    story.append(Spacer(1, 30))
     
     # Call summary one-liner
     if analysis.get('call_summary'):
         summary = analysis['call_summary']
-        story.append(Paragraph(f"<i>{clean_text(summary.get('one_liner', 'Call Analysis'))}</i>", 
-                              ParagraphStyle('subtitle', fontSize=14, textColor=BRAND_DARK, alignment=TA_CENTER)))
+        one_liner = clean_text(summary.get('one_liner', 'Comprehensive Call Analysis'))
+        story.append(Paragraph(f"<i>\"{one_liner}\"</i>", 
+                              ParagraphStyle('subtitle', fontSize=13, textColor=BRAND_DARK, alignment=TA_CENTER, leading=18)))
     
-    story.append(Spacer(1, 40))
+    story.append(Spacer(1, 50))
     
     # Quick stats table
     overall_score = analysis.get('seller_performance', {}).get('overall_score', 0)
     meddic_score = analysis.get('meddic_score', {}).get('total_score', 0)
     risk_level = analysis.get('deal_risk_score', {}).get('risk_level', 'unknown')
+    buying_ready = analysis.get('customer_interest', {}).get('buying_readiness', 0)
     
-    # Score boxes
+    # Score boxes - 4 metrics
     score_data = [
         [create_score_box(overall_score, "Overall Score"),
          create_score_box(f"{meddic_score}%", "MEDDIC Score"),
-         create_score_box(risk_level.upper(), "Risk Level", 
+         create_score_box(f"{buying_ready}%", "Buying Ready"),
+         create_score_box(risk_level.upper() if risk_level else "N/A", "Risk Level", 
                          BRAND_SUCCESS if risk_level == 'low' else BRAND_WARNING if risk_level == 'medium' else BRAND_DANGER)]
     ]
     
-    score_table = Table(score_data, colWidths=[150, 150, 150])
+    score_table = Table(score_data, colWidths=[125, 125, 125, 125])
     score_table.setStyle(TableStyle([
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
     ]))
     story.append(score_table)
     
-    story.append(Spacer(1, 30))
-    story.append(HRFlowable(width="80%", thickness=1, color=BRAND_LIGHT, spaceBefore=10, spaceAfter=10))
+    story.append(Spacer(1, 40))
     
-    # Date
+    # Decorative line
+    story.append(HRFlowable(width="60%", thickness=2, color=BRAND_PRIMARY, spaceBefore=10, spaceAfter=10))
+    
+    # Date and file info
+    story.append(Spacer(1, 10))
     story.append(Paragraph(f"<font size='10' color='#6B7280'>Report Generated: {datetime.now().strftime('%B %d, %Y at %H:%M')}</font>", 
                           ParagraphStyle('date', alignment=TA_CENTER)))
     
