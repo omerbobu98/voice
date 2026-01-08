@@ -1531,87 +1531,84 @@ function MainApp() {
                   </div>
                 </div>
 
-                {/* Key Metrics Dashboard */}
+                {/* Key Metrics Dashboard - Clean Design */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
                   {/* Overall Score */}
-                  <div className="bg-black/20 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-white/5 text-center">
-                    <div className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">
+                  <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50">
+                    <div className="text-xs text-slate-400 uppercase tracking-wide mb-2">Performance</div>
+                    <div className="text-3xl font-bold text-indigo-400">
                       {analysisResult.analysis?.seller_performance?.overall_score || 0}
                     </div>
-                    <div className="text-xs text-gray-400 mt-1">Overall Score</div>
                   </div>
                   
-                  {/* Customer Interest */}
-                  <div className="bg-black/20 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-white/5 text-center">
-                    <div className={`text-2xl sm:text-3xl font-bold ${
-                      analysisResult.analysis?.customer_interest?.overall_level === 'high' ? 'text-emerald-400' :
-                      analysisResult.analysis?.customer_interest?.overall_level === 'medium' ? 'text-yellow-400' : 'text-red-400'
-                    }`}>
+                  {/* Buying Readiness */}
+                  <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50">
+                    <div className="text-xs text-slate-400 uppercase tracking-wide mb-2">Buying Ready</div>
+                    <div className="text-3xl font-bold text-indigo-400">
                       {analysisResult.analysis?.customer_interest?.buying_readiness || 0}%
                     </div>
-                    <div className="text-xs text-gray-400 mt-1">Buying Ready</div>
                   </div>
                   
                   {/* Objections Count */}
-                  <div className="bg-black/20 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-white/5 text-center">
-                    <div className="text-3xl sm:text-4xl font-bold text-orange-400">
+                  <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50">
+                    <div className="text-xs text-slate-400 uppercase tracking-wide mb-2">Objections</div>
+                    <div className="text-3xl font-bold text-indigo-400">
                       {analysisResult.analysis?.objections?.length || 0}
                     </div>
-                    <div className="text-xs text-gray-400 mt-1">Objections</div>
                   </div>
                   
                   {/* Risk Level */}
-                  <div className="bg-black/20 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-white/5 text-center">
-                    <div className={`text-lg sm:text-xl font-bold px-2 py-1 rounded-lg inline-block ${
-                      analysisResult.analysis?.deal_risk_score?.risk_level === 'low' ? 'bg-emerald-500/20 text-emerald-400' :
-                      analysisResult.analysis?.deal_risk_score?.risk_level === 'medium' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-red-500/20 text-red-400'
+                  <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50">
+                    <div className="text-xs text-slate-400 uppercase tracking-wide mb-2">Risk Level</div>
+                    <div className={`text-xl font-bold ${
+                      analysisResult.analysis?.deal_risk_score?.risk_level === 'low' ? 'text-emerald-400' :
+                      analysisResult.analysis?.deal_risk_score?.risk_level === 'medium' ? 'text-amber-400' : 'text-red-400'
                     }`}>
                       {(analysisResult.analysis?.deal_risk_score?.risk_level || 'N/A').toUpperCase()}
                     </div>
-                    <div className="text-xs text-gray-400 mt-1">Risk Level</div>
                   </div>
                 </div>
 
-                {/* Call Outcome Badge */}
+                {/* Call Outcome - Clean */}
                 {analysisResult.analysis?.call_summary && (
-                  <div className="mt-4 pt-4 border-t border-white/5">
-                    <div className="flex items-center gap-3 flex-wrap">
-                      <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                        analysisResult.analysis.call_summary.outcome === 'positive' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' :
-                        analysisResult.analysis.call_summary.outcome === 'neutral' ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30' :
-                        'bg-red-500/20 text-red-300 border border-red-500/30'
+                  <div className="mt-4 p-4 bg-slate-800/30 rounded-xl border border-slate-700/30">
+                    <div className="flex items-start gap-3">
+                      <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                        analysisResult.analysis.call_summary.outcome === 'positive' ? 'bg-emerald-500/20 text-emerald-400' :
+                        analysisResult.analysis.call_summary.outcome === 'neutral' ? 'bg-amber-500/20 text-amber-400' :
+                        'bg-red-500/20 text-red-400'
                       }`}>
-                        {analysisResult.analysis.call_summary.outcome?.toUpperCase()} OUTCOME
+                        {analysisResult.analysis.call_summary.outcome?.toUpperCase()}
                       </span>
-                      <p className="text-sm text-gray-300 flex-1">{analysisResult.analysis.call_summary.one_liner}</p>
+                      <p className="text-sm text-slate-300 flex-1">{analysisResult.analysis.call_summary.one_liner}</p>
                     </div>
                   </div>
                 )}
               </div>
 
-              {/* Audio Player in Analysis View */}
+              {/* Audio Player - Clean Design */}
               {result?.audio_url && (
-                <div className="bg-gradient-to-r from-violet-500/10 via-fuchsia-500/5 to-transparent rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-violet-500/20 backdrop-blur-sm">
-                  <div className="flex items-center gap-3 sm:gap-4">
+                <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50">
+                  <div className="flex items-center gap-4">
                     <button
                       onClick={toggleAudioPlayback}
-                      className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-violet-500 to-fuchsia-500 rounded-full flex items-center justify-center shadow-lg shadow-violet-500/30 hover:scale-105 transition-transform flex-shrink-0"
+                      className="w-12 h-12 bg-indigo-500 hover:bg-indigo-600 rounded-full flex items-center justify-center transition-colors flex-shrink-0"
                     >
                       {audioPlaying ? (
-                        <PauseCircle className="w-8 h-8 text-white" />
+                        <PauseCircle className="w-6 h-6 text-white" />
                       ) : (
-                        <PlayCircle className="w-8 h-8 text-white" />
+                        <PlayCircle className="w-6 h-6 text-white" />
                       )}
                     </button>
                     <div className="flex-1">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-white font-semibold">Call Recording</span>
-                        <span className="text-gray-400 text-sm font-mono">
+                        <span className="text-slate-200 font-medium text-sm">Call Recording</span>
+                        <span className="text-slate-400 text-xs font-mono">
                           {formatAudioTime(audioCurrentTime)} / {formatAudioTime(audioDuration)}
                         </span>
                       </div>
                       <div 
-                        className="h-2 bg-white/10 rounded-full cursor-pointer overflow-hidden"
+                        className="h-1.5 bg-slate-700 rounded-full cursor-pointer overflow-hidden"
                         onClick={(e) => {
                           const rect = e.currentTarget.getBoundingClientRect()
                           const percent = (e.clientX - rect.left) / rect.width
@@ -1621,7 +1618,7 @@ function MainApp() {
                         }}
                       >
                         <div 
-                          className="h-full bg-gradient-to-r from-violet-500 to-fuchsia-500 rounded-full transition-all"
+                          className="h-full bg-indigo-500 rounded-full transition-all"
                           style={{ width: `${audioDuration > 0 ? (audioCurrentTime / audioDuration) * 100 : 0}%` }}
                         />
                       </div>
@@ -1705,31 +1702,29 @@ function MainApp() {
 
               {/* Call Summary - Hidden since shown in header */}
 
-              {/* Customer Interest Analysis */}
+              {/* Customer Interest Analysis - Clean Design */}
               {analysisResult.analysis?.customer_interest && (
-                <div className="bg-gradient-to-br from-cyan-500/10 via-blue-500/5 to-transparent rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-cyan-500/20 backdrop-blur-sm">
-                  <h3 className="text-lg sm:text-xl font-bold text-white mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3">
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-xl flex items-center justify-center">
-                      <Target className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-                    </div>
-                    Customer Interest Analysis
+                <div className="bg-slate-800/50 rounded-xl p-5 border border-slate-700/50">
+                  <h3 className="text-base font-semibold text-slate-200 mb-4 flex items-center gap-2">
+                    <Target className="w-4 h-4 text-indigo-400" />
+                    Customer Interest
                   </h3>
                   
                   {/* Interest Level & Readiness */}
-                  <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
-                    <div className="bg-black/20 rounded-xl p-3 sm:p-4 text-center">
-                      <p className="text-xs sm:text-sm text-gray-400 mb-1 sm:mb-2">Interest Level</p>
-                      <p className={`text-xl sm:text-2xl font-bold ${
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div className="bg-slate-900/50 rounded-lg p-3 text-center">
+                      <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">Interest Level</p>
+                      <p className={`text-lg font-bold ${
                         analysisResult.analysis.customer_interest.overall_level === 'high' ? 'text-emerald-400' :
-                        analysisResult.analysis.customer_interest.overall_level === 'medium' ? 'text-yellow-400' :
+                        analysisResult.analysis.customer_interest.overall_level === 'medium' ? 'text-amber-400' :
                         'text-red-400'
                       }`}>
                         {analysisResult.analysis.customer_interest.overall_level?.toUpperCase()}
                       </p>
                     </div>
-                    <div className="bg-black/20 rounded-xl p-3 sm:p-4 text-center">
-                      <p className="text-xs sm:text-sm text-gray-400 mb-1 sm:mb-2">Buying Readiness</p>
-                      <p className="text-xl sm:text-2xl font-bold text-cyan-400">
+                    <div className="bg-slate-900/50 rounded-lg p-3 text-center">
+                      <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">Buying Readiness</p>
+                      <p className="text-lg font-bold text-indigo-400">
                         {analysisResult.analysis.customer_interest.buying_readiness || 0}%
                       </p>
                     </div>
@@ -1737,20 +1732,20 @@ function MainApp() {
 
                   {/* What They Want */}
                   {analysisResult.analysis.customer_interest.what_they_want && (
-                    <div className="bg-emerald-500/10 rounded-xl p-3 sm:p-4 border-l-4 border-emerald-500 mb-4">
-                      <p className="text-xs sm:text-sm text-emerald-400 font-semibold mb-1">💡 What They Really Want:</p>
-                      <p className="text-sm sm:text-base text-gray-200">{analysisResult.analysis.customer_interest.what_they_want}</p>
+                    <div className="mb-4">
+                      <p className="text-xs text-slate-500 uppercase tracking-wide mb-2">What They Want</p>
+                      <p className="text-sm text-slate-300">{analysisResult.analysis.customer_interest.what_they_want}</p>
                     </div>
                   )}
 
                   {/* Main Concerns */}
                   {analysisResult.analysis.customer_interest.main_concerns?.length > 0 && (
-                    <div className="bg-orange-500/10 rounded-xl p-3 sm:p-4 border-l-4 border-orange-500 mb-4">
-                      <p className="text-xs sm:text-sm text-orange-400 font-semibold mb-2">⚠️ Main Concerns:</p>
+                    <div className="mb-4">
+                      <p className="text-xs text-slate-500 uppercase tracking-wide mb-2">Main Concerns</p>
                       <ul className="space-y-1">
                         {analysisResult.analysis.customer_interest.main_concerns.map((concern, i) => (
-                          <li key={i} className="text-sm sm:text-base text-gray-300 flex items-start gap-2">
-                            <span className="text-orange-400">•</span> {concern}
+                          <li key={i} className="text-sm text-slate-400 flex items-start gap-2">
+                            <span className="text-amber-400 mt-1">•</span> {concern}
                           </li>
                         ))}
                       </ul>
@@ -1758,23 +1753,23 @@ function MainApp() {
                   )}
 
                   {/* Interest & Hesitation Signals */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {analysisResult.analysis.customer_interest.interest_signals?.length > 0 && (
-                      <div className="bg-black/20 rounded-xl p-3 sm:p-4">
-                        <p className="text-xs sm:text-sm text-emerald-400 font-semibold mb-2">✅ Interest Signals:</p>
+                      <div>
+                        <p className="text-xs text-emerald-400 uppercase tracking-wide mb-2">Interest Signals</p>
                         <ul className="space-y-1">
                           {analysisResult.analysis.customer_interest.interest_signals.map((signal, i) => (
-                            <li key={i} className="text-xs sm:text-sm text-gray-400">• {signal}</li>
+                            <li key={i} className="text-xs text-slate-400">• {signal}</li>
                           ))}
                         </ul>
                       </div>
                     )}
                     {analysisResult.analysis.customer_interest.hesitation_signals?.length > 0 && (
-                      <div className="bg-black/20 rounded-xl p-3 sm:p-4">
-                        <p className="text-xs sm:text-sm text-red-400 font-semibold mb-2">⚠️ Hesitation Signals:</p>
+                      <div>
+                        <p className="text-xs text-red-400 uppercase tracking-wide mb-2">Hesitation Signals</p>
                         <ul className="space-y-1">
                           {analysisResult.analysis.customer_interest.hesitation_signals.map((signal, i) => (
-                            <li key={i} className="text-xs sm:text-sm text-gray-400">• {signal}</li>
+                            <li key={i} className="text-xs text-slate-400">• {signal}</li>
                           ))}
                         </ul>
                       </div>
@@ -1783,38 +1778,35 @@ function MainApp() {
                 </div>
               )}
 
-              {/* Scores Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-6">
+              {/* Scores Grid - Clean Design */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 {/* Overall Score */}
                 {analysisResult.analysis?.seller_performance && (
-                  <div className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-white/10 text-center">
-                    <h3 className="text-base sm:text-lg font-bold text-white mb-2 sm:mb-4">Overall Score</h3>
-                    <div className="text-4xl sm:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-fuchsia-400 mb-1 sm:mb-2">
+                  <div className="bg-slate-800/50 rounded-xl p-5 border border-slate-700/50 text-center">
+                    <h3 className="text-sm font-medium text-slate-400 mb-3">Seller Performance</h3>
+                    <div className="text-4xl font-bold text-indigo-400 mb-1">
                       {analysisResult.analysis.seller_performance.overall_score || 0}
                     </div>
-                    <p className="text-gray-500 text-sm">out of 100</p>
+                    <p className="text-slate-500 text-xs">out of 100</p>
                   </div>
                 )}
 
                 {/* MEDDIC Score */}
                 {analysisResult.analysis?.meddic_score && (
-                  <div className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-white/10">
-                    <div className="flex items-center justify-between mb-3 sm:mb-4">
-                      <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
-                        <Target className="w-4 h-4 sm:w-5 sm:h-5 text-violet-400" />
-                        MEDDIC
-                      </h3>
-                      <div className="text-xl sm:text-2xl font-bold text-violet-400">{analysisResult.analysis.meddic_score.total_score || 0}%</div>
+                  <div className="bg-slate-800/50 rounded-xl p-5 border border-slate-700/50">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-sm font-medium text-slate-400">MEDDIC</h3>
+                      <div className="text-xl font-bold text-indigo-400">{analysisResult.analysis.meddic_score.total_score || 0}%</div>
                     </div>
-                    <div className="space-y-1.5 sm:space-y-2">
+                    <div className="space-y-2">
                       {['metrics', 'economic_buyer', 'decision_criteria', 'decision_process', 'identify_pain', 'champion'].map(key => {
                         const item = analysisResult.analysis.meddic_score[key]
                         if (!item) return null
                         return (
                           <div key={key} className="flex items-center gap-2">
-                            <div className="w-16 sm:w-20 text-xs text-gray-500 capitalize truncate">{key.replace('_', ' ')}</div>
-                            <div className="flex-1 h-1 sm:h-1.5 bg-white/5 rounded-full overflow-hidden">
-                              <div className="h-full bg-violet-500 rounded-full" style={{width: `${item.score || 0}%`}} />
+                            <div className="w-20 text-xs text-slate-500 capitalize truncate">{key.replace('_', ' ')}</div>
+                            <div className="flex-1 h-1.5 bg-slate-700 rounded-full overflow-hidden">
+                              <div className="h-full bg-indigo-500 rounded-full" style={{width: `${item.score || 0}%`}} />
                             </div>
                           </div>
                         )
@@ -1825,24 +1817,21 @@ function MainApp() {
 
                 {/* BANT Score */}
                 {analysisResult.analysis?.bant_score && (
-                  <div className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-white/10">
-                    <div className="flex items-center justify-between mb-3 sm:mb-4">
-                      <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
-                        <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400" />
-                        BANT
-                      </h3>
-                      <div className={`text-sm sm:text-lg font-bold ${analysisResult.analysis.bant_score.overall_qualified ? 'text-emerald-400' : 'text-orange-400'}`}>
-                        {analysisResult.analysis.bant_score.overall_qualified ? '✓ Qualified' : '✗ Not Qualified'}
+                  <div className="bg-slate-800/50 rounded-xl p-5 border border-slate-700/50">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-sm font-medium text-slate-400">BANT</h3>
+                      <div className={`text-sm font-semibold ${analysisResult.analysis.bant_score.overall_qualified ? 'text-emerald-400' : 'text-amber-400'}`}>
+                        {analysisResult.analysis.bant_score.overall_qualified ? 'Qualified' : 'Not Qualified'}
                       </div>
                     </div>
-                    <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
+                    <div className="grid grid-cols-4 gap-2">
                       {['budget', 'authority', 'need', 'timeline'].map(key => {
                         const item = analysisResult.analysis.bant_score[key]
                         if (!item) return null
                         return (
-                          <div key={key} className={`p-1.5 sm:p-2 rounded-lg text-center ${item.qualified ? 'bg-emerald-500/20' : 'bg-orange-500/20'}`}>
-                            <div className="text-xs text-gray-500 capitalize">{key.charAt(0).toUpperCase()}</div>
-                            <div className={`text-base sm:text-lg font-bold ${item.qualified ? 'text-emerald-400' : 'text-orange-400'}`}>
+                          <div key={key} className={`p-2 rounded-lg text-center ${item.qualified ? 'bg-emerald-500/10' : 'bg-slate-700/50'}`}>
+                            <div className="text-xs text-slate-500 capitalize">{key.charAt(0).toUpperCase()}</div>
+                            <div className={`text-sm font-bold ${item.qualified ? 'text-emerald-400' : 'text-slate-500'}`}>
                               {item.qualified ? '✓' : '✗'}
                             </div>
                           </div>
@@ -1853,37 +1842,34 @@ function MainApp() {
                 )}
               </div>
 
-              {/* Talk Ratio */}
+              {/* Talk Ratio - Clean */}
               {analysisResult.metrics?.talk_ratio && (
-                <div className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] rounded-3xl p-6 border border-white/10">
-                  <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                    <Volume2 className="w-5 h-5 text-fuchsia-400" />
-                    Talk-to-Listen Ratio
-                  </h3>
-                  <div className="h-10 bg-white/5 rounded-full overflow-hidden flex">
-                    <div className="h-full bg-blue-500 flex items-center justify-center text-sm font-bold text-white" style={{width: `${analysisResult.metrics.talk_ratio.seller_percentage}%`}}>
+                <div className="bg-slate-800/50 rounded-xl p-5 border border-slate-700/50">
+                  <h3 className="text-sm font-medium text-slate-400 mb-3">Talk-to-Listen Ratio</h3>
+                  <div className="h-8 bg-slate-700 rounded-full overflow-hidden flex">
+                    <div className="h-full bg-indigo-500 flex items-center justify-center text-xs font-medium text-white" style={{width: `${analysisResult.metrics.talk_ratio.seller_percentage}%`}}>
                       Seller {analysisResult.metrics.talk_ratio.seller_percentage}%
                     </div>
-                    <div className="h-full bg-emerald-500 flex items-center justify-center text-sm font-bold text-white" style={{width: `${analysisResult.metrics.talk_ratio.buyer_percentage}%`}}>
+                    <div className="h-full bg-emerald-500 flex items-center justify-center text-xs font-medium text-white" style={{width: `${analysisResult.metrics.talk_ratio.buyer_percentage}%`}}>
                       Buyer {analysisResult.metrics.talk_ratio.buyer_percentage}%
                     </div>
                   </div>
-                  <p className="text-sm text-gray-500 mt-2">Ideal seller range: 40-60%</p>
+                  <p className="text-xs text-slate-500 mt-2">Ideal seller range: 40-60%</p>
                 </div>
               )}
 
-              {/* OBJECTIONS - Main Focus */}
+              {/* OBJECTIONS - Clean Design */}
               {analysisResult.analysis?.objections?.length > 0 && (
-                <div className="bg-gradient-to-b from-orange-500/10 to-white/[0.02] rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-orange-500/20">
-                  <h3 className="text-xl sm:text-2xl font-bold text-white mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3">
-                    <AlertTriangle className="w-5 h-5 sm:w-6 sm:h-6 text-orange-400" />
-                    Objections Detected ({analysisResult.analysis.objections.length})
+                <div className="bg-slate-800/50 rounded-xl p-5 border border-slate-700/50">
+                  <h3 className="text-base font-semibold text-slate-200 mb-4 flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-400" />
+                    Objections ({analysisResult.analysis.objections.length})
                   </h3>
-                  <div className="space-y-4 sm:space-y-6">
+                  <div className="space-y-4">
                     {analysisResult.analysis.objections.map((obj, i) => (
                       <div 
                         key={i} 
-                        className="bg-black/20 rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-white/10 hover:border-orange-500/30 transition-all cursor-pointer"
+                        className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/30 hover:border-indigo-500/30 transition-all cursor-pointer"
                         onClick={() => {
                           if (result?.audio_url && obj.timestamp_ms) {
                             seekToTime(obj.timestamp_ms)
@@ -1891,69 +1877,49 @@ function MainApp() {
                         }}
                       >
                         {/* Header Row */}
-                        <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
-                          <span className={`px-2 sm:px-3 py-1 rounded-lg text-xs sm:text-sm font-bold ${
-                            obj.type === 'price' || obj.type === 'finance' ? 'bg-yellow-500/20 text-yellow-300' :
-                            obj.type === 'trust' ? 'bg-red-500/20 text-red-300' :
-                            obj.type === 'timing' ? 'bg-blue-500/20 text-blue-300' :
-                            obj.type === 'authority' || obj.type === 'spouse_decision' ? 'bg-purple-500/20 text-purple-300' :
-                            obj.type === 'need_to_think' ? 'bg-cyan-500/20 text-cyan-300' :
-                            'bg-gray-500/20 text-gray-300'
-                          }`}>
+                        <div className="flex flex-wrap items-center gap-2 mb-3">
+                          <span className="px-2 py-1 rounded text-xs font-medium bg-slate-700 text-slate-300">
                             {obj.type?.toUpperCase()?.replace('_', ' ') || 'OBJECTION'}
                           </span>
                           <button 
-                            className="text-xs sm:text-sm font-mono px-2 py-1 rounded bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 transition-colors flex items-center gap-1"
+                            className="text-xs font-mono px-2 py-1 rounded bg-indigo-500/20 text-indigo-400 hover:bg-indigo-500/30 transition-colors flex items-center gap-1"
                             onClick={(e) => {
                               e.stopPropagation()
                               if (result?.audio_url && obj.timestamp_ms) seekToTime(obj.timestamp_ms)
                             }}
                           >
-                            <PlayCircle className="w-3 h-3 sm:w-4 sm:h-4" /> {obj.timestamp}
+                            <PlayCircle className="w-3 h-3" /> {obj.timestamp}
                           </button>
-                          {obj.technique_used && (
-                            <span className="px-2 py-1 bg-violet-500/20 text-violet-300 rounded-lg text-xs hidden sm:inline">
-                              {obj.technique_used}
-                            </span>
-                          )}
-                          <div className="ml-auto flex items-center gap-1 sm:gap-2">
-                            <span className="text-xs text-gray-500 hidden sm:inline">Score:</span>
-                            <span className={`text-base sm:text-lg font-bold ${
+                          <div className="ml-auto">
+                            <span className={`text-sm font-bold ${
                               obj.handling_score >= 7 ? 'text-emerald-400' :
-                              obj.handling_score >= 4 ? 'text-yellow-400' :
+                              obj.handling_score >= 4 ? 'text-amber-400' :
                               'text-red-400'
                             }`}>{obj.handling_score}/10</span>
                           </div>
                         </div>
                         
-                        <div className="space-y-3 sm:space-y-4">
-                          {/* Buyer's Objection - Click to play original audio */}
+                        <div className="space-y-3">
+                          {/* Customer Objection */}
                           <div 
-                            className="p-3 sm:p-4 bg-red-500/10 rounded-xl border-l-4 border-red-500 cursor-pointer hover:bg-red-500/20 transition-all group"
+                            className="p-3 bg-slate-800/50 rounded-lg border-l-2 border-red-400 cursor-pointer hover:bg-slate-800 transition-all"
                             onClick={(e) => {
                               e.stopPropagation()
                               if (result?.audio_url && obj.timestamp_ms) seekToTime(obj.timestamp_ms)
                             }}
                           >
-                            <div className="flex items-center justify-between mb-1 sm:mb-2">
-                              <p className="text-xs text-red-400 font-semibold">🗣️ CUSTOMER OBJECTION:</p>
-                              {result?.audio_url && obj.timestamp_ms && (
-                                <span className="text-xs text-red-400/60 group-hover:text-red-400 flex items-center gap-1 transition-colors">
-                                  <PlayCircle className="w-3 h-3" /> Play from call
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-white text-sm sm:text-lg">"{obj.buyer_statement}"</p>
+                            <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">Customer</p>
+                            <p className="text-slate-200 text-sm">"{obj.buyer_statement}"</p>
                           </div>
 
-                          {/* Real Concern - This is AI analysis, not from audio - no click action */}
+                          {/* Real Concern */}
                           {obj.real_concern && (
                             <div 
-                              className="p-3 sm:p-4 bg-orange-500/10 rounded-xl border-l-4 border-orange-500"
+                              className="p-3 bg-slate-800/50 rounded-lg border-l-2 border-amber-400"
                               onClick={(e) => e.stopPropagation()}
                             >
-                              <p className="text-xs text-orange-400 mb-1 sm:mb-2 font-semibold">🎯 REAL CONCERN:</p>
-                              <p className="text-orange-200 text-sm sm:text-base">{obj.real_concern}</p>
+                              <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">Underlying Concern</p>
+                              <p className="text-slate-300 text-sm">{obj.real_concern}</p>
                             </div>
                           )}
                           

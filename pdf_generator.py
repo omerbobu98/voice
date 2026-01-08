@@ -1,6 +1,6 @@
 """
 PDF Report Generator for Sales Call Analysis
-Creates professional, branded PDF reports with all analysis data
+Clean, Minimal, Professional Design - Inspired by Gong, Chorus, Salesforce
 """
 
 from reportlab.lib import colors
@@ -8,9 +8,7 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch, cm
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak, HRFlowable
-from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT, TA_JUSTIFY
-from reportlab.graphics.shapes import Drawing, Rect, String
-from reportlab.graphics.charts.piecharts import Pie
+from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
 from io import BytesIO
 from datetime import datetime
 import re
@@ -20,12 +18,11 @@ def clean_text(text):
     """Remove emojis and special characters that reportlab can't handle"""
     if not text:
         return ""
-    # Remove emojis and other non-ASCII characters
     emoji_pattern = re.compile("["
-        u"\U0001F600-\U0001F64F"  # emoticons
-        u"\U0001F300-\U0001F5FF"  # symbols & pictographs
-        u"\U0001F680-\U0001F6FF"  # transport & map symbols
-        u"\U0001F1E0-\U0001F1FF"  # flags
+        u"\U0001F600-\U0001F64F"
+        u"\U0001F300-\U0001F5FF"
+        u"\U0001F680-\U0001F6FF"
+        u"\U0001F1E0-\U0001F1FF"
         u"\U00002702-\U000027B0"
         u"\U000024C2-\U0001F251"
         u"\U0001f926-\U0001f937"
@@ -42,325 +39,237 @@ def clean_text(text):
     return emoji_pattern.sub('', str(text))
 
 
-# Premium Fintech Brand Colors - Clean, Professional, Billion-Dollar Look
-BRAND_PRIMARY = colors.HexColor('#1E1E2E')      # Deep charcoal - premium dark
-BRAND_SECONDARY = colors.HexColor('#EC4899')    # Pink - for storytelling section
-BRAND_ACCENT = colors.HexColor('#6366F1')       # Indigo - modern fintech
-BRAND_ACCENT_LIGHT = colors.HexColor('#818CF8') # Light indigo
-BRAND_SUCCESS = colors.HexColor('#059669')      # Emerald - professional green
-BRAND_WARNING = colors.HexColor('#D97706')      # Amber - refined orange
-BRAND_DANGER = colors.HexColor('#DC2626')       # Red - clear alerts
-BRAND_INFO = colors.HexColor('#0891B2')         # Cyan - data highlights
-BRAND_TEXT = colors.HexColor('#111827')         # Near black - readable text
-BRAND_TEXT_SECONDARY = colors.HexColor('#4B5563')  # Gray - secondary text
-BRAND_TEXT_MUTED = colors.HexColor('#9CA3AF')   # Light gray - muted text
-BRAND_LIGHT = colors.HexColor('#D1D5DB')        # Light gray for borders/low priority
-BRAND_BORDER = colors.HexColor('#E5E7EB')       # Light border
-BRAND_BG_LIGHT = colors.HexColor('#F9FAFB')     # Light background
-BRAND_WHITE = colors.white
+# Minimal Professional Color Palette - Single Accent Color
+PRIMARY = colors.HexColor('#1a1a2e')       # Dark navy - headers
+ACCENT = colors.HexColor('#4f46e5')        # Indigo - single accent color
+TEXT_PRIMARY = colors.HexColor('#111827')   # Almost black - main text
+TEXT_SECONDARY = colors.HexColor('#6b7280') # Gray - secondary text
+TEXT_MUTED = colors.HexColor('#9ca3af')     # Light gray - captions
+BORDER = colors.HexColor('#e5e7eb')         # Light border
+BG_LIGHT = colors.HexColor('#f9fafb')       # Very light gray background
+SUCCESS = colors.HexColor('#059669')        # Green for positive
+WARNING = colors.HexColor('#d97706')        # Orange for warning
+DANGER = colors.HexColor('#dc2626')         # Red for negative/high risk
 
 
 def create_styles():
-    """Create premium fintech paragraph styles for the PDF"""
+    """Create clean, minimal paragraph styles"""
     styles = getSampleStyleSheet()
     
-    # Main Report Title - Clean, bold, professional
+    # Main Title
     styles.add(ParagraphStyle(
-        name='ReportTitle',
-        parent=styles['Heading1'],
-        fontSize=32,
-        textColor=BRAND_TEXT,
-        spaceAfter=8,
-        alignment=TA_LEFT,
+        name='MainTitle',
+        fontSize=28,
+        textColor=PRIMARY,
         fontName='Helvetica-Bold',
-        leading=38
+        spaceAfter=6,
+        leading=34
     ))
     
-    # Report Subtitle
+    # Subtitle
     styles.add(ParagraphStyle(
-        name='ReportSubtitle',
-        parent=styles['Normal'],
-        fontSize=14,
-        textColor=BRAND_TEXT_SECONDARY,
-        spaceAfter=30,
-        alignment=TA_LEFT,
+        name='Subtitle',
+        fontSize=12,
+        textColor=TEXT_SECONDARY,
         fontName='Helvetica',
-        leading=20
+        spaceAfter=20,
+        leading=16
     ))
     
-    # Section header style - Clean with accent underline effect
+    # Section Header
     styles.add(ParagraphStyle(
         name='SectionHeader',
-        parent=styles['Heading2'],
-        fontSize=18,
-        textColor=BRAND_TEXT,
-        spaceBefore=25,
-        spaceAfter=12,
+        fontSize=14,
+        textColor=PRIMARY,
         fontName='Helvetica-Bold',
-        leading=22
+        spaceBefore=20,
+        spaceAfter=10,
+        leading=18
     ))
     
-    # Subsection header
+    # Subsection Header
     styles.add(ParagraphStyle(
-        name='SubsectionHeader',
-        parent=styles['Heading3'],
-        fontSize=12,
-        textColor=BRAND_TEXT,
-        spaceBefore=15,
-        spaceAfter=8,
+        name='SubHeader',
+        fontSize=11,
+        textColor=TEXT_PRIMARY,
         fontName='Helvetica-Bold',
-        leading=16
+        spaceBefore=12,
+        spaceAfter=6,
+        leading=14
     ))
     
-    # Body text - override existing BodyText style
+    # Body Text
     styles['BodyText'].fontSize = 10
-    styles['BodyText'].textColor = BRAND_TEXT
-    styles['BodyText'].spaceAfter = 8
-    styles['BodyText'].alignment = TA_LEFT
-    styles['BodyText'].leading = 15
+    styles['BodyText'].textColor = TEXT_PRIMARY
+    styles['BodyText'].leading = 14
+    styles['BodyText'].spaceAfter = 6
     
-    # Quote style (for customer/seller statements) - Elegant italic
+    # Quote/Highlight
     styles.add(ParagraphStyle(
         name='Quote',
-        parent=styles['Normal'],
         fontSize=10,
-        textColor=BRAND_TEXT_SECONDARY,
-        leftIndent=15,
-        rightIndent=15,
-        spaceBefore=4,
-        spaceAfter=8,
+        textColor=TEXT_SECONDARY,
         fontName='Helvetica-Oblique',
-        leading=15,
-        borderColor=BRAND_BORDER,
-        borderWidth=0,
-        borderPadding=8,
+        leftIndent=12,
+        spaceAfter=6,
+        leading=14
     ))
     
-    # Better response style - Success colored, professional
+    # Caption
     styles.add(ParagraphStyle(
-        name='BetterResponse',
-        parent=styles['Normal'],
-        fontSize=10,
-        textColor=BRAND_SUCCESS,
-        leftIndent=15,
-        rightIndent=15,
-        spaceBefore=4,
-        spaceAfter=8,
+        name='Caption',
+        fontSize=8,
+        textColor=TEXT_MUTED,
         fontName='Helvetica',
-        leading=15
+        spaceAfter=4,
+        leading=10
     ))
     
-    # Metric Value - Large numbers for KPIs
+    # Metric Value
     styles.add(ParagraphStyle(
         name='MetricValue',
-        parent=styles['Normal'],
-        fontSize=36,
-        textColor=BRAND_ACCENT,
-        alignment=TA_CENTER,
+        fontSize=24,
+        textColor=PRIMARY,
         fontName='Helvetica-Bold',
-        leading=40
+        alignment=TA_CENTER,
+        leading=28
     ))
     
-    # Metric Label - Small text below metrics
+    # Metric Label
     styles.add(ParagraphStyle(
         name='MetricLabel',
-        parent=styles['Normal'],
-        fontSize=10,
-        textColor=BRAND_TEXT_MUTED,
+        fontSize=8,
+        textColor=TEXT_MUTED,
+        fontName='Helvetica',
         alignment=TA_CENTER,
-        fontName='Helvetica',
-        spaceAfter=4
-    ))
-    
-    # Small text / Caption
-    styles.add(ParagraphStyle(
-        name='SmallText',
-        parent=styles['Normal'],
-        fontSize=9,
-        textColor=BRAND_TEXT_MUTED,
-        spaceAfter=4,
-        leading=12
-    ))
-    
-    # Label style - Category headers
-    styles.add(ParagraphStyle(
-        name='Label',
-        parent=styles['Normal'],
-        fontSize=9,
-        textColor=BRAND_ACCENT,
-        spaceAfter=4,
-        fontName='Helvetica-Bold',
-        textTransform='uppercase'
-    ))
-    
-    # Insight box text
-    styles.add(ParagraphStyle(
-        name='InsightText',
-        parent=styles['Normal'],
-        fontSize=11,
-        textColor=BRAND_TEXT,
-        spaceAfter=6,
-        fontName='Helvetica',
-        leading=16
+        leading=10
     ))
     
     return styles
 
 
 def add_header(canvas, doc):
-    """Add minimal, premium header to each page"""
+    """Minimal header with thin accent line"""
     canvas.saveState()
     
-    # Thin accent line at top
-    canvas.setStrokeColor(BRAND_ACCENT)
-    canvas.setLineWidth(3)
-    canvas.line(0, A4[1] - 3, A4[0], A4[1] - 3)
+    # Thin accent line at very top
+    canvas.setStrokeColor(ACCENT)
+    canvas.setLineWidth(2)
+    canvas.line(0, A4[1] - 2, A4[0], A4[1] - 2)
     
-    # Clean header area
-    canvas.setFont('Helvetica-Bold', 11)
-    canvas.setFillColor(BRAND_TEXT)
-    canvas.drawString(50, A4[1] - 35, "SalesAI")
+    # Logo/Brand
+    canvas.setFont('Helvetica-Bold', 9)
+    canvas.setFillColor(TEXT_PRIMARY)
+    canvas.drawString(50, A4[1] - 30, "SalesAI")
     
-    # Separator dot
-    canvas.setFillColor(BRAND_TEXT_MUTED)
-    canvas.drawString(105, A4[1] - 35, "·")
-    
-    # Report type
-    canvas.setFont('Helvetica', 10)
-    canvas.setFillColor(BRAND_TEXT_MUTED)
-    canvas.drawString(115, A4[1] - 35, "Call Analysis Report")
-    
-    # Page number on right - minimal
-    canvas.setFont('Helvetica', 10)
-    canvas.setFillColor(BRAND_TEXT_MUTED)
-    canvas.drawRightString(A4[0] - 50, A4[1] - 35, f"{doc.page}")
-    
-    # Subtle line below header
-    canvas.setStrokeColor(BRAND_BORDER)
-    canvas.setLineWidth(0.5)
-    canvas.line(50, A4[1] - 50, A4[0] - 50, A4[1] - 50)
+    # Page number
+    canvas.setFont('Helvetica', 9)
+    canvas.setFillColor(TEXT_MUTED)
+    canvas.drawRightString(A4[0] - 50, A4[1] - 30, f"{doc.page}")
     
     canvas.restoreState()
 
 
 def add_footer(canvas, doc):
-    """Add minimal, premium footer to each page"""
+    """Minimal footer"""
     canvas.saveState()
     
-    # Subtle line above footer
-    canvas.setStrokeColor(BRAND_BORDER)
+    # Footer line
+    canvas.setStrokeColor(BORDER)
     canvas.setLineWidth(0.5)
-    canvas.line(50, 40, A4[0] - 50, 40)
+    canvas.line(50, 35, A4[0] - 50, 35)
     
-    # Footer text - minimal and professional
-    canvas.setFont('Helvetica', 8)
-    canvas.setFillColor(BRAND_TEXT_MUTED)
-    canvas.drawString(50, 25, f"{datetime.now().strftime('%B %d, %Y')}")
-    
-    # Confidential badge
+    # Footer text
     canvas.setFont('Helvetica', 7)
-    canvas.drawCentredString(A4[0] / 2, 25, "CONFIDENTIAL")
-    
-    # Company URL
-    canvas.setFont('Helvetica', 8)
-    canvas.drawRightString(A4[0] - 50, 25, "salesai.app")
+    canvas.setFillColor(TEXT_MUTED)
+    canvas.drawString(50, 22, datetime.now().strftime('%B %d, %Y'))
+    canvas.drawRightString(A4[0] - 50, 22, "Confidential")
     
     canvas.restoreState()
 
 
-def create_metric_card(value, label, color=BRAND_ACCENT):
-    """Create a clean, premium metric card"""
+def get_score_color(score, is_risk=False):
+    """Get color based on score value"""
+    if is_risk:
+        if score >= 7 or str(score).upper() == 'HIGH':
+            return DANGER
+        elif score >= 4 or str(score).upper() == 'MEDIUM':
+            return WARNING
+        return SUCCESS
+    else:
+        if score >= 7:
+            return SUCCESS
+        elif score >= 4:
+            return WARNING
+        return DANGER
+
+
+def create_metric_box(value, label, color=PRIMARY):
+    """Create a clean metric display"""
     data = [
-        [Paragraph(f"<font size='32' color='{color.hexval()}'><b>{value}</b></font>", 
-                   ParagraphStyle('metric_val', alignment=TA_CENTER))],
-        [Paragraph(f"<font size='9' color='#6B7280'>{label}</font>", 
-                   ParagraphStyle('metric_lbl', alignment=TA_CENTER, fontName='Helvetica'))]
+        [Paragraph(f"<font color='{color.hexval()}'>{value}</font>", 
+                   ParagraphStyle('mv', fontSize=22, fontName='Helvetica-Bold', alignment=TA_CENTER))],
+        [Paragraph(label, ParagraphStyle('ml', fontSize=8, textColor=TEXT_MUTED, alignment=TA_CENTER))]
     ]
     
-    table = Table(data, colWidths=[110])
+    table = Table(data, colWidths=[100])
     table.setStyle(TableStyle([
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('BACKGROUND', (0, 0), (-1, -1), BRAND_BG_LIGHT),
-        ('TOPPADDING', (0, 0), (0, 0), 20),
-        ('BOTTOMPADDING', (0, 1), (0, 1), 15),
-        ('LEFTPADDING', (0, 0), (-1, -1), 8),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+        ('TOPPADDING', (0, 0), (0, 0), 12),
+        ('BOTTOMPADDING', (0, 1), (0, 1), 8),
+        ('BACKGROUND', (0, 0), (-1, -1), BG_LIGHT),
     ]))
     return table
 
 
-def create_section_header(title, accent_color=BRAND_ACCENT):
-    """Create a clean section header with accent line"""
-    return [
-        Paragraph(f"<font color='{accent_color.hexval()}'><b>{title}</b></font>", 
-                  ParagraphStyle('sec_head', fontSize=16, fontName='Helvetica-Bold', 
-                                spaceAfter=8, textColor=BRAND_TEXT)),
-        HRFlowable(width="100%", thickness=2, color=accent_color, spaceBefore=0, spaceAfter=15)
-    ]
-
-
 def generate_analysis_pdf(analysis_data: dict, transcription_data: dict = None) -> BytesIO:
-    """
-    Generate a professional PDF report from analysis data
-    
-    Args:
-        analysis_data: The analysis result from the AI
-        transcription_data: Optional transcription data (utterances, speaker roles, etc.)
-    
-    Returns:
-        BytesIO buffer containing the PDF
-    """
+    """Generate a clean, professional PDF report"""
     buffer = BytesIO()
     doc = SimpleDocTemplate(
         buffer,
         pagesize=A4,
         rightMargin=50,
         leftMargin=50,
-        topMargin=60,
-        bottomMargin=60
+        topMargin=50,
+        bottomMargin=50
     )
     
     styles = create_styles()
     story = []
     
-    # Get analysis object
     analysis = analysis_data.get('analysis', {})
-    metrics = analysis_data.get('metrics', {})
     
-    # ==================== COVER PAGE - Premium Fintech Style ====================
-    story.append(Spacer(1, 60))
-    
-    # Accent line
-    story.append(HRFlowable(width="30%", thickness=3, color=BRAND_ACCENT, spaceBefore=0, spaceAfter=20))
-    
-    # Main title - Clean, professional
-    story.append(Paragraph("Call Analysis", styles['ReportTitle']))
-    story.append(Paragraph("Report", ParagraphStyle('title2', fontSize=32, textColor=BRAND_TEXT_MUTED, 
-                                                     fontName='Helvetica', spaceAfter=20, alignment=TA_LEFT)))
-    
-    # Call summary one-liner
-    if analysis.get('call_summary'):
-        summary = analysis['call_summary']
-        one_liner = clean_text(summary.get('one_liner', 'Comprehensive sales call analysis'))
-        story.append(Paragraph(one_liner, styles['ReportSubtitle']))
-    
+    # ==================== COVER PAGE ====================
     story.append(Spacer(1, 40))
     
-    # Key Metrics Section
+    # Title
+    story.append(Paragraph("Call Analysis Report", styles['MainTitle']))
+    
+    # Summary line
+    if analysis.get('call_summary'):
+        summary = analysis['call_summary']
+        one_liner = clean_text(summary.get('one_liner', ''))
+        if one_liner:
+            story.append(Paragraph(one_liner, styles['Subtitle']))
+    
+    story.append(Spacer(1, 30))
+    
+    # Key Metrics Row
     overall_score = analysis.get('seller_performance', {}).get('overall_score', 0)
     meddic_score = analysis.get('meddic_score', {}).get('total_score', 0)
     risk_level = analysis.get('deal_risk_score', {}).get('risk_level', 'unknown')
     buying_ready = analysis.get('customer_interest', {}).get('buying_readiness', 0)
     
-    # Metrics row - 4 clean cards
-    metrics_data = [
-        [create_metric_card(overall_score, "Performance Score", BRAND_ACCENT),
-         create_metric_card(f"{meddic_score}%", "MEDDIC Score", BRAND_INFO),
-         create_metric_card(f"{buying_ready}%", "Buying Readiness", BRAND_SUCCESS),
-         create_metric_card(risk_level.upper() if risk_level else "N/A", "Risk Level", 
-                           BRAND_SUCCESS if risk_level == 'low' else BRAND_WARNING if risk_level == 'medium' else BRAND_DANGER)]
-    ]
+    metrics_data = [[
+        create_metric_box(str(overall_score), "PERFORMANCE", get_score_color(overall_score)),
+        create_metric_box(f"{meddic_score}%", "MEDDIC SCORE", ACCENT),
+        create_metric_box(f"{buying_ready}%", "BUYING READINESS", get_score_color(buying_ready)),
+        create_metric_box(risk_level.upper() if risk_level else "N/A", "RISK LEVEL", 
+                         get_score_color(0, is_risk=True) if risk_level == 'low' else 
+                         get_score_color(5, is_risk=True) if risk_level == 'medium' else 
+                         get_score_color(8, is_risk=True))
+    ]]
     
     metrics_table = Table(metrics_data, colWidths=[120, 120, 120, 120])
     metrics_table.setStyle(TableStyle([
@@ -369,279 +278,221 @@ def generate_analysis_pdf(analysis_data: dict, transcription_data: dict = None) 
     ]))
     story.append(metrics_table)
     
-    story.append(Spacer(1, 50))
+    story.append(Spacer(1, 30))
     
-    # Report metadata - Clean footer on cover
-    story.append(HRFlowable(width="100%", thickness=0.5, color=BRAND_BORDER, spaceBefore=20, spaceAfter=15))
+    # Report Info
+    story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER))
+    story.append(Spacer(1, 10))
     
-    meta_data = [
-        [Paragraph("<b>Generated</b>", ParagraphStyle('meta', fontSize=8, textColor=BRAND_TEXT_MUTED)),
-         Paragraph("<b>Prepared by</b>", ParagraphStyle('meta', fontSize=8, textColor=BRAND_TEXT_MUTED)),
-         Paragraph("<b>Classification</b>", ParagraphStyle('meta', fontSize=8, textColor=BRAND_TEXT_MUTED))],
-        [Paragraph(datetime.now().strftime('%B %d, %Y'), ParagraphStyle('meta_val', fontSize=10, textColor=BRAND_TEXT)),
-         Paragraph("SalesAI Platform", ParagraphStyle('meta_val', fontSize=10, textColor=BRAND_TEXT)),
-         Paragraph("Confidential", ParagraphStyle('meta_val', fontSize=10, textColor=BRAND_TEXT))]
+    info_data = [
+        [Paragraph("<b>Generated</b>", ParagraphStyle('info', fontSize=8, textColor=TEXT_MUTED)),
+         Paragraph("<b>Classification</b>", ParagraphStyle('info', fontSize=8, textColor=TEXT_MUTED))],
+        [Paragraph(datetime.now().strftime('%B %d, %Y at %H:%M'), ParagraphStyle('info_val', fontSize=9, textColor=TEXT_PRIMARY)),
+         Paragraph("Confidential", ParagraphStyle('info_val', fontSize=9, textColor=TEXT_PRIMARY))]
     ]
-    meta_table = Table(meta_data, colWidths=[160, 160, 160])
-    meta_table.setStyle(TableStyle([
+    info_table = Table(info_data, colWidths=[240, 240])
+    info_table.setStyle(TableStyle([
         ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ('TOPPADDING', (0, 0), (-1, -1), 4),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
     ]))
-    story.append(meta_table)
+    story.append(info_table)
     
     story.append(PageBreak())
     
     # ==================== EXECUTIVE SUMMARY ====================
-    story.extend(create_section_header("Executive Summary", BRAND_ACCENT))
+    story.append(Paragraph("Executive Summary", styles['SectionHeader']))
+    story.append(HRFlowable(width="100%", thickness=1, color=ACCENT))
+    story.append(Spacer(1, 10))
     
     if analysis.get('call_summary'):
         summary = analysis['call_summary']
         
-        # Outcome in a clean box
+        # Outcome
         outcome = summary.get('outcome', 'unknown')
-        outcome_color = BRAND_SUCCESS if outcome == 'positive' else BRAND_WARNING if outcome == 'neutral' else BRAND_DANGER
+        outcome_color = SUCCESS if outcome == 'positive' else WARNING if outcome == 'neutral' else DANGER
+        story.append(Paragraph(f"<b>Call Outcome:</b> <font color='{outcome_color.hexval()}'>{outcome.upper()}</font>", 
+                              styles['BodyText']))
+        story.append(Spacer(1, 8))
         
-        outcome_data = [[
-            Paragraph(f"<font color='{outcome_color.hexval()}'><b>CALL OUTCOME: {outcome.upper()}</b></font>", 
-                     ParagraphStyle('outcome', fontSize=11, alignment=TA_LEFT))
-        ]]
-        outcome_table = Table(outcome_data, colWidths=[480])
-        outcome_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, -1), BRAND_BG_LIGHT),
-            ('LEFTPADDING', (0, 0), (-1, -1), 15),
-            ('TOPPADDING', (0, 0), (-1, -1), 10),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
-        ]))
-        story.append(outcome_table)
-        story.append(Spacer(1, 15))
+        # One liner
+        if summary.get('one_liner'):
+            story.append(Paragraph(clean_text(summary['one_liner']), styles['BodyText']))
+            story.append(Spacer(1, 8))
         
-        # Summary
-        story.append(Paragraph(clean_text(summary.get('one_liner', '')), styles['BodyText']))
-        story.append(Spacer(1, 12))
-        
-        # Key topics as tags
+        # Key topics
         if summary.get('key_topics'):
-            topics = summary['key_topics'][:5]  # Max 5 topics
-            topics_text = " &nbsp;&nbsp;|&nbsp;&nbsp; ".join([f"<b>{clean_text(t)}</b>" for t in topics])
-            story.append(Paragraph(f"<font color='#6366F1' size='9'>KEY TOPICS</font>", styles['Label']))
-            story.append(Paragraph(topics_text, ParagraphStyle('topics', fontSize=10, textColor=BRAND_TEXT_SECONDARY, spaceAfter=10)))
+            topics = [clean_text(t) for t in summary['key_topics'][:5]]
+            story.append(Paragraph(f"<b>Key Topics:</b> {' | '.join(topics)}", styles['BodyText']))
     
     # ==================== CUSTOMER INTEREST ====================
     if analysis.get('customer_interest'):
-        story.append(Spacer(1, 25))
-        story.extend(create_section_header("Customer Interest", BRAND_INFO))
+        story.append(Spacer(1, 15))
+        story.append(Paragraph("Customer Interest", styles['SectionHeader']))
+        story.append(HRFlowable(width="100%", thickness=1, color=ACCENT))
+        story.append(Spacer(1, 10))
         
         ci = analysis['customer_interest']
         
-        # Two-column metrics
+        # Interest metrics
         interest_data = [
-            [Paragraph("<font size='9' color='#6B7280'>INTEREST LEVEL</font>", ParagraphStyle('lbl', alignment=TA_CENTER)),
-             Paragraph("<font size='9' color='#6B7280'>BUYING READINESS</font>", ParagraphStyle('lbl', alignment=TA_CENTER))],
-            [Paragraph(f"<font size='20' color='#0891B2'><b>{ci.get('overall_level', 'Unknown').upper()}</b></font>", ParagraphStyle('val', alignment=TA_CENTER)),
-             Paragraph(f"<font size='20' color='#059669'><b>{ci.get('buying_readiness', 0)}%</b></font>", ParagraphStyle('val', alignment=TA_CENTER))]
+            [Paragraph("Interest Level", ParagraphStyle('h', fontSize=9, textColor=TEXT_MUTED, alignment=TA_CENTER)),
+             Paragraph("Buying Readiness", ParagraphStyle('h', fontSize=9, textColor=TEXT_MUTED, alignment=TA_CENTER))],
+            [Paragraph(f"<b>{ci.get('overall_level', 'Unknown').upper()}</b>", 
+                      ParagraphStyle('v', fontSize=16, textColor=ACCENT, alignment=TA_CENTER, fontName='Helvetica-Bold')),
+             Paragraph(f"<b>{ci.get('buying_readiness', 0)}%</b>", 
+                      ParagraphStyle('v', fontSize=16, textColor=ACCENT, alignment=TA_CENTER, fontName='Helvetica-Bold'))]
         ]
-        interest_table = Table(interest_data, colWidths=[240, 240])
+        interest_table = Table(interest_data, colWidths=[230, 230])
         interest_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, -1), BRAND_BG_LIGHT),
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('TOPPADDING', (0, 0), (-1, -1), 12),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
+            ('BACKGROUND', (0, 0), (-1, -1), BG_LIGHT),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
         ]))
         story.append(interest_table)
-        story.append(Spacer(1, 18))
+        story.append(Spacer(1, 10))
         
-        # What they want - in a highlight box
         if ci.get('what_they_want'):
-            story.append(Paragraph("<font color='#6366F1' size='9'>WHAT THEY REALLY WANT</font>", styles['Label']))
-            story.append(Paragraph(clean_text(ci['what_they_want']), styles['InsightText']))
-            story.append(Spacer(1, 12))
+            story.append(Paragraph("<b>What They Want:</b>", styles['SubHeader']))
+            story.append(Paragraph(clean_text(ci['what_they_want']), styles['BodyText']))
         
-        # Main concerns as bullet list
         if ci.get('main_concerns'):
-            story.append(Paragraph("<font color='#DC2626' size='9'>MAIN CONCERNS</font>", styles['Label']))
+            story.append(Paragraph("<b>Main Concerns:</b>", styles['SubHeader']))
             for concern in ci['main_concerns']:
-                story.append(Paragraph(f"<bullet>&bull;</bullet> {clean_text(concern)}", 
-                            ParagraphStyle('concern', fontSize=10, textColor=BRAND_TEXT, leftIndent=15, spaceAfter=4)))
+                story.append(Paragraph(f"• {clean_text(concern)}", styles['BodyText']))
     
     # ==================== OBJECTIONS ====================
     if analysis.get('objections') and len(analysis['objections']) > 0:
         story.append(PageBreak())
-        story.extend(create_section_header(f"Objections Detected ({len(analysis['objections'])})", BRAND_WARNING))
+        story.append(Paragraph(f"Objections ({len(analysis['objections'])})", styles['SectionHeader']))
+        story.append(HRFlowable(width="100%", thickness=1, color=ACCENT))
+        story.append(Spacer(1, 10))
         
         for i, obj in enumerate(analysis['objections'], 1):
-            # Objection header with score badge
+            # Objection header
             score = obj.get('handling_score', 0)
-            score_color = BRAND_SUCCESS if score >= 7 else BRAND_WARNING if score >= 4 else BRAND_DANGER
+            score_color = get_score_color(score)
             
-            header_data = [[
-                Paragraph(f"<b>#{i}</b> &nbsp; {obj.get('type', 'Unknown').upper()}", 
-                         ParagraphStyle('obj_head', fontSize=12, textColor=BRAND_TEXT, fontName='Helvetica-Bold')),
-                Paragraph(f"<font color='{score_color.hexval()}'><b>{score}/10</b></font>", 
-                         ParagraphStyle('score', fontSize=14, alignment=TA_RIGHT, fontName='Helvetica-Bold'))
-            ]]
-            header_table = Table(header_data, colWidths=[380, 100])
-            header_table.setStyle(TableStyle([
-                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                ('TOPPADDING', (0, 0), (-1, -1), 8),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
-            ]))
-            story.append(header_table)
+            story.append(Paragraph(
+                f"<b>#{i} {obj.get('type', '').upper()}</b> | Score: <font color='{score_color.hexval()}'><b>{score}/10</b></font>",
+                styles['SubHeader']
+            ))
             
-            # Customer objection in red-tinted box
-            story.append(Paragraph("<font color='#DC2626' size='8'>CUSTOMER OBJECTION</font>", styles['Label']))
-            obj_box = [[Paragraph(f'"{clean_text(obj.get("buyer_statement", ""))}"', 
-                       ParagraphStyle('obj_quote', fontSize=10, textColor=BRAND_TEXT, fontName='Helvetica-Oblique', leading=14))]]
-            obj_table = Table(obj_box, colWidths=[480])
-            obj_table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#FEF2F2')),
-                ('LEFTPADDING', (0, 0), (-1, -1), 12),
-                ('TOPPADDING', (0, 0), (-1, -1), 10),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
-            ]))
-            story.append(obj_table)
-            story.append(Spacer(1, 8))
+            # Customer statement
+            story.append(Paragraph("<font color='#6b7280'>Customer:</font>", styles['Caption']))
+            story.append(Paragraph(f'"{clean_text(obj.get("buyer_statement", ""))}"', styles['Quote']))
             
             # Real concern
             if obj.get('real_concern'):
-                story.append(Paragraph("<font color='#D97706' size='8'>UNDERLYING CONCERN</font>", styles['Label']))
+                story.append(Paragraph("<font color='#6b7280'>Underlying Concern:</font>", styles['Caption']))
                 story.append(Paragraph(clean_text(obj['real_concern']), styles['BodyText']))
             
-            # Better response in green-tinted box
-            story.append(Spacer(1, 8))
-            story.append(Paragraph("<font color='#059669' size='8'>RECOMMENDED RESPONSE</font>", styles['Label']))
-            better_box = [[Paragraph(f'"{clean_text(obj.get("better_response", ""))}"', 
-                          ParagraphStyle('better_quote', fontSize=10, textColor=BRAND_SUCCESS, fontName='Helvetica', leading=14))]]
-            better_table = Table(better_box, colWidths=[480])
-            better_table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#F0FDF4')),
-                ('LEFTPADDING', (0, 0), (-1, -1), 12),
-                ('TOPPADDING', (0, 0), (-1, -1), 10),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
-            ]))
-            story.append(better_table)
+            # Better response
+            story.append(Paragraph(f"<font color='{SUCCESS.hexval()}'>Recommended Response:</font>", styles['Caption']))
+            story.append(Paragraph(f'"{clean_text(obj.get("better_response", ""))}"', 
+                                  ParagraphStyle('better', fontSize=10, textColor=SUCCESS, leftIndent=12, leading=14)))
             
             if obj.get('why_better'):
-                story.append(Paragraph(f"<i>{clean_text(obj['why_better'])}</i>", styles['SmallText']))
+                story.append(Paragraph(f"<i>{clean_text(obj['why_better'])}</i>", styles['Caption']))
             
-            story.append(Spacer(1, 20))
-            story.append(HRFlowable(width="30%", thickness=0.5, color=BRAND_BORDER, spaceBefore=0, spaceAfter=15))
+            story.append(Spacer(1, 12))
+            if i < len(analysis['objections']):
+                story.append(HRFlowable(width="40%", thickness=0.5, color=BORDER))
+                story.append(Spacer(1, 8))
     
     # ==================== CLOSING OPPORTUNITIES ====================
     if analysis.get('closing_opportunities') and len(analysis['closing_opportunities']) > 0:
+        story.append(Spacer(1, 15))
         story.append(Paragraph(f"Missed Closing Opportunities ({len(analysis['closing_opportunities'])})", styles['SectionHeader']))
-        story.append(HRFlowable(width="100%", thickness=2, color=BRAND_SUCCESS, spaceBefore=5, spaceAfter=15))
+        story.append(HRFlowable(width="100%", thickness=1, color=ACCENT))
+        story.append(Spacer(1, 10))
         
         for i, opp in enumerate(analysis['closing_opportunities'], 1):
-            story.append(Paragraph(f"<b>Opportunity #{i}</b> @ {opp.get('timestamp', '--')} - {opp.get('close_type', '').replace('_', ' ').upper()}", 
-                                  styles['SubsectionHeader']))
+            story.append(Paragraph(
+                f"<b>#{i}</b> {opp.get('close_type', '').replace('_', ' ').title()} @ {opp.get('timestamp', '--')}",
+                styles['SubHeader']
+            ))
             
-            story.append(Paragraph(f"<b>Customer Signal:</b> \"{opp.get('customer_signal', '')}\"", styles['BodyText']))
-            story.append(Paragraph("<font color='#10B981'><b>Suggested Close:</b></font>", styles['Label']))
-            story.append(Paragraph(f'"{clean_text(opp.get("suggested_close", ""))}"', styles['BetterResponse']))
+            story.append(Paragraph("<font color='#6b7280'>Customer Signal:</font>", styles['Caption']))
+            story.append(Paragraph(f'"{clean_text(opp.get("customer_signal", ""))}"', styles['Quote']))
+            
+            story.append(Paragraph(f"<font color='{SUCCESS.hexval()}'>Suggested Close:</font>", styles['Caption']))
+            story.append(Paragraph(f'"{clean_text(opp.get("suggested_close", ""))}"', 
+                                  ParagraphStyle('close', fontSize=10, textColor=SUCCESS, leftIndent=12, leading=14)))
             story.append(Spacer(1, 10))
     
     # ==================== STORYTELLING ====================
     if analysis.get('storytelling_analysis') and len(analysis['storytelling_analysis']) > 0:
         story.append(PageBreak())
         story.append(Paragraph(f"Storytelling Analysis ({len(analysis['storytelling_analysis'])})", styles['SectionHeader']))
-        story.append(HRFlowable(width="100%", thickness=2, color=BRAND_SECONDARY, spaceBefore=5, spaceAfter=15))
+        story.append(HRFlowable(width="100%", thickness=1, color=ACCENT))
+        story.append(Spacer(1, 10))
         
         for i, s in enumerate(analysis['storytelling_analysis'], 1):
-            story.append(Paragraph(f"<b>Story #{i}</b> - {s.get('story_type', '').replace('_', ' ').upper()} @ {s.get('timestamp', '--')}", 
-                                  styles['SubsectionHeader']))
+            story.append(Paragraph(
+                f"<b>#{i}</b> {s.get('story_type', '').replace('_', ' ').title()} @ {s.get('timestamp', '--')}",
+                styles['SubHeader']
+            ))
             
-            # Score
-            score = s.get('effectiveness_score', 0)
-            score_color = BRAND_SUCCESS if score >= 7 else BRAND_WARNING if score >= 4 else BRAND_DANGER
-            story.append(Paragraph(f"<b>Effectiveness Score:</b> <font color='{score_color.hexval()}'><b>{score}/10</b></font>", styles['BodyText']))
-            
-            # Intended message
-            if s.get('intended_message'):
-                story.append(Paragraph("<b>Intended Message:</b>", styles['Label']))
-                story.append(Paragraph(clean_text(s['intended_message']), styles['BodyText']))
-            
-            # Original story
-            story.append(Paragraph("<b>Original Story:</b>", styles['Label']))
+            story.append(Paragraph("<font color='#6b7280'>Original:</font>", styles['Caption']))
             story.append(Paragraph(f'"{clean_text(s.get("original_story", ""))}"', styles['Quote']))
             
-            # Issues
-            if s.get('issues'):
-                story.append(Paragraph("<b>What to Improve:</b>", styles['Label']))
-                for issue in s['issues']:
-                    story.append(Paragraph(f"- {clean_text(issue)}", styles['SmallText']))
-            
-            # Improved story
-            story.append(Paragraph("<font color='#10B981'><b>Improved Story:</b></font>", styles['Label']))
-            story.append(Paragraph(f'"{clean_text(s.get("improved_story", ""))}"', styles['BetterResponse']))
+            story.append(Paragraph(f"<font color='{SUCCESS.hexval()}'>Improved Version:</font>", styles['Caption']))
+            story.append(Paragraph(f'"{clean_text(s.get("improved_story", ""))}"', 
+                                  ParagraphStyle('improved', fontSize=10, textColor=SUCCESS, leftIndent=12, leading=14)))
             
             if s.get('why_better'):
-                story.append(Paragraph(f"<i>{clean_text(s['why_better'])}</i>", styles['SmallText']))
-            
-            story.append(Spacer(1, 15))
+                story.append(Paragraph(f"<i>{clean_text(s['why_better'])}</i>", styles['Caption']))
+            story.append(Spacer(1, 10))
     
     # ==================== COACHING SUGGESTIONS ====================
     if analysis.get('coaching_suggestions') and len(analysis['coaching_suggestions']) > 0:
-        story.append(PageBreak())
+        story.append(Spacer(1, 15))
         story.append(Paragraph("Coaching Recommendations", styles['SectionHeader']))
-        story.append(HRFlowable(width="100%", thickness=2, color=BRAND_PRIMARY, spaceBefore=5, spaceAfter=15))
+        story.append(HRFlowable(width="100%", thickness=1, color=ACCENT))
+        story.append(Spacer(1, 10))
         
         for sug in analysis['coaching_suggestions']:
             priority = sug.get('priority', 'medium')
-            priority_color = BRAND_DANGER if priority == 'high' else BRAND_WARNING if priority == 'medium' else BRAND_LIGHT
+            priority_color = DANGER if priority == 'high' else WARNING if priority == 'medium' else TEXT_MUTED
             
             story.append(Paragraph(
-                f"<font color='{priority_color.hexval()}'><b>[{priority.upper()}]</b></font> {sug.get('area', '').replace('_', ' ').title()}", 
-                styles['SubsectionHeader']
+                f"<font color='{priority_color.hexval()}'>[{priority.upper()}]</font> <b>{sug.get('area', '').replace('_', ' ').title()}</b>",
+                styles['SubHeader']
             ))
+            story.append(Paragraph(clean_text(sug.get('suggestion', '')), styles['BodyText']))
             
-            story.append(Paragraph(clean_text(sug.get('suggested_change', '')), styles['BodyText']))
-            
-            if sug.get('example_script'):
-                story.append(Paragraph("<b>Example Script:</b>", styles['Label']))
-                story.append(Paragraph(f'"{clean_text(sug["example_script"])}"', styles['BetterResponse']))
-            
-            story.append(Spacer(1, 10))
+            if sug.get('example'):
+                story.append(Paragraph(f"<i>Example: {clean_text(sug['example'])}</i>", styles['Caption']))
+            story.append(Spacer(1, 8))
     
-    # ==================== NEXT STEPS ====================
-    if analysis.get('next_steps_recommended'):
-        story.append(Paragraph("Recommended Next Steps", styles['SectionHeader']))
-        story.append(HRFlowable(width="100%", thickness=2, color=BRAND_PRIMARY, spaceBefore=5, spaceAfter=15))
+    # ==================== SELLER PERFORMANCE ====================
+    if analysis.get('seller_performance'):
+        sp = analysis['seller_performance']
+        story.append(Spacer(1, 15))
+        story.append(Paragraph("Seller Performance", styles['SectionHeader']))
+        story.append(HRFlowable(width="100%", thickness=1, color=ACCENT))
+        story.append(Spacer(1, 10))
         
-        for i, step in enumerate(analysis['next_steps_recommended'], 1):
-            story.append(Paragraph(f"<b>{i}.</b> {clean_text(step)}", styles['BodyText']))
-    
-    # ==================== METRICS APPENDIX ====================
-    if metrics:
-        story.append(PageBreak())
-        story.append(Paragraph("Detailed Metrics", styles['SectionHeader']))
-        story.append(HRFlowable(width="100%", thickness=2, color=BRAND_PRIMARY, spaceBefore=5, spaceAfter=15))
+        # Score
+        score = sp.get('overall_score', 0)
+        story.append(Paragraph(f"<b>Overall Score: <font color='{get_score_color(score).hexval()}'>{score}/10</font></b>", 
+                              styles['BodyText']))
         
-        # Talk ratio
-        if metrics.get('talk_ratio'):
-            tr = metrics['talk_ratio']
-            story.append(Paragraph("<b>Talk-to-Listen Ratio:</b>", styles['SubsectionHeader']))
-            
-            ratio_data = [
-                ['Seller', 'Buyer', 'Ideal Range'],
-                [f"{tr.get('seller_percentage', 0)}%", f"{tr.get('buyer_percentage', 0)}%", tr.get('ideal_seller_range', '40-60%')]
-            ]
-            ratio_table = Table(ratio_data, colWidths=[130, 130, 130])
-            ratio_table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), BRAND_PRIMARY),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                ('TOPPADDING', (0, 0), (-1, -1), 8),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
-                ('GRID', (0, 0), (-1, -1), 1, BRAND_LIGHT),
-            ]))
-            story.append(ratio_table)
+        # Strengths
+        if sp.get('strengths'):
+            story.append(Paragraph("<b>Strengths:</b>", styles['SubHeader']))
+            for strength in sp['strengths']:
+                story.append(Paragraph(f"+ {clean_text(strength)}", styles['BodyText']))
+        
+        # Areas to improve
+        if sp.get('areas_to_improve'):
+            story.append(Paragraph("<b>Areas to Improve:</b>", styles['SubHeader']))
+            for area in sp['areas_to_improve']:
+                story.append(Paragraph(f"- {clean_text(area)}", styles['BodyText']))
     
     # Build PDF
-    doc.build(story, onFirstPage=lambda c, d: (add_header(c, d), add_footer(c, d)),
-              onLaterPages=lambda c, d: (add_header(c, d), add_footer(c, d)))
-    
+    doc.build(story, onFirstPage=add_header, onLaterPages=add_header)
     buffer.seek(0)
     return buffer
