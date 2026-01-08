@@ -1946,9 +1946,12 @@ function MainApp() {
                             <p className="text-white text-sm sm:text-lg">"{obj.buyer_statement}"</p>
                           </div>
 
-                          {/* Real Concern - This is AI analysis, not from audio */}
+                          {/* Real Concern - This is AI analysis, not from audio - no click action */}
                           {obj.real_concern && (
-                            <div className="p-3 sm:p-4 bg-orange-500/10 rounded-xl border-l-4 border-orange-500">
+                            <div 
+                              className="p-3 sm:p-4 bg-orange-500/10 rounded-xl border-l-4 border-orange-500"
+                              onClick={(e) => e.stopPropagation()}
+                            >
                               <p className="text-xs text-orange-400 mb-1 sm:mb-2 font-semibold">🎯 REAL CONCERN:</p>
                               <p className="text-orange-200 text-sm sm:text-base">{obj.real_concern}</p>
                             </div>
@@ -1978,8 +1981,11 @@ function MainApp() {
                             <p className="text-gray-300 text-sm sm:text-base">"{obj.seller_response}"</p>
                           </div>
                           
-                          {/* Better Response */}
-                          <div className="p-3 sm:p-4 bg-emerald-500/10 rounded-xl border-l-4 border-emerald-500">
+                          {/* Better Response - NO click to play original audio, only TTS */}
+                          <div 
+                            className="p-3 sm:p-4 bg-emerald-500/10 rounded-xl border-l-4 border-emerald-500"
+                            onClick={(e) => e.stopPropagation()}
+                          >
                             <p className="text-xs text-emerald-400 mb-1 sm:mb-2 font-semibold">✨ BETTER RESPONSE:</p>
                             <p className="text-emerald-200 text-sm sm:text-lg font-medium">"{obj.better_response}"</p>
                             {obj.why_better && (
