@@ -1366,19 +1366,23 @@ function MainApp() {
                 </div>
               )}
               
-              {/* Header */}
-              <div className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-white/10">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                  <h2 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2 sm:gap-3">
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-fuchsia-500 to-violet-500 rounded-xl flex items-center justify-center">
-                      <Brain className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+              {/* Premium Header with Key Metrics Dashboard */}
+              <div className="bg-gradient-to-br from-violet-900/40 via-fuchsia-900/30 to-cyan-900/20 rounded-2xl sm:rounded-3xl p-4 sm:p-8 border border-violet-500/20 shadow-2xl shadow-violet-500/10">
+                {/* Top Bar */}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-violet-500 via-fuchsia-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-lg shadow-violet-500/30">
+                      <Brain className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
                     </div>
-                    AI Sales Coach Analysis
-                  </h2>
-                  <div className="flex flex-wrap gap-2 sm:gap-3 w-full sm:w-auto">
+                    <div>
+                      <h2 className="text-xl sm:text-2xl font-bold text-white">Sales Analysis Report</h2>
+                      <p className="text-xs sm:text-sm text-gray-400">{result?.file_name || 'Call Analysis'}</p>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2 w-full sm:w-auto">
                     <button
                       onClick={() => setShowAnalysis(false)}
-                      className="px-3 sm:px-5 py-2 sm:py-2.5 bg-white/10 hover:bg-white/20 text-gray-300 rounded-xl transition-colors font-medium text-sm sm:text-base"
+                      className="px-3 py-2 bg-white/5 hover:bg-white/10 text-gray-300 rounded-xl transition-all text-sm border border-white/10"
                     >
                       ← Back
                     </button>
@@ -1391,22 +1395,79 @@ function MainApp() {
                         setAnalysisResult(null)
                         setShowAnalysis(false)
                       }}
-                      className="px-3 sm:px-5 py-2 sm:py-2.5 bg-violet-500/20 hover:bg-violet-500/30 text-violet-300 rounded-xl transition-colors font-medium flex items-center gap-2 text-sm sm:text-base"
+                      className="px-3 py-2 bg-violet-500/20 hover:bg-violet-500/30 text-violet-300 rounded-xl transition-all text-sm border border-violet-500/30"
                     >
-                      <Upload className="w-4 h-4" />
-                      New Call
+                      <Upload className="w-4 h-4 inline mr-1" />
+                      New
                     </button>
                   </div>
                 </div>
+
+                {/* Key Metrics Dashboard */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+                  {/* Overall Score */}
+                  <div className="bg-black/20 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-white/5 text-center">
+                    <div className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">
+                      {analysisResult.analysis?.seller_performance?.overall_score || 0}
+                    </div>
+                    <div className="text-xs text-gray-400 mt-1">Overall Score</div>
+                  </div>
+                  
+                  {/* Customer Interest */}
+                  <div className="bg-black/20 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-white/5 text-center">
+                    <div className={`text-2xl sm:text-3xl font-bold ${
+                      analysisResult.analysis?.customer_interest?.overall_level === 'high' ? 'text-emerald-400' :
+                      analysisResult.analysis?.customer_interest?.overall_level === 'medium' ? 'text-yellow-400' : 'text-red-400'
+                    }`}>
+                      {analysisResult.analysis?.customer_interest?.buying_readiness || 0}%
+                    </div>
+                    <div className="text-xs text-gray-400 mt-1">Buying Ready</div>
+                  </div>
+                  
+                  {/* Objections Count */}
+                  <div className="bg-black/20 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-white/5 text-center">
+                    <div className="text-3xl sm:text-4xl font-bold text-orange-400">
+                      {analysisResult.analysis?.objections?.length || 0}
+                    </div>
+                    <div className="text-xs text-gray-400 mt-1">Objections</div>
+                  </div>
+                  
+                  {/* Risk Level */}
+                  <div className="bg-black/20 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-white/5 text-center">
+                    <div className={`text-lg sm:text-xl font-bold px-2 py-1 rounded-lg inline-block ${
+                      analysisResult.analysis?.deal_risk_score?.risk_level === 'low' ? 'bg-emerald-500/20 text-emerald-400' :
+                      analysisResult.analysis?.deal_risk_score?.risk_level === 'medium' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-red-500/20 text-red-400'
+                    }`}>
+                      {(analysisResult.analysis?.deal_risk_score?.risk_level || 'N/A').toUpperCase()}
+                    </div>
+                    <div className="text-xs text-gray-400 mt-1">Risk Level</div>
+                  </div>
+                </div>
+
+                {/* Call Outcome Badge */}
+                {analysisResult.analysis?.call_summary && (
+                  <div className="mt-4 pt-4 border-t border-white/5">
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                        analysisResult.analysis.call_summary.outcome === 'positive' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' :
+                        analysisResult.analysis.call_summary.outcome === 'neutral' ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30' :
+                        'bg-red-500/20 text-red-300 border border-red-500/30'
+                      }`}>
+                        {analysisResult.analysis.call_summary.outcome?.toUpperCase()} OUTCOME
+                      </span>
+                      <p className="text-sm text-gray-300 flex-1">{analysisResult.analysis.call_summary.one_liner}</p>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Audio Player in Analysis View */}
               {result?.audio_url && (
-                <div className="bg-gradient-to-b from-violet-500/10 to-white/[0.02] rounded-3xl p-6 border border-violet-500/20">
-                  <div className="flex items-center gap-4 mb-4">
+                <div className="bg-gradient-to-r from-violet-500/10 via-fuchsia-500/5 to-transparent rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-violet-500/20 backdrop-blur-sm">
+                  <div className="flex items-center gap-3 sm:gap-4">
                     <button
                       onClick={toggleAudioPlayback}
-                      className="w-14 h-14 bg-gradient-to-br from-violet-500 to-fuchsia-500 rounded-full flex items-center justify-center shadow-lg shadow-violet-500/30 hover:scale-105 transition-transform"
+                      className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-violet-500 to-fuchsia-500 rounded-full flex items-center justify-center shadow-lg shadow-violet-500/30 hover:scale-105 transition-transform flex-shrink-0"
                     >
                       {audioPlaying ? (
                         <PauseCircle className="w-8 h-8 text-white" />
@@ -1451,10 +1512,13 @@ function MainApp() {
 
               {/* Visual Timeline */}
               {analysisResult.analysis?.timeline_events?.length > 0 && (
-                <div className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] rounded-3xl p-6 border border-white/10">
-                  <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
-                    <Activity className="w-5 h-5 text-cyan-400" />
+                <div className="bg-gradient-to-b from-cyan-500/5 to-transparent rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-cyan-500/10 backdrop-blur-sm">
+                  <h3 className="text-lg sm:text-xl font-bold text-white mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-xl flex items-center justify-center">
+                      <Activity className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                    </div>
                     Call Timeline
+                    <span className="ml-auto text-xs sm:text-sm font-normal text-gray-500">{analysisResult.analysis.timeline_events.length} events</span>
                   </h3>
                   <div className="relative">
                     {/* Timeline bar */}
@@ -1511,27 +1575,15 @@ function MainApp() {
                 </div>
               )}
 
-              {/* Call Summary */}
-              {analysisResult.analysis?.call_summary && (
-                <div className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-white/10">
-                  <h3 className="text-lg sm:text-xl font-bold text-white mb-3 sm:mb-4 flex items-center gap-2 sm:gap-3">
-                    <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-400" />
-                    Call Summary
-                  </h3>
-                  <p className="text-gray-300 text-base sm:text-lg mb-3 sm:mb-4">{analysisResult.analysis.call_summary.one_liner}</p>
-                  <div className="flex flex-wrap gap-2">
-                    {analysisResult.analysis.call_summary.key_topics?.map((topic, i) => (
-                      <span key={i} className="px-2 sm:px-3 py-1 bg-violet-500/20 text-violet-300 rounded-full text-xs sm:text-sm">{topic}</span>
-                    ))}
-                  </div>
-                </div>
-              )}
+              {/* Call Summary - Hidden since shown in header */}
 
               {/* Customer Interest Analysis */}
               {analysisResult.analysis?.customer_interest && (
-                <div className="bg-gradient-to-b from-cyan-500/10 to-white/[0.02] rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-cyan-500/20">
+                <div className="bg-gradient-to-br from-cyan-500/10 via-blue-500/5 to-transparent rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-cyan-500/20 backdrop-blur-sm">
                   <h3 className="text-lg sm:text-xl font-bold text-white mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3">
-                    <Target className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-400" />
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-xl flex items-center justify-center">
+                      <Target className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                    </div>
                     Customer Interest Analysis
                   </h3>
                   
