@@ -248,17 +248,17 @@ def process_audio_async(job_id, filepath, user_id=None):
         jobs[job_id]['progress'] = 10
         jobs[job_id]['stage'] = 'Uploading to AssemblyAI...'
         
+        # Optimized config for faster transcription
         config = aai.TranscriptionConfig(
             speaker_labels=True,
-            speakers_expected=None,
-            speech_model=aai.SpeechModel.best,
+            speakers_expected=2,  # Optimize for 2 speakers (seller + buyer)
+            speech_model=aai.SpeechModel.nano,  # Much faster than 'best'
             punctuate=True,
             format_text=True,
             language_code="en",
-            word_boost=["sale", "price", "discount", "offer", "deal", "contract", "payment", "budget", "interested", "proposal", "solution", "problem", "need", "want", "cost", "value"],
-            boost_param="high",
-            sentiment_analysis=True,
-            entity_detection=True
+            # Removed word_boost and extra features for speed
+            sentiment_analysis=False,  # Disabled for speed
+            entity_detection=False  # Disabled for speed
         )
         
         transcriber = aai.Transcriber()
