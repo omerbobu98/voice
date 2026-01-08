@@ -44,6 +44,7 @@ def clean_text(text):
 
 # Premium Fintech Brand Colors - Clean, Professional, Billion-Dollar Look
 BRAND_PRIMARY = colors.HexColor('#1E1E2E')      # Deep charcoal - premium dark
+BRAND_SECONDARY = colors.HexColor('#EC4899')    # Pink - for storytelling section
 BRAND_ACCENT = colors.HexColor('#6366F1')       # Indigo - modern fintech
 BRAND_ACCENT_LIGHT = colors.HexColor('#818CF8') # Light indigo
 BRAND_SUCCESS = colors.HexColor('#059669')      # Emerald - professional green
@@ -53,6 +54,7 @@ BRAND_INFO = colors.HexColor('#0891B2')         # Cyan - data highlights
 BRAND_TEXT = colors.HexColor('#111827')         # Near black - readable text
 BRAND_TEXT_SECONDARY = colors.HexColor('#4B5563')  # Gray - secondary text
 BRAND_TEXT_MUTED = colors.HexColor('#9CA3AF')   # Light gray - muted text
+BRAND_LIGHT = colors.HexColor('#D1D5DB')        # Light gray for borders/low priority
 BRAND_BORDER = colors.HexColor('#E5E7EB')       # Light border
 BRAND_BG_LIGHT = colors.HexColor('#F9FAFB')     # Light background
 BRAND_WHITE = colors.white
