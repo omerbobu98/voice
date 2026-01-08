@@ -83,11 +83,23 @@ def health():
 @app.route('/api/debug/api-keys', methods=['GET'])
 def debug_api_keys():
     """Debug endpoint to check API key status"""
+    # Test AssemblyAI connection
+    assemblyai_test = None
+    try:
+        # Try to get account info
+        import requests
+        headers = {"authorization": ASSEMBLYAI_API_KEY}
+        resp = requests.get("https://api.assemblyai.com/v2/transcript", headers=headers, timeout=10)
+        assemblyai_test = {"status_code": resp.status_code, "working": resp.status_code in [200, 401]}
+    except Exception as e:
+        assemblyai_test = {"error": str(e)}
+    
     return jsonify({
         'assemblyai_configured': bool(ASSEMBLYAI_API_KEY),
         'assemblyai_key_length': len(ASSEMBLYAI_API_KEY) if ASSEMBLYAI_API_KEY else 0,
         'assemblyai_key_prefix': ASSEMBLYAI_API_KEY[:8] + '...' if ASSEMBLYAI_API_KEY and len(ASSEMBLYAI_API_KEY) > 8 else 'NOT SET',
         'openai_configured': bool(OPENAI_API_KEY),
+        'assemblyai_test': assemblyai_test
     })
 
 @app.route('/api/debug/db', methods=['GET'])
