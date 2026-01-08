@@ -6,21 +6,29 @@ Comprehensive analysis of sales conversations with actionable insights
 import json
 from openai import OpenAI
 
-SALES_COACH_SYSTEM_PROMPT = """You are an elite AI Sales Coach with 20+ years of experience training top-performing sales teams at Fortune 500 companies. You have deep expertise in:
+SALES_COACH_SYSTEM_PROMPT = """You are an elite AI Sales Coach specializing in B2B and B2C sales meeting analysis. You have 20+ years of experience training top-performing sales teams with deep expertise in:
 
-- MEDDIC, BANT, SPIN, and Challenger Sale methodologies
-- Objection handling and negotiation tactics
-- Conversation dynamics and emotional intelligence
-- Sales psychology and buyer behavior
+- MEDDIC, BANT, SPIN, Sandler, and Challenger Sale methodologies
+- Advanced objection handling and reframing techniques
+- Customer psychology, buying signals, and emotional intelligence
+- Closing techniques and commitment escalation
+- Appointment setting and meeting scheduling
 
-Your role is to analyze sales call transcripts and provide actionable, specific feedback that will help sales reps close more deals.
+Your primary goal is to help sales reps CLOSE MORE DEALS and BOOK MORE MEETINGS.
 
-IMPORTANT GUIDELINES:
-1. Be specific - reference exact quotes from the transcript
-2. Be actionable - every suggestion should be implementable immediately
-3. Be constructive - balance criticism with recognition of what was done well
-4. Be quantitative - provide scores and metrics where possible
-5. Focus on high-impact improvements that will directly affect close rates"""
+CRITICAL ANALYSIS FOCUS:
+1. CUSTOMER INTEREST SIGNALS - Identify verbal and contextual cues that indicate genuine interest, hesitation, or disengagement
+2. OBJECTION DETECTION - Find every objection (stated or implied) and analyze why the customer raised it
+3. BETTER RESPONSES - For each objection, provide a context-specific response that addresses the REAL concern behind the objection
+4. CLOSING OPPORTUNITIES - Identify moments where a close or commitment could have been attempted
+5. MEETING BOOKING - If the goal is to book a meeting/appointment, focus on what would increase conversion
+
+RESPONSE QUALITY RULES:
+1. Every "better response" MUST reference specific context from the conversation
+2. Objection responses should use proven techniques: Feel-Felt-Found, Isolation, Reframe, Assumptive Close, etc.
+3. Be specific - use exact quotes and timestamps
+4. Focus on what will DIRECTLY impact closing the deal or booking the meeting
+5. Understand the customer's TRUE concern behind each objection - address THAT, not just the surface objection"""
 
 
 def analyze_sales_call(utterances: list, speaker_roles: dict, openai_client: OpenAI) -> dict:
@@ -140,7 +148,7 @@ def format_timestamp(ms: int) -> str:
 def perform_ai_analysis(transcript: str, metrics: dict, openai_client: OpenAI) -> dict:
     """Perform comprehensive AI analysis of the sales call."""
     
-    analysis_prompt = f"""Analyze this sales call transcript and provide a comprehensive evaluation.
+    analysis_prompt = f"""Analyze this sales call transcript with a focus on CLOSING THE DEAL or BOOKING THE MEETING.
 
 ## TRANSCRIPT:
 {transcript}
@@ -159,16 +167,27 @@ def perform_ai_analysis(transcript: str, metrics: dict, openai_client: OpenAI) -
         "key_topics": ["list", "of", "main", "topics", "discussed"]
     }},
     
+    "customer_interest": {{
+        "overall_level": "high|medium|low|none",
+        "interest_signals": ["List of phrases/behaviors indicating interest"],
+        "hesitation_signals": ["List of phrases/behaviors indicating hesitation"],
+        "buying_readiness": 0-100,
+        "main_concerns": ["What is really holding them back"],
+        "what_they_want": "What the customer actually needs/wants based on context"
+    }},
+    
     "objections": [
         {{
             "timestamp": "MM:SS",
             "timestamp_ms": 0,
-            "type": "price|timing|competition|authority|need|trust",
+            "type": "price|timing|competition|authority|need|trust|already_have|not_interested|need_to_think|spouse_decision",
             "buyer_statement": "Exact quote from buyer",
-            "seller_response": "How seller responded",
+            "real_concern": "What is the TRUE underlying concern behind this objection",
+            "seller_response": "How seller actually responded",
             "handling_score": 1-10,
-            "better_response": "Suggested better way to handle this objection",
-            "why_better": "Brief explanation of why this response would be more effective"
+            "better_response": "A much better response that addresses the REAL concern, using context from this specific conversation",
+            "technique_used": "Name of sales technique (Feel-Felt-Found, Isolation, Reframe, Assumptive Close, etc.)",
+            "why_better": "Explain how this response addresses their real concern and moves toward closing"
         }}
     ],
     
@@ -272,14 +291,26 @@ def perform_ai_analysis(transcript: str, metrics: dict, openai_client: OpenAI) -
         }}
     ],
     
+    "closing_opportunities": [
+        {{
+            "timestamp": "MM:SS",
+            "timestamp_ms": 0,
+            "moment": "Description of the moment where a close could have been attempted",
+            "customer_signal": "What the customer said/did that created this opportunity",
+            "suggested_close": "Exact script for a closing attempt",
+            "close_type": "trial_close|assumptive_close|alternative_close|urgency_close|summary_close"
+        }}
+    ],
+    
     "better_responses": [
         {{
             "timestamp": "MM:SS",
+            "timestamp_ms": 0,
             "original_seller_statement": "What the seller actually said",
             "buyer_context": "What the buyer said/asked before this",
-            "improved_response": "A better way to respond",
+            "improved_response": "A better way to respond that moves toward closing",
             "technique_used": "Name of sales technique (e.g., 'Feel-Felt-Found', 'Isolation', 'Reframe')",
-            "expected_impact": "How this would improve the conversation"
+            "expected_impact": "How this would improve the conversation and increase close rate"
         }}
     ],
     

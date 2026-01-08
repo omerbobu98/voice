@@ -1310,51 +1310,127 @@ function MainApp() {
 
               {/* Call Summary */}
               {analysisResult.analysis?.call_summary && (
-                <div className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] rounded-3xl p-6 border border-white/10">
-                  <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-3">
-                    <Sparkles className="w-5 h-5 text-yellow-400" />
+                <div className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-white/10">
+                  <h3 className="text-lg sm:text-xl font-bold text-white mb-3 sm:mb-4 flex items-center gap-2 sm:gap-3">
+                    <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-400" />
                     Call Summary
                   </h3>
-                  <p className="text-gray-300 text-lg mb-4">{analysisResult.analysis.call_summary.one_liner}</p>
+                  <p className="text-gray-300 text-base sm:text-lg mb-3 sm:mb-4">{analysisResult.analysis.call_summary.one_liner}</p>
                   <div className="flex flex-wrap gap-2">
                     {analysisResult.analysis.call_summary.key_topics?.map((topic, i) => (
-                      <span key={i} className="px-3 py-1 bg-violet-500/20 text-violet-300 rounded-full text-sm">{topic}</span>
+                      <span key={i} className="px-2 sm:px-3 py-1 bg-violet-500/20 text-violet-300 rounded-full text-xs sm:text-sm">{topic}</span>
                     ))}
                   </div>
                 </div>
               )}
 
+              {/* Customer Interest Analysis */}
+              {analysisResult.analysis?.customer_interest && (
+                <div className="bg-gradient-to-b from-cyan-500/10 to-white/[0.02] rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-cyan-500/20">
+                  <h3 className="text-lg sm:text-xl font-bold text-white mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3">
+                    <Target className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-400" />
+                    Customer Interest Analysis
+                  </h3>
+                  
+                  {/* Interest Level & Readiness */}
+                  <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
+                    <div className="bg-black/20 rounded-xl p-3 sm:p-4 text-center">
+                      <p className="text-xs sm:text-sm text-gray-400 mb-1 sm:mb-2">Interest Level</p>
+                      <p className={`text-xl sm:text-2xl font-bold ${
+                        analysisResult.analysis.customer_interest.overall_level === 'high' ? 'text-emerald-400' :
+                        analysisResult.analysis.customer_interest.overall_level === 'medium' ? 'text-yellow-400' :
+                        'text-red-400'
+                      }`}>
+                        {analysisResult.analysis.customer_interest.overall_level?.toUpperCase()}
+                      </p>
+                    </div>
+                    <div className="bg-black/20 rounded-xl p-3 sm:p-4 text-center">
+                      <p className="text-xs sm:text-sm text-gray-400 mb-1 sm:mb-2">Buying Readiness</p>
+                      <p className="text-xl sm:text-2xl font-bold text-cyan-400">
+                        {analysisResult.analysis.customer_interest.buying_readiness || 0}%
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* What They Want */}
+                  {analysisResult.analysis.customer_interest.what_they_want && (
+                    <div className="bg-emerald-500/10 rounded-xl p-3 sm:p-4 border-l-4 border-emerald-500 mb-4">
+                      <p className="text-xs sm:text-sm text-emerald-400 font-semibold mb-1">💡 What They Really Want:</p>
+                      <p className="text-sm sm:text-base text-gray-200">{analysisResult.analysis.customer_interest.what_they_want}</p>
+                    </div>
+                  )}
+
+                  {/* Main Concerns */}
+                  {analysisResult.analysis.customer_interest.main_concerns?.length > 0 && (
+                    <div className="bg-orange-500/10 rounded-xl p-3 sm:p-4 border-l-4 border-orange-500 mb-4">
+                      <p className="text-xs sm:text-sm text-orange-400 font-semibold mb-2">⚠️ Main Concerns:</p>
+                      <ul className="space-y-1">
+                        {analysisResult.analysis.customer_interest.main_concerns.map((concern, i) => (
+                          <li key={i} className="text-sm sm:text-base text-gray-300 flex items-start gap-2">
+                            <span className="text-orange-400">•</span> {concern}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Interest & Hesitation Signals */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                    {analysisResult.analysis.customer_interest.interest_signals?.length > 0 && (
+                      <div className="bg-black/20 rounded-xl p-3 sm:p-4">
+                        <p className="text-xs sm:text-sm text-emerald-400 font-semibold mb-2">✅ Interest Signals:</p>
+                        <ul className="space-y-1">
+                          {analysisResult.analysis.customer_interest.interest_signals.map((signal, i) => (
+                            <li key={i} className="text-xs sm:text-sm text-gray-400">• {signal}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {analysisResult.analysis.customer_interest.hesitation_signals?.length > 0 && (
+                      <div className="bg-black/20 rounded-xl p-3 sm:p-4">
+                        <p className="text-xs sm:text-sm text-red-400 font-semibold mb-2">⚠️ Hesitation Signals:</p>
+                        <ul className="space-y-1">
+                          {analysisResult.analysis.customer_interest.hesitation_signals.map((signal, i) => (
+                            <li key={i} className="text-xs sm:text-sm text-gray-400">• {signal}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Scores Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-6">
                 {/* Overall Score */}
                 {analysisResult.analysis?.seller_performance && (
-                  <div className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] rounded-3xl p-6 border border-white/10 text-center">
-                    <h3 className="text-lg font-bold text-white mb-4">Overall Score</h3>
-                    <div className="text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-fuchsia-400 mb-2">
+                  <div className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-white/10 text-center">
+                    <h3 className="text-base sm:text-lg font-bold text-white mb-2 sm:mb-4">Overall Score</h3>
+                    <div className="text-4xl sm:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-fuchsia-400 mb-1 sm:mb-2">
                       {analysisResult.analysis.seller_performance.overall_score || 0}
                     </div>
-                    <p className="text-gray-500">out of 100</p>
+                    <p className="text-gray-500 text-sm">out of 100</p>
                   </div>
                 )}
 
                 {/* MEDDIC Score */}
                 {analysisResult.analysis?.meddic_score && (
-                  <div className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] rounded-3xl p-6 border border-white/10">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                        <Target className="w-5 h-5 text-violet-400" />
+                  <div className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-white/10">
+                    <div className="flex items-center justify-between mb-3 sm:mb-4">
+                      <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+                        <Target className="w-4 h-4 sm:w-5 sm:h-5 text-violet-400" />
                         MEDDIC
                       </h3>
-                      <div className="text-2xl font-bold text-violet-400">{analysisResult.analysis.meddic_score.total_score || 0}%</div>
+                      <div className="text-xl sm:text-2xl font-bold text-violet-400">{analysisResult.analysis.meddic_score.total_score || 0}%</div>
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-1.5 sm:space-y-2">
                       {['metrics', 'economic_buyer', 'decision_criteria', 'decision_process', 'identify_pain', 'champion'].map(key => {
                         const item = analysisResult.analysis.meddic_score[key]
                         if (!item) return null
                         return (
                           <div key={key} className="flex items-center gap-2">
-                            <div className="w-20 text-xs text-gray-500 capitalize truncate">{key.replace('_', ' ')}</div>
-                            <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden">
+                            <div className="w-16 sm:w-20 text-xs text-gray-500 capitalize truncate">{key.replace('_', ' ')}</div>
+                            <div className="flex-1 h-1 sm:h-1.5 bg-white/5 rounded-full overflow-hidden">
                               <div className="h-full bg-violet-500 rounded-full" style={{width: `${item.score || 0}%`}} />
                             </div>
                           </div>
@@ -1366,24 +1442,24 @@ function MainApp() {
 
                 {/* BANT Score */}
                 {analysisResult.analysis?.bant_score && (
-                  <div className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] rounded-3xl p-6 border border-white/10">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                        <BarChart3 className="w-5 h-5 text-blue-400" />
+                  <div className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-white/10">
+                    <div className="flex items-center justify-between mb-3 sm:mb-4">
+                      <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+                        <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400" />
                         BANT
                       </h3>
-                      <div className={`text-2xl font-bold ${analysisResult.analysis.bant_score.overall_qualified ? 'text-emerald-400' : 'text-orange-400'}`}>
-                        {analysisResult.analysis.bant_score.overall_qualified ? 'Qualified' : 'Not Qualified'}
+                      <div className={`text-sm sm:text-lg font-bold ${analysisResult.analysis.bant_score.overall_qualified ? 'text-emerald-400' : 'text-orange-400'}`}>
+                        {analysisResult.analysis.bant_score.overall_qualified ? '✓ Qualified' : '✗ Not Qualified'}
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
                       {['budget', 'authority', 'need', 'timeline'].map(key => {
                         const item = analysisResult.analysis.bant_score[key]
                         if (!item) return null
                         return (
-                          <div key={key} className={`p-2 rounded-lg text-center ${item.qualified ? 'bg-emerald-500/20' : 'bg-orange-500/20'}`}>
-                            <div className="text-xs text-gray-500 capitalize">{key}</div>
-                            <div className={`text-lg font-bold ${item.qualified ? 'text-emerald-400' : 'text-orange-400'}`}>
+                          <div key={key} className={`p-1.5 sm:p-2 rounded-lg text-center ${item.qualified ? 'bg-emerald-500/20' : 'bg-orange-500/20'}`}>
+                            <div className="text-xs text-gray-500 capitalize">{key.charAt(0).toUpperCase()}</div>
+                            <div className={`text-base sm:text-lg font-bold ${item.qualified ? 'text-emerald-400' : 'text-orange-400'}`}>
                               {item.qualified ? '✓' : '✗'}
                             </div>
                           </div>
@@ -1415,44 +1491,51 @@ function MainApp() {
 
               {/* OBJECTIONS - Main Focus */}
               {analysisResult.analysis?.objections?.length > 0 && (
-                <div className="bg-gradient-to-b from-orange-500/10 to-white/[0.02] rounded-3xl p-6 border border-orange-500/20">
-                  <h3 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
-                    <AlertTriangle className="w-6 h-6 text-orange-400" />
+                <div className="bg-gradient-to-b from-orange-500/10 to-white/[0.02] rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-orange-500/20">
+                  <h3 className="text-xl sm:text-2xl font-bold text-white mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3">
+                    <AlertTriangle className="w-5 h-5 sm:w-6 sm:h-6 text-orange-400" />
                     Objections Detected ({analysisResult.analysis.objections.length})
                   </h3>
-                  <div className="space-y-6">
+                  <div className="space-y-4 sm:space-y-6">
                     {analysisResult.analysis.objections.map((obj, i) => (
                       <div 
                         key={i} 
-                        className="bg-black/20 rounded-2xl p-6 border border-white/10 hover:border-orange-500/30 transition-all cursor-pointer"
+                        className="bg-black/20 rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-white/10 hover:border-orange-500/30 transition-all cursor-pointer"
                         onClick={() => {
                           if (result?.audio_url && obj.timestamp_ms) {
                             seekToTime(obj.timestamp_ms)
                           }
                         }}
                       >
-                        <div className="flex items-center gap-3 mb-4">
-                          <span className={`px-3 py-1.5 rounded-lg text-sm font-bold ${
+                        {/* Header Row */}
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+                          <span className={`px-2 sm:px-3 py-1 rounded-lg text-xs sm:text-sm font-bold ${
                             obj.type === 'price' || obj.type === 'finance' ? 'bg-yellow-500/20 text-yellow-300' :
                             obj.type === 'trust' ? 'bg-red-500/20 text-red-300' :
                             obj.type === 'timing' ? 'bg-blue-500/20 text-blue-300' :
-                            obj.type === 'authority' ? 'bg-purple-500/20 text-purple-300' :
+                            obj.type === 'authority' || obj.type === 'spouse_decision' ? 'bg-purple-500/20 text-purple-300' :
+                            obj.type === 'need_to_think' ? 'bg-cyan-500/20 text-cyan-300' :
                             'bg-gray-500/20 text-gray-300'
                           }`}>
-                            {obj.type?.toUpperCase() || 'OBJECTION'}
+                            {obj.type?.toUpperCase()?.replace('_', ' ') || 'OBJECTION'}
                           </span>
                           <button 
-                            className="text-sm font-mono px-2 py-1 rounded bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 transition-colors"
+                            className="text-xs sm:text-sm font-mono px-2 py-1 rounded bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 transition-colors flex items-center gap-1"
                             onClick={(e) => {
                               e.stopPropagation()
                               if (result?.audio_url && obj.timestamp_ms) seekToTime(obj.timestamp_ms)
                             }}
                           >
-                            ▶ {obj.timestamp}
+                            <PlayCircle className="w-3 h-3 sm:w-4 sm:h-4" /> {obj.timestamp}
                           </button>
-                          <div className="ml-auto flex items-center gap-2">
-                            <span className="text-xs text-gray-500">Handling Score:</span>
-                            <span className={`text-lg font-bold ${
+                          {obj.technique_used && (
+                            <span className="px-2 py-1 bg-violet-500/20 text-violet-300 rounded-lg text-xs hidden sm:inline">
+                              {obj.technique_used}
+                            </span>
+                          )}
+                          <div className="ml-auto flex items-center gap-1 sm:gap-2">
+                            <span className="text-xs text-gray-500 hidden sm:inline">Score:</span>
+                            <span className={`text-base sm:text-lg font-bold ${
                               obj.handling_score >= 7 ? 'text-emerald-400' :
                               obj.handling_score >= 4 ? 'text-yellow-400' :
                               'text-red-400'
@@ -1460,25 +1543,78 @@ function MainApp() {
                           </div>
                         </div>
                         
-                        <div className="space-y-4">
+                        <div className="space-y-3 sm:space-y-4">
                           {/* Buyer's Objection */}
-                          <div className="p-4 bg-red-500/10 rounded-xl border-l-4 border-red-500">
-                            <p className="text-xs text-red-400 mb-2 font-semibold">🗣️ BUYER'S OBJECTION:</p>
-                            <p className="text-white text-lg">"{obj.buyer_statement}"</p>
+                          <div className="p-3 sm:p-4 bg-red-500/10 rounded-xl border-l-4 border-red-500">
+                            <p className="text-xs text-red-400 mb-1 sm:mb-2 font-semibold">🗣️ CUSTOMER OBJECTION:</p>
+                            <p className="text-white text-sm sm:text-lg">"{obj.buyer_statement}"</p>
                           </div>
+
+                          {/* Real Concern */}
+                          {obj.real_concern && (
+                            <div className="p-3 sm:p-4 bg-orange-500/10 rounded-xl border-l-4 border-orange-500">
+                              <p className="text-xs text-orange-400 mb-1 sm:mb-2 font-semibold">🎯 REAL CONCERN:</p>
+                              <p className="text-orange-200 text-sm sm:text-base">{obj.real_concern}</p>
+                            </div>
+                          )}
                           
                           {/* Seller's Response */}
-                          <div className="p-4 bg-blue-500/10 rounded-xl border-l-4 border-blue-500">
-                            <p className="text-xs text-blue-400 mb-2 font-semibold">💬 SELLER'S RESPONSE:</p>
-                            <p className="text-gray-300">"{obj.seller_response}"</p>
+                          <div className="p-3 sm:p-4 bg-blue-500/10 rounded-xl border-l-4 border-blue-500">
+                            <p className="text-xs text-blue-400 mb-1 sm:mb-2 font-semibold">💬 SELLER'S RESPONSE:</p>
+                            <p className="text-gray-300 text-sm sm:text-base">"{obj.seller_response}"</p>
                           </div>
                           
                           {/* Better Response */}
-                          <div className="p-4 bg-emerald-500/10 rounded-xl border-l-4 border-emerald-500">
-                            <p className="text-xs text-emerald-400 mb-2 font-semibold">✨ BETTER RESPONSE:</p>
-                            <p className="text-emerald-200 text-lg font-medium">"{obj.better_response}"</p>
-                            <p className="text-sm text-gray-400 mt-3 italic">{obj.why_better}</p>
+                          <div className="p-3 sm:p-4 bg-emerald-500/10 rounded-xl border-l-4 border-emerald-500">
+                            <p className="text-xs text-emerald-400 mb-1 sm:mb-2 font-semibold">✨ BETTER RESPONSE:</p>
+                            <p className="text-emerald-200 text-sm sm:text-lg font-medium">"{obj.better_response}"</p>
+                            {obj.why_better && (
+                              <p className="text-xs sm:text-sm text-gray-400 mt-2 sm:mt-3 italic">{obj.why_better}</p>
+                            )}
                           </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Closing Opportunities */}
+              {analysisResult.analysis?.closing_opportunities?.length > 0 && (
+                <div className="bg-gradient-to-b from-emerald-500/10 to-white/[0.02] rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-emerald-500/20">
+                  <h3 className="text-lg sm:text-xl font-bold text-white mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3">
+                    <Target className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400" />
+                    Missed Closing Opportunities
+                  </h3>
+                  <div className="space-y-3 sm:space-y-4">
+                    {analysisResult.analysis.closing_opportunities.map((opp, i) => (
+                      <div 
+                        key={i} 
+                        className="bg-black/20 rounded-xl p-3 sm:p-4 border border-emerald-500/20 cursor-pointer hover:border-emerald-500/40 transition-all"
+                        onClick={() => {
+                          if (result?.audio_url && opp.timestamp_ms) seekToTime(opp.timestamp_ms)
+                        }}
+                      >
+                        <div className="flex items-center gap-2 mb-2 sm:mb-3">
+                          <button 
+                            className="text-xs sm:text-sm font-mono px-2 py-1 rounded bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 transition-colors flex items-center gap-1"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              if (result?.audio_url && opp.timestamp_ms) seekToTime(opp.timestamp_ms)
+                            }}
+                          >
+                            <PlayCircle className="w-3 h-3 sm:w-4 sm:h-4" /> {opp.timestamp}
+                          </button>
+                          <span className="px-2 py-1 bg-emerald-500/20 text-emerald-300 rounded-lg text-xs">
+                            {opp.close_type?.replace('_', ' ')?.toUpperCase()}
+                          </span>
+                        </div>
+                        <p className="text-xs sm:text-sm text-gray-400 mb-2">
+                          <span className="text-cyan-400">Customer signal:</span> "{opp.customer_signal}"
+                        </p>
+                        <div className="p-3 bg-emerald-500/10 rounded-lg border-l-4 border-emerald-500">
+                          <p className="text-xs text-emerald-400 font-semibold mb-1">💬 Suggested Close:</p>
+                          <p className="text-sm sm:text-base text-emerald-200">"{opp.suggested_close}"</p>
                         </div>
                       </div>
                     ))}
