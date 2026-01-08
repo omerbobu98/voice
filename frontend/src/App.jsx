@@ -1622,11 +1622,100 @@ function MainApp() {
                 </div>
               )}
 
+              {/* Storytelling Analysis */}
+              {analysisResult.analysis?.storytelling_analysis?.length > 0 && (
+                <div className="bg-gradient-to-b from-pink-500/10 to-white/[0.02] rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-pink-500/20">
+                  <h3 className="text-lg sm:text-xl font-bold text-white mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3">
+                    <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5 text-pink-400" />
+                    Storytelling Analysis ({analysisResult.analysis.storytelling_analysis.length})
+                  </h3>
+                  <div className="space-y-4 sm:space-y-6">
+                    {analysisResult.analysis.storytelling_analysis.map((story, i) => (
+                      <div 
+                        key={i} 
+                        className="bg-black/20 rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-white/10 hover:border-pink-500/30 transition-all cursor-pointer"
+                        onClick={() => {
+                          if (result?.audio_url && story.timestamp_ms) seekToTime(story.timestamp_ms)
+                        }}
+                      >
+                        {/* Header */}
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+                          <span className="px-2 sm:px-3 py-1 bg-pink-500/20 text-pink-300 rounded-lg text-xs sm:text-sm font-bold">
+                            {story.story_type?.replace('_', ' ')?.toUpperCase()}
+                          </span>
+                          <button 
+                            className="text-xs sm:text-sm font-mono px-2 py-1 rounded bg-pink-500/20 text-pink-400 hover:bg-pink-500/30 transition-colors flex items-center gap-1"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              if (result?.audio_url && story.timestamp_ms) seekToTime(story.timestamp_ms)
+                            }}
+                          >
+                            <PlayCircle className="w-3 h-3 sm:w-4 sm:h-4" /> {story.timestamp}
+                          </button>
+                          {story.storytelling_technique && (
+                            <span className="px-2 py-1 bg-violet-500/20 text-violet-300 rounded-lg text-xs hidden sm:inline">
+                              {story.storytelling_technique}
+                            </span>
+                          )}
+                          <div className="ml-auto flex items-center gap-1 sm:gap-2">
+                            <span className="text-xs text-gray-500 hidden sm:inline">Score:</span>
+                            <span className={`text-base sm:text-lg font-bold ${
+                              story.effectiveness_score >= 7 ? 'text-emerald-400' :
+                              story.effectiveness_score >= 4 ? 'text-yellow-400' :
+                              'text-red-400'
+                            }`}>{story.effectiveness_score}/10</span>
+                          </div>
+                        </div>
+
+                        {/* Intended Message */}
+                        {story.intended_message && (
+                          <div className="p-3 sm:p-4 bg-violet-500/10 rounded-xl border-l-4 border-violet-500 mb-3 sm:mb-4">
+                            <p className="text-xs text-violet-400 font-semibold mb-1">🎯 המסר שרצית להעביר:</p>
+                            <p className="text-sm sm:text-base text-gray-200">{story.intended_message}</p>
+                          </div>
+                        )}
+
+                        {/* Original Story */}
+                        <div className="p-3 sm:p-4 bg-gray-500/10 rounded-xl border-l-4 border-gray-500 mb-3 sm:mb-4">
+                          <p className="text-xs text-gray-400 font-semibold mb-1 sm:mb-2">📖 הסיפור שסיפרת:</p>
+                          <p className="text-sm sm:text-base text-gray-300">"{story.original_story}"</p>
+                        </div>
+
+                        {/* Issues */}
+                        {story.issues?.length > 0 && (
+                          <div className="p-3 sm:p-4 bg-orange-500/10 rounded-xl border-l-4 border-orange-500 mb-3 sm:mb-4">
+                            <p className="text-xs text-orange-400 font-semibold mb-2">⚠️ מה לשפר:</p>
+                            <ul className="space-y-1">
+                              {story.issues.map((issue, j) => (
+                                <li key={j} className="text-xs sm:text-sm text-gray-400 flex items-start gap-2">
+                                  <span className="text-orange-400">•</span> {issue}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                        {/* Improved Story */}
+                        <div className="p-3 sm:p-4 bg-emerald-500/10 rounded-xl border-l-4 border-emerald-500">
+                          <p className="text-xs text-emerald-400 font-semibold mb-1 sm:mb-2">✨ סיפור משופר (חזותי ומחבר):</p>
+                          <p className="text-sm sm:text-base text-emerald-200 font-medium leading-relaxed">"{story.improved_story}"</p>
+                          {story.why_better && (
+                            <p className="text-xs sm:text-sm text-gray-400 mt-2 sm:mt-3 italic border-t border-emerald-500/20 pt-2 mt-2">
+                              💡 {story.why_better}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Better Responses */}
               {analysisResult.analysis?.better_responses?.length > 0 && (
-                <div className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] rounded-3xl p-6 border border-white/10">
-                  <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
-                    <Zap className="w-5 h-5 text-emerald-400" />
+                <div className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-white/10">
+                  <h3 className="text-lg sm:text-xl font-bold text-white mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3">
+                    <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400" />
                     More Response Improvements
                   </h3>
                   <div className="space-y-4">

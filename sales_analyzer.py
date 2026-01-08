@@ -5,7 +5,6 @@ Comprehensive analysis of sales conversations with actionable insights
 
 import json
 from openai import OpenAI
-
 SALES_COACH_SYSTEM_PROMPT = """You are an elite AI Sales Coach specializing in B2B and B2C sales meeting analysis. You have 20+ years of experience training top-performing sales teams with deep expertise in:
 
 - MEDDIC, BANT, SPIN, Sandler, and Challenger Sale methodologies
@@ -288,6 +287,21 @@ def perform_ai_analysis(transcript: str, metrics: dict, openai_client: OpenAI) -
             "current_behavior": "What the seller is doing now",
             "suggested_change": "Specific actionable improvement",
             "example_script": "Exact words they could use"
+        }}
+    ],
+    
+    "storytelling_analysis": [
+        {{
+            "timestamp": "MM:SS",
+            "timestamp_ms": 0,
+            "story_type": "customer_success|personal_experience|analogy|case_study|pain_story",
+            "original_story": "The story as told by the seller - summarize the key points",
+            "intended_message": "What message was the seller trying to convey with this story",
+            "effectiveness_score": 1-10,
+            "issues": ["What was missing or could be improved - not vivid enough, too long, didn't connect, etc."],
+            "improved_story": "A much better version of this story that is: 1) Highly visual - the customer can picture it clearly, 2) Emotionally engaging - they feel connected to the character, 3) Relatable - they can see themselves in this situation, 4) Concise but impactful, 5) Has a clear message that advances the sale",
+            "storytelling_technique": "The technique used (e.g., 'Before/After', 'Problem-Solution', 'Hero Journey', 'Social Proof', 'Fear of Missing Out')",
+            "why_better": "Explain why this improved version is more effective and how it will help close the sale"
         }}
     ],
     
