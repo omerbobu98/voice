@@ -634,5 +634,39 @@ def serve_audio(filename):
     return send_from_directory(UPLOAD_FOLDER, filename)
 
 
+@app.route('/api/generate-pdf', methods=['POST'])
+def generate_pdf_report():
+    """Generate a professional PDF report from analysis data"""
+    from flask import send_file
+    from pdf_generator import generate_analysis_pdf
+    
+    data = request.json
+    analysis_data = data.get('analysis_data', {})
+    transcription_data = data.get('transcription_data', {})
+    file_name = data.get('file_name', 'call_analysis')
+    
+    if not analysis_data:
+        return jsonify({'error': 'Analysis data is required'}), 400
+    
+    try:
+        pdf_buffer = generate_analysis_pdf(analysis_data, transcription_data)
+        
+        # Create safe filename
+        safe_name = "".join(c for c in file_name if c.isalnum() or c in (' ', '-', '_')).rstrip()
+        pdf_filename = f"{safe_name}_report.pdf"
+        
+        return send_file(
+            pdf_buffer,
+            mimetype='application/pdf',
+            as_attachment=True,
+            download_name=pdf_filename
+        )
+    except Exception as e:
+        print(f"PDF generation error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
 if __name__ == '__main__':
     app.run(debug=True, port=5001)

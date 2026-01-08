@@ -4,7 +4,7 @@ import {
   Upload, Users, MessageSquare, Clock, FileAudio, CheckCircle2, Mic, Brain, UserCheck,
   BarChart3, TrendingUp, AlertTriangle, Target, Zap, Phone, PlayCircle, PauseCircle,
   ChevronRight, Sparkles, Shield, Award, PieChart, Activity, Volume2, Home, History,
-  Settings, User, Menu, X, ChevronDown, Calendar, Hash, LogOut
+  Settings, User, Menu, X, ChevronDown, Calendar, Hash, LogOut, FileDown
 } from 'lucide-react'
 import axios from 'axios'
 import { useAuth } from './contexts/AuthContext'
@@ -191,6 +191,65 @@ function TTSPlayer({ text, label = "🔊 Listen" }) {
         </div>
       )}
     </div>
+  )
+}
+
+// PDF Download Button Component
+function PDFDownloadButton({ analysisResult, fileName = 'call_analysis' }) {
+  const [loading, setLoading] = useState(false)
+
+  const downloadPDF = async () => {
+    if (!analysisResult) return
+    
+    setLoading(true)
+    try {
+      const response = await axios.post(
+        `${API_URL}/api/generate-pdf`,
+        {
+          analysis_data: analysisResult,
+          file_name: fileName
+        },
+        {
+          responseType: 'blob'
+        }
+      )
+      
+      // Create download link
+      const url = window.URL.createObjectURL(new Blob([response.data]))
+      const link = document.createElement('a')
+      link.href = url
+      link.setAttribute('download', `${fileName}_report.pdf`)
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+    } catch (err) {
+      console.error('PDF download error:', err)
+      alert('Failed to generate PDF. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <button
+      onClick={downloadPDF}
+      disabled={loading || !analysisResult}
+      className="px-3 sm:px-5 py-2 sm:py-2.5 bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white rounded-xl transition-all font-medium flex items-center gap-2 text-sm sm:text-base disabled:opacity-50 shadow-lg shadow-emerald-500/20"
+    >
+      {loading ? (
+        <>
+          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+          <span className="hidden sm:inline">Generating...</span>
+        </>
+      ) : (
+        <>
+          <FileDown className="w-4 h-4" />
+          <span className="hidden sm:inline">Download PDF</span>
+          <span className="sm:hidden">PDF</span>
+        </>
+      )}
+    </button>
   )
 }
 
@@ -1308,21 +1367,22 @@ function MainApp() {
               )}
               
               {/* Header */}
-              <div className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] rounded-3xl p-6 border border-white/10">
-                <div className="flex items-center justify-between flex-wrap gap-4">
-                  <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-fuchsia-500 to-violet-500 rounded-xl flex items-center justify-center">
-                      <Brain className="w-5 h-5 text-white" />
+              <div className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-white/10">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <h2 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2 sm:gap-3">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-fuchsia-500 to-violet-500 rounded-xl flex items-center justify-center">
+                      <Brain className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                     </div>
                     AI Sales Coach Analysis
                   </h2>
-                  <div className="flex gap-3">
+                  <div className="flex flex-wrap gap-2 sm:gap-3 w-full sm:w-auto">
                     <button
                       onClick={() => setShowAnalysis(false)}
-                      className="px-5 py-2.5 bg-white/10 hover:bg-white/20 text-gray-300 rounded-xl transition-colors font-medium"
+                      className="px-3 sm:px-5 py-2 sm:py-2.5 bg-white/10 hover:bg-white/20 text-gray-300 rounded-xl transition-colors font-medium text-sm sm:text-base"
                     >
-                      ← Back to Transcription
+                      ← Back
                     </button>
+                    <PDFDownloadButton analysisResult={analysisResult} fileName={result?.file_name} />
                     <button
                       onClick={() => {
                         setResult(null)
@@ -1331,7 +1391,7 @@ function MainApp() {
                         setAnalysisResult(null)
                         setShowAnalysis(false)
                       }}
-                      className="px-5 py-2.5 bg-violet-500/20 hover:bg-violet-500/30 text-violet-300 rounded-xl transition-colors font-medium flex items-center gap-2"
+                      className="px-3 sm:px-5 py-2 sm:py-2.5 bg-violet-500/20 hover:bg-violet-500/30 text-violet-300 rounded-xl transition-colors font-medium flex items-center gap-2 text-sm sm:text-base"
                     >
                       <Upload className="w-4 h-4" />
                       New Call
