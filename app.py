@@ -80,6 +80,20 @@ jobs = {}
 def health():
     return jsonify({'status': 'ok'})
 
+@app.route('/api/debug/jobs', methods=['GET'])
+def debug_jobs():
+    """Debug endpoint to check current jobs"""
+    job_summary = {}
+    for job_id, job in jobs.items():
+        job_summary[job_id] = {
+            'status': job.get('status'),
+            'progress': job.get('progress'),
+            'stage': job.get('stage'),
+            'error': job.get('error'),
+            'has_result': job.get('result') is not None
+        }
+    return jsonify({'jobs_count': len(jobs), 'jobs': job_summary})
+
 @app.route('/api/debug/api-keys', methods=['GET'])
 def debug_api_keys():
     """Debug endpoint to check API key status"""
