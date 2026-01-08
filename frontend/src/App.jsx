@@ -1985,8 +1985,8 @@ function MainApp() {
                             {obj.why_better && (
                               <p className="text-xs sm:text-sm text-gray-400 mt-2 sm:mt-3 italic">{obj.why_better}</p>
                             )}
-                            {/* TTS Player for Better Response */}
-                            <TTSPlayer text={obj.better_response} label="🔊 שמע תשובה" onPlay={stopMainAudio} />
+                            {/* TTS Player for Better Response - Completely separate from call audio */}
+                            <TTSPlayer text={obj.better_response} label="🔊 שמע תשובה" onPlay={stopAndResetMainAudio} />
                           </div>
                         </div>
                       </div>
@@ -2031,8 +2031,8 @@ function MainApp() {
                         <div className="p-3 bg-emerald-500/10 rounded-lg border-l-4 border-emerald-500">
                           <p className="text-xs text-emerald-400 font-semibold mb-1">💬 Suggested Close:</p>
                           <p className="text-sm sm:text-base text-emerald-200">"{opp.suggested_close}"</p>
-                          {/* TTS Player for Suggested Close */}
-                          <TTSPlayer text={opp.suggested_close} label="🔊 שמע סגירה" onPlay={stopMainAudio} />
+                          {/* TTS Player for Suggested Close - Separate from call audio */}
+                          <TTSPlayer text={opp.suggested_close} label="🔊 שמע סגירה" onPlay={stopAndResetMainAudio} />
                         </div>
                       </div>
                     ))}
@@ -2122,8 +2122,8 @@ function MainApp() {
                               💡 {story.why_better}
                             </p>
                           )}
-                          {/* TTS Player for Improved Story */}
-                          <TTSPlayer text={story.improved_story} label="🔊 שמע סיפור" onPlay={stopMainAudio} />
+                          {/* TTS Player for Improved Story - Separate from call audio */}
+                          <TTSPlayer text={story.improved_story} label="🔊 שמע סיפור" onPlay={stopAndResetMainAudio} />
                         </div>
                       </div>
                     ))}
@@ -2153,8 +2153,8 @@ function MainApp() {
                           <div className="p-4 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
                             <p className="text-xs text-emerald-400 mb-2">✅ Improved:</p>
                             <p className="text-emerald-200 font-medium">"{resp.improved_response}"</p>
-                            {/* TTS Player for Improved Response */}
-                            <TTSPlayer text={resp.improved_response} label="🔊 שמע" onPlay={stopMainAudio} />
+                            {/* TTS Player for Improved Response - Separate from call audio */}
+                            <TTSPlayer text={resp.improved_response} label="🔊 שמע" onPlay={stopAndResetMainAudio} />
                           </div>
                         </div>
                         <p className="text-sm text-gray-500 mt-3">{resp.expected_impact}</p>
