@@ -25,6 +25,23 @@
 - [x] Overall performance score
 - [x] **Visual Timeline** - Discovery, Diagnose, Closing, Objections with timestamps
 - [x] **Timeline Events** - AI detects 9 event types with timestamp_ms
+- [x] **Customer Interest Analysis** - Buying readiness %, concerns, what they want
+- [x] **Closing Opportunities** - Missed opportunities with suggested closes
+- [x] **Storytelling Analysis** - Detects stories, suggests improved versions
+
+### TTS (Text-to-Speech) - NEW January 7, 2026
+- [x] OpenAI TTS integration for AI responses
+- [x] TTSPlayer component with play/pause/stop
+- [x] Progress bar with seek functionality
+- [x] Auto-pause main audio when TTS plays
+- [x] Stop button to reset TTS playback
+
+### PDF Report Generation - NEW January 7, 2026
+- [x] ReportLab PDF generation
+- [x] Professional branded design
+- [x] All analysis sections included
+- [x] Download button in analysis view
+- [x] Clean text (emoji removal for PDF compatibility)
 
 ### Database & Storage (Updated January 6, 2026 - Session 2)
 - [x] Supabase integration via MCP
@@ -96,14 +113,16 @@
 
 ## Current Status
 
-**Phase**: MVP Complete + Admin Dashboard + Audio Playback
-**Last Updated**: January 6, 2026 (Session 4)
+**Phase**: MVP Complete + Admin Dashboard + Audio Playback + TTS + PDF Export
+**Last Updated**: January 7, 2026 (Session 5)
 
 The core application is fully functional:
 1. Users can upload audio files
 2. Transcription works with speaker identification
 3. "Analyze Call" button triggers comprehensive AI analysis
 4. Results displayed in dedicated view with all insights
+5. TTS playback for AI-suggested responses
+6. PDF report download
 
 ## Known Issues 🐛
 
@@ -111,9 +130,12 @@ The core application is fully functional:
 - ~~GPT-5.2 `max_tokens` error~~ → Fixed: Use `max_completion_tokens`
 - ~~Port 5000 conflict on macOS~~ → Fixed: Use port 5001
 - ~~Analysis running automatically~~ → Fixed: Separate button flow
+- ~~TTS and main audio playing simultaneously~~ → Fixed: stopMainAudio callback
+- ~~PDF generation failing with emojis~~ → Fixed: clean_text() function
+- ~~Jobs lost on Railway redeploy~~ → In-memory jobs cleared on restart
 
 ### Open
-- None currently blocking
+- Jobs stored in memory (lost on Railway redeploy) - consider Redis/DB persistence
 
 ## Evolution of Project Decisions
 

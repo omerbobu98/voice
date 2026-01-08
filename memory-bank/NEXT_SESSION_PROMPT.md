@@ -1,65 +1,84 @@
-# 🚀 Next Session: Audio Playback on Timestamp Click
+# 🚀 SalesAI - Next Session Instructions
 
-## 🎯 Next Session Objective
-**Make audio playable when clicking timestamps in objections/events**
-
-When user clicks on a timestamp (objection, timeline event, transcript segment), the audio should:
-1. Start playing from that exact timestamp
-2. Allow user to hear the context of what happened
-
----
-
-## 📋 TODO for Next Session
-
-### High Priority - Audio on Click
-1. [ ] **Save audio file to Supabase Storage** when user uploads
-2. [ ] **Store audio_url in calls table** (already exists)
-3. [ ] **Load audio in analysis view** - fetch from storage
-4. [ ] **Click timestamp → play audio** from that point
-5. [ ] **Audio player controls** - play/pause, seek bar
-
-### Implementation Plan
-```
-1. When uploading audio:
-   - Upload to Supabase Storage (audio bucket)
-   - Save public URL in calls.audio_url
-
-2. In call detail/analysis view:
-   - Fetch audio_url from call data
-   - Create <audio> element with src=audio_url
-   - Add audioRef for controlling playback
-
-3. On timestamp click:
-   - Get timestamp_ms from the clicked item
-   - audioRef.current.currentTime = timestamp_ms / 1000
-   - audioRef.current.play()
-```
+## ⚠️ FIRST: Read Memory Bank
+Before doing ANYTHING, read these files to understand the project:
+1. `memory-bank/progress.md` - What's been built
+2. `memory-bank/activeContext.md` - Recent changes and current state
+3. `memory-bank/productContext.md` - Product goals
 
 ---
 
-## ✅ Completed (January 6, 2026 - Session 4)
+## 📋 Session 5 Summary (January 7, 2026)
 
-### Admin Dashboard Redesign
-- [x] Sidebar layout with users list
-- [x] Search/filter users by name or email
-- [x] Click user to see their stats and calls
-- [x] Overview dashboard with team stats
-- [x] User emails/names displayed (not just IDs)
-- [x] `user_profiles` table created
-- [x] `get_all_users_admin()` function
-- [x] `get_user_display_info()` function
+### What Was Built
+- ✅ **Enhanced AI Analysis** - Customer interest, closing opportunities, storytelling analysis
+- ✅ **Premium UI Dashboard** - Key metrics (score, buying ready %, objections, risk) at top
+- ✅ **TTS Integration** - OpenAI TTS for AI-suggested responses
+- ✅ **TTSPlayer Component** - Play/pause/stop with progress bar
+- ✅ **Audio Conflict Fix** - Main audio pauses when TTS plays
+- ✅ **PDF Report Generation** - Professional PDF export with ReportLab
+- ✅ **PDF Emoji Fix** - clean_text() removes emojis
+- ✅ **Debug Endpoints** - /api/debug/jobs, /api/debug/api-keys
 
-### Previous Sessions
-- [x] `user_roles` table with RLS
-- [x] Admin API endpoints
-- [x] AdminDashboard, AdminCallsPage, AdminCallView pages
-- [x] Audio storage in Supabase
-- [x] Visual Timeline with click-to-seek
-- [x] Call History view
+### Known Issue Discovered
+- **Jobs stored in memory** - Railway redeploy clears jobs dict
+- When we pushed code, Railway restarted and the user's transcription job was lost
+- **Potential fix**: Store jobs in Redis or Supabase for persistence
 
-### Supabase MCP Connected
-- Project: `voice-new` (nacwvxqimvbfqlyylszt)
-- MCP allows direct SQL execution and migrations
+---
+
+## 🔧 Deployment Info
+
+### URLs
+- **Frontend**: https://vloce.netlify.app
+- **Backend**: https://web-production-3215.up.railway.app
+- **Supabase**: nacwvxqimvbfqlyylszt.supabase.co
+
+### Debug Endpoints
+```bash
+# Check health
+curl https://web-production-3215.up.railway.app/api/health
+
+# Check API keys status
+curl https://web-production-3215.up.railway.app/api/debug/api-keys
+
+# Check current jobs
+curl https://web-production-3215.up.railway.app/api/debug/jobs
+```
+
+---
+
+## ✅ Completed Features
+
+### Core
+- [x] Audio upload + AssemblyAI transcription
+- [x] Speaker diarization and role classification
+- [x] Comprehensive AI analysis (MEDDIC, BANT, objections)
+- [x] Audio playback with timestamp navigation
+- [x] Visual timeline with clickable events
+- [x] Call history with re-analysis
+- [x] Admin dashboard
+
+### Session 5 Additions
+- [x] Customer interest analysis
+- [x] Closing opportunities detection
+- [x] Storytelling analysis with improved versions
+- [x] TTS playback for AI suggestions
+- [x] PDF report download
+- [x] Premium metrics dashboard in analysis view
+
+---
+
+## 🎯 WAITING FOR USER INSTRUCTIONS
+
+**The user will tell you what to work on next.**
+
+Possible tasks:
+- Fix jobs persistence (Redis/Supabase instead of in-memory)
+- UI improvements
+- New features
+- Bug fixes
+- Deployment issues
 
 ---
 
