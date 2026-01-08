@@ -52,7 +52,7 @@ const getAuthHeaders = async () => {
 }
 
 // TTS Audio Player Component - Mini player for text-to-speech
-function TTSPlayer({ text, label = "🔊 Listen" }) {
+function TTSPlayer({ text, label = "🔊 Listen", onPlay, onStop }) {
   const [loading, setLoading] = useState(false)
   const [audioUrl, setAudioUrl] = useState(null)
   const [playing, setPlaying] = useState(false)
@@ -60,18 +60,37 @@ function TTSPlayer({ text, label = "🔊 Listen" }) {
   const [duration, setDuration] = useState(0)
   const audioRef = useRef(null)
 
+  const playAudio = () => {
+    if (audioRef.current) {
+      // Notify parent to stop main audio
+      if (onPlay) onPlay()
+      audioRef.current.play()
+      setPlaying(true)
+    }
+  }
+
+  const stopAudio = () => {
+    if (audioRef.current) {
+      audioRef.current.pause()
+      audioRef.current.currentTime = 0
+      setPlaying(false)
+      setCurrentTime(0)
+      if (onStop) onStop()
+    }
+  }
+
+  const togglePlay = () => {
+    if (playing) {
+      audioRef.current.pause()
+      setPlaying(false)
+    } else {
+      playAudio()
+    }
+  }
+
   const generateAudio = async () => {
     if (audioUrl) {
-      // Already generated, just play
-      if (audioRef.current) {
-        if (playing) {
-          audioRef.current.pause()
-          setPlaying(false)
-        } else {
-          audioRef.current.play()
-          setPlaying(true)
-        }
-      }
+      togglePlay()
       return
     }
 
@@ -86,10 +105,7 @@ function TTSPlayer({ text, label = "🔊 Listen" }) {
       
       // Auto-play after generation
       setTimeout(() => {
-        if (audioRef.current) {
-          audioRef.current.play()
-          setPlaying(true)
-        }
+        playAudio()
       }, 100)
     } catch (err) {
       console.error('TTS error:', err)
@@ -151,18 +167,30 @@ function TTSPlayer({ text, label = "🔊 Listen" }) {
         </button>
       ) : (
         <div className="bg-black/30 rounded-xl p-3 border border-violet-500/20">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* Play/Pause Button */}
             <button
-              onClick={generateAudio}
-              className="w-10 h-10 bg-gradient-to-br from-violet-500 to-fuchsia-500 rounded-full flex items-center justify-center shadow-lg hover:scale-105 transition-transform flex-shrink-0"
+              onClick={togglePlay}
+              className="w-9 h-9 sm:w-10 sm:h-10 bg-gradient-to-br from-violet-500 to-fuchsia-500 rounded-full flex items-center justify-center shadow-lg hover:scale-105 transition-transform flex-shrink-0"
             >
               {playing ? (
-                <PauseCircle className="w-6 h-6 text-white" />
+                <PauseCircle className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               ) : (
-                <PlayCircle className="w-6 h-6 text-white" />
+                <PlayCircle className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               )}
             </button>
-            <div className="flex-1">
+            
+            {/* Stop Button */}
+            <button
+              onClick={stopAudio}
+              className="w-9 h-9 sm:w-10 sm:h-10 bg-red-500/20 hover:bg-red-500/30 rounded-full flex items-center justify-center transition-colors flex-shrink-0 border border-red-500/30"
+              title="Stop"
+            >
+              <X className="w-4 h-4 sm:w-5 sm:h-5 text-red-400" />
+            </button>
+            
+            {/* Progress Bar */}
+            <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-xs text-violet-300">AI Voice</span>
                 <span className="text-xs text-gray-400 font-mono">
@@ -313,6 +341,14 @@ function MainApp() {
         audioRef.current.play()
       }
       setAudioPlaying(!audioPlaying)
+    }
+  }
+
+  // Stop main audio (used when TTS plays)
+  const stopMainAudio = () => {
+    if (audioRef.current && audioPlaying) {
+      audioRef.current.pause()
+      setAudioPlaying(false)
     }
   }
 
@@ -1827,7 +1863,7 @@ function MainApp() {
                               <p className="text-xs sm:text-sm text-gray-400 mt-2 sm:mt-3 italic">{obj.why_better}</p>
                             )}
                             {/* TTS Player for Better Response */}
-                            <TTSPlayer text={obj.better_response} label="🔊 שמע תשובה" />
+                            <TTSPlayer text={obj.better_response} label="🔊 שמע תשובה" onPlay={stopMainAudio} />
                           </div>
                         </div>
                       </div>
@@ -1873,7 +1909,7 @@ function MainApp() {
                           <p className="text-xs text-emerald-400 font-semibold mb-1">💬 Suggested Close:</p>
                           <p className="text-sm sm:text-base text-emerald-200">"{opp.suggested_close}"</p>
                           {/* TTS Player for Suggested Close */}
-                          <TTSPlayer text={opp.suggested_close} label="🔊 שמע סגירה" />
+                          <TTSPlayer text={opp.suggested_close} label="🔊 שמע סגירה" onPlay={stopMainAudio} />
                         </div>
                       </div>
                     ))}
@@ -1964,7 +2000,7 @@ function MainApp() {
                             </p>
                           )}
                           {/* TTS Player for Improved Story */}
-                          <TTSPlayer text={story.improved_story} label="🔊 שמע סיפור" />
+                          <TTSPlayer text={story.improved_story} label="🔊 שמע סיפור" onPlay={stopMainAudio} />
                         </div>
                       </div>
                     ))}
@@ -1995,7 +2031,7 @@ function MainApp() {
                             <p className="text-xs text-emerald-400 mb-2">✅ Improved:</p>
                             <p className="text-emerald-200 font-medium">"{resp.improved_response}"</p>
                             {/* TTS Player for Improved Response */}
-                            <TTSPlayer text={resp.improved_response} label="🔊 שמע" />
+                            <TTSPlayer text={resp.improved_response} label="🔊 שמע" onPlay={stopMainAudio} />
                           </div>
                         </div>
                         <p className="text-sm text-gray-500 mt-3">{resp.expected_impact}</p>

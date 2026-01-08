@@ -13,6 +13,33 @@ from reportlab.graphics.shapes import Drawing, Rect, String
 from reportlab.graphics.charts.piecharts import Pie
 from io import BytesIO
 from datetime import datetime
+import re
+
+
+def clean_text(text):
+    """Remove emojis and special characters that reportlab can't handle"""
+    if not text:
+        return ""
+    # Remove emojis and other non-ASCII characters
+    emoji_pattern = re.compile("["
+        u"\U0001F600-\U0001F64F"  # emoticons
+        u"\U0001F300-\U0001F5FF"  # symbols & pictographs
+        u"\U0001F680-\U0001F6FF"  # transport & map symbols
+        u"\U0001F1E0-\U0001F1FF"  # flags
+        u"\U00002702-\U000027B0"
+        u"\U000024C2-\U0001F251"
+        u"\U0001f926-\U0001f937"
+        u"\U00010000-\U0010ffff"
+        u"\u2640-\u2642"
+        u"\u2600-\u2B55"
+        u"\u200d"
+        u"\u23cf"
+        u"\u23e9"
+        u"\u231a"
+        u"\ufe0f"
+        u"\u3030"
+        "]+", flags=re.UNICODE)
+    return emoji_pattern.sub('', str(text))
 
 
 # Brand Colors
@@ -224,13 +251,13 @@ def generate_analysis_pdf(analysis_data: dict, transcription_data: dict = None) 
     
     # ==================== COVER PAGE ====================
     story.append(Spacer(1, 100))
-    story.append(Paragraph("📊 Sales Call Analysis Report", styles['ReportTitle']))
+    story.append(Paragraph("Sales Call Analysis Report", styles['ReportTitle']))
     story.append(Spacer(1, 20))
     
     # Call summary one-liner
     if analysis.get('call_summary'):
         summary = analysis['call_summary']
-        story.append(Paragraph(f"<i>{summary.get('one_liner', 'Call Analysis')}</i>", 
+        story.append(Paragraph(f"<i>{clean_text(summary.get('one_liner', 'Call Analysis'))}</i>", 
                               ParagraphStyle('subtitle', fontSize=14, textColor=BRAND_DARK, alignment=TA_CENTER)))
     
     story.append(Spacer(1, 40))
@@ -265,7 +292,7 @@ def generate_analysis_pdf(analysis_data: dict, transcription_data: dict = None) 
     story.append(PageBreak())
     
     # ==================== EXECUTIVE SUMMARY ====================
-    story.append(Paragraph("📋 Executive Summary", styles['SectionHeader']))
+    story.append(Paragraph("Executive Summary", styles['SectionHeader']))
     story.append(HRFlowable(width="100%", thickness=2, color=BRAND_PRIMARY, spaceBefore=5, spaceAfter=15))
     
     if analysis.get('call_summary'):
@@ -278,18 +305,18 @@ def generate_analysis_pdf(analysis_data: dict, transcription_data: dict = None) 
         story.append(Spacer(1, 10))
         
         # Summary
-        story.append(Paragraph(summary.get('one_liner', ''), styles['BodyText']))
+        story.append(Paragraph(clean_text(summary.get('one_liner', '')), styles['BodyText']))
         story.append(Spacer(1, 10))
         
         # Key topics
         if summary.get('key_topics'):
-            topics_text = " • ".join(summary['key_topics'])
+            topics_text = " - ".join([clean_text(t) for t in summary['key_topics']])
             story.append(Paragraph(f"<b>Key Topics:</b> {topics_text}", styles['BodyText']))
     
     # ==================== CUSTOMER INTEREST ====================
     if analysis.get('customer_interest'):
         story.append(Spacer(1, 20))
-        story.append(Paragraph("🎯 Customer Interest Analysis", styles['SectionHeader']))
+        story.append(Paragraph("Customer Interest Analysis", styles['SectionHeader']))
         story.append(HRFlowable(width="100%", thickness=2, color=BRAND_INFO, spaceBefore=5, spaceAfter=15))
         
         ci = analysis['customer_interest']
@@ -315,19 +342,19 @@ def generate_analysis_pdf(analysis_data: dict, transcription_data: dict = None) 
         
         # What they want
         if ci.get('what_they_want'):
-            story.append(Paragraph("<b>💡 What They Really Want:</b>", styles['Label']))
-            story.append(Paragraph(ci['what_they_want'], styles['BodyText']))
+            story.append(Paragraph("<b>What They Really Want:</b>", styles['Label']))
+            story.append(Paragraph(clean_text(ci['what_they_want']), styles['BodyText']))
         
         # Main concerns
         if ci.get('main_concerns'):
-            story.append(Paragraph("<b>⚠️ Main Concerns:</b>", styles['Label']))
+            story.append(Paragraph("<b>Main Concerns:</b>", styles['Label']))
             for concern in ci['main_concerns']:
-                story.append(Paragraph(f"• {concern}", styles['BodyText']))
+                story.append(Paragraph(f"- {clean_text(concern)}", styles['BodyText']))
     
     # ==================== OBJECTIONS ====================
     if analysis.get('objections') and len(analysis['objections']) > 0:
         story.append(PageBreak())
-        story.append(Paragraph(f"⚠️ Objections Detected ({len(analysis['objections'])})", styles['SectionHeader']))
+        story.append(Paragraph(f"Objections Detected ({len(analysis['objections'])})", styles['SectionHeader']))
         story.append(HRFlowable(width="100%", thickness=2, color=BRAND_WARNING, spaceBefore=5, spaceAfter=15))
         
         for i, obj in enumerate(analysis['objections'], 1):
@@ -335,17 +362,17 @@ def generate_analysis_pdf(analysis_data: dict, transcription_data: dict = None) 
                                   styles['SubsectionHeader']))
             
             # Customer objection
-            story.append(Paragraph("<font color='#EF4444'><b>🗣️ Customer Objection:</b></font>", styles['Label']))
-            story.append(Paragraph(f'"{obj.get("buyer_statement", "")}"', styles['Quote']))
+            story.append(Paragraph("<font color='#EF4444'><b>Customer Objection:</b></font>", styles['Label']))
+            story.append(Paragraph(f'"{clean_text(obj.get("buyer_statement", ""))}"', styles['Quote']))
             
             # Real concern
             if obj.get('real_concern'):
-                story.append(Paragraph("<font color='#F59E0B'><b>🎯 Real Concern:</b></font>", styles['Label']))
-                story.append(Paragraph(obj['real_concern'], styles['BodyText']))
+                story.append(Paragraph("<font color='#F59E0B'><b>Real Concern:</b></font>", styles['Label']))
+                story.append(Paragraph(clean_text(obj['real_concern']), styles['BodyText']))
             
             # Seller's response
-            story.append(Paragraph("<font color='#3B82F6'><b>💬 Seller's Response:</b></font>", styles['Label']))
-            story.append(Paragraph(f'"{obj.get("seller_response", "")}"', styles['Quote']))
+            story.append(Paragraph("<font color='#3B82F6'><b>Seller Response:</b></font>", styles['Label']))
+            story.append(Paragraph(f'"{clean_text(obj.get("seller_response", ""))}"', styles['Quote']))
             
             # Handling score
             score = obj.get('handling_score', 0)
@@ -353,8 +380,8 @@ def generate_analysis_pdf(analysis_data: dict, transcription_data: dict = None) 
             story.append(Paragraph(f"<b>Handling Score:</b> <font color='{score_color.hexval()}'><b>{score}/10</b></font>", styles['BodyText']))
             
             # Better response
-            story.append(Paragraph("<font color='#10B981'><b>✨ Better Response:</b></font>", styles['Label']))
-            story.append(Paragraph(f'"{obj.get("better_response", "")}"', styles['BetterResponse']))
+            story.append(Paragraph("<font color='#10B981'><b>Better Response:</b></font>", styles['Label']))
+            story.append(Paragraph(f'"{clean_text(obj.get("better_response", ""))}"', styles['BetterResponse']))
             
             if obj.get('why_better'):
                 story.append(Paragraph(f"<i>{obj['why_better']}</i>", styles['SmallText']))
@@ -364,7 +391,7 @@ def generate_analysis_pdf(analysis_data: dict, transcription_data: dict = None) 
     
     # ==================== CLOSING OPPORTUNITIES ====================
     if analysis.get('closing_opportunities') and len(analysis['closing_opportunities']) > 0:
-        story.append(Paragraph(f"🎯 Missed Closing Opportunities ({len(analysis['closing_opportunities'])})", styles['SectionHeader']))
+        story.append(Paragraph(f"Missed Closing Opportunities ({len(analysis['closing_opportunities'])})", styles['SectionHeader']))
         story.append(HRFlowable(width="100%", thickness=2, color=BRAND_SUCCESS, spaceBefore=5, spaceAfter=15))
         
         for i, opp in enumerate(analysis['closing_opportunities'], 1):
@@ -372,14 +399,14 @@ def generate_analysis_pdf(analysis_data: dict, transcription_data: dict = None) 
                                   styles['SubsectionHeader']))
             
             story.append(Paragraph(f"<b>Customer Signal:</b> \"{opp.get('customer_signal', '')}\"", styles['BodyText']))
-            story.append(Paragraph("<font color='#10B981'><b>💬 Suggested Close:</b></font>", styles['Label']))
-            story.append(Paragraph(f'"{opp.get("suggested_close", "")}"', styles['BetterResponse']))
+            story.append(Paragraph("<font color='#10B981'><b>Suggested Close:</b></font>", styles['Label']))
+            story.append(Paragraph(f'"{clean_text(opp.get("suggested_close", ""))}"', styles['BetterResponse']))
             story.append(Spacer(1, 10))
     
     # ==================== STORYTELLING ====================
     if analysis.get('storytelling_analysis') and len(analysis['storytelling_analysis']) > 0:
         story.append(PageBreak())
-        story.append(Paragraph(f"📖 Storytelling Analysis ({len(analysis['storytelling_analysis'])})", styles['SectionHeader']))
+        story.append(Paragraph(f"Storytelling Analysis ({len(analysis['storytelling_analysis'])})", styles['SectionHeader']))
         story.append(HRFlowable(width="100%", thickness=2, color=BRAND_SECONDARY, spaceBefore=5, spaceAfter=15))
         
         for i, s in enumerate(analysis['storytelling_analysis'], 1):
@@ -393,32 +420,32 @@ def generate_analysis_pdf(analysis_data: dict, transcription_data: dict = None) 
             
             # Intended message
             if s.get('intended_message'):
-                story.append(Paragraph("<b>🎯 Intended Message:</b>", styles['Label']))
-                story.append(Paragraph(s['intended_message'], styles['BodyText']))
+                story.append(Paragraph("<b>Intended Message:</b>", styles['Label']))
+                story.append(Paragraph(clean_text(s['intended_message']), styles['BodyText']))
             
             # Original story
-            story.append(Paragraph("<b>📖 Original Story:</b>", styles['Label']))
-            story.append(Paragraph(f'"{s.get("original_story", "")}"', styles['Quote']))
+            story.append(Paragraph("<b>Original Story:</b>", styles['Label']))
+            story.append(Paragraph(f'"{clean_text(s.get("original_story", ""))}"', styles['Quote']))
             
             # Issues
             if s.get('issues'):
-                story.append(Paragraph("<b>⚠️ What to Improve:</b>", styles['Label']))
+                story.append(Paragraph("<b>What to Improve:</b>", styles['Label']))
                 for issue in s['issues']:
-                    story.append(Paragraph(f"• {issue}", styles['SmallText']))
+                    story.append(Paragraph(f"- {clean_text(issue)}", styles['SmallText']))
             
             # Improved story
-            story.append(Paragraph("<font color='#10B981'><b>✨ Improved Story (Visual & Engaging):</b></font>", styles['Label']))
-            story.append(Paragraph(f'"{s.get("improved_story", "")}"', styles['BetterResponse']))
+            story.append(Paragraph("<font color='#10B981'><b>Improved Story:</b></font>", styles['Label']))
+            story.append(Paragraph(f'"{clean_text(s.get("improved_story", ""))}"', styles['BetterResponse']))
             
             if s.get('why_better'):
-                story.append(Paragraph(f"<i>💡 {s['why_better']}</i>", styles['SmallText']))
+                story.append(Paragraph(f"<i>{clean_text(s['why_better'])}</i>", styles['SmallText']))
             
             story.append(Spacer(1, 15))
     
     # ==================== COACHING SUGGESTIONS ====================
     if analysis.get('coaching_suggestions') and len(analysis['coaching_suggestions']) > 0:
         story.append(PageBreak())
-        story.append(Paragraph("🎓 Coaching Recommendations", styles['SectionHeader']))
+        story.append(Paragraph("Coaching Recommendations", styles['SectionHeader']))
         story.append(HRFlowable(width="100%", thickness=2, color=BRAND_PRIMARY, spaceBefore=5, spaceAfter=15))
         
         for sug in analysis['coaching_suggestions']:
@@ -430,26 +457,26 @@ def generate_analysis_pdf(analysis_data: dict, transcription_data: dict = None) 
                 styles['SubsectionHeader']
             ))
             
-            story.append(Paragraph(sug.get('suggested_change', ''), styles['BodyText']))
+            story.append(Paragraph(clean_text(sug.get('suggested_change', '')), styles['BodyText']))
             
             if sug.get('example_script'):
                 story.append(Paragraph("<b>Example Script:</b>", styles['Label']))
-                story.append(Paragraph(f'"{sug["example_script"]}"', styles['BetterResponse']))
+                story.append(Paragraph(f'"{clean_text(sug["example_script"])}"', styles['BetterResponse']))
             
             story.append(Spacer(1, 10))
     
     # ==================== NEXT STEPS ====================
     if analysis.get('next_steps_recommended'):
-        story.append(Paragraph("📋 Recommended Next Steps", styles['SectionHeader']))
+        story.append(Paragraph("Recommended Next Steps", styles['SectionHeader']))
         story.append(HRFlowable(width="100%", thickness=2, color=BRAND_PRIMARY, spaceBefore=5, spaceAfter=15))
         
         for i, step in enumerate(analysis['next_steps_recommended'], 1):
-            story.append(Paragraph(f"<b>{i}.</b> {step}", styles['BodyText']))
+            story.append(Paragraph(f"<b>{i}.</b> {clean_text(step)}", styles['BodyText']))
     
     # ==================== METRICS APPENDIX ====================
     if metrics:
         story.append(PageBreak())
-        story.append(Paragraph("📊 Detailed Metrics", styles['SectionHeader']))
+        story.append(Paragraph("Detailed Metrics", styles['SectionHeader']))
         story.append(HRFlowable(width="100%", thickness=2, color=BRAND_PRIMARY, spaceBefore=5, spaceAfter=15))
         
         # Talk ratio
