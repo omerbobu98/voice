@@ -1,33 +1,89 @@
 """
 Sales Call Analyzer - AI Sales Coach Agent
-Comprehensive analysis of sales conversations with actionable insights
+Elite One-Call Close Analysis System for Frontal Sales
 """
 
 import json
 from openai import OpenAI
-SALES_COACH_SYSTEM_PROMPT = """You are an elite AI Sales Coach specializing in B2B and B2C sales meeting analysis. You have 20+ years of experience training top-performing sales teams with deep expertise in:
 
-- MEDDIC, BANT, SPIN, Sandler, and Challenger Sale methodologies
-- Advanced objection handling and reframing techniques
-- Customer psychology, buying signals, and emotional intelligence
-- Closing techniques and commitment escalation
-- Appointment setting and meeting scheduling
+SALES_COACH_SYSTEM_PROMPT = """You are an ELITE ONE-CALL CLOSE SPECIALIST - the most advanced AI Sales Coach for frontal, in-person sales presentations. You've trained 10,000+ top closers and have deep expertise in high-pressure, one-call close environments.
 
-Your primary goal is to help sales reps CLOSE MORE DEALS and BOOK MORE MEETINGS.
+## YOUR SALES PHILOSOPHY (CRITICAL):
+The goal is to CLOSE THE DEAL in a SINGLE meeting. Every analysis must be laser-focused on:
+1. What prevented the close?
+2. What could have accelerated the close?
+3. How to get the prospect to say YES before they leave?
 
-CRITICAL ANALYSIS FOCUS:
-1. CUSTOMER INTEREST SIGNALS - Identify verbal and contextual cues that indicate genuine interest, hesitation, or disengagement
-2. OBJECTION DETECTION - Find every objection (stated or implied) and analyze why the customer raised it
-3. BETTER RESPONSES - For each objection, provide a context-specific response that addresses the REAL concern behind the objection
-4. CLOSING OPPORTUNITIES - Identify moments where a close or commitment could have been attempted
-5. MEETING BOOKING - If the goal is to book a meeting/appointment, focus on what would increase conversion
+## SALES METHODOLOGY YOU ENFORCE:
 
-RESPONSE QUALITY RULES:
-1. Every "better response" MUST reference specific context from the conversation
-2. Objection responses should use proven techniques: Feel-Felt-Found, Isolation, Reframe, Assumptive Close, etc.
-3. Be specific - use exact quotes and timestamps
-4. Focus on what will DIRECTLY impact closing the deal or booking the meeting
-5. Understand the customer's TRUE concern behind each objection - address THAT, not just the surface objection"""
+### THE ONE-CALL CLOSE STRUCTURE (1-2 HOURS):
+1. **PRE-FRAME (5-10 min)** - Set expectation for decision today
+2. **RAPPORT (10-15 min)** - Build trust, find common ground
+3. **DISCOVERY/DIAGNOSIS (20-30 min)** - Uncover pain DEEPLY, quantify cost of inaction
+4. **PRESENTATION (20-30 min)** - Present ONLY to their stated pains ("You said... That's why we... Which means for you...")
+5. **VALUE STACK (10-15 min)** - Build massive value BEFORE price reveal
+6. **PRICE REVEAL (5-10 min)** - Only after full buy-in on solution
+7. **CLOSE (5-15 min)** - Use appropriate closing technique
+8. **OBJECTION HANDLING (10-20 min)** - Handle remaining concerns and re-close
+
+### CRITICAL RULE - PRICE TIMING:
+- NEVER reveal price in the first 45-60 minutes
+- Price should come ONLY after: problem is quantified, solution is agreed upon, value is stacked
+- Early price = lower perceived value = more objections = lost deal
+- If seller reveals price too early, this is a MAJOR coaching point
+
+### OBJECTION PREVENTION > OBJECTION HANDLING:
+Top closers PREVENT objections by addressing them BEFORE price:
+- "Need to think about it" → Pre-frame: "At the end, you'll know clearly if this is right for you"
+- "Need to talk to spouse" → Ask early: "Who else will be part of this decision?"
+- "Too expensive" → Build value and ROI BEFORE price
+- "Getting other quotes" → Pre-empt: "Let me show you exactly how we compare"
+
+### TRIAL CLOSES (TEMPERATURE CHECKS):
+Every 10-15 minutes, seller should check:
+- "Does this make sense so far?"
+- "On a scale of 1-10, how well does this fit what you need?"
+- "If we can find an option that works budget-wise, are you comfortable deciding today?"
+
+### STORY SELLING FRAMEWORK:
+Great sales stories must have:
+1. **Character similar to prospect** (same industry/situation)
+2. **Problem that mirrors prospect's pain**
+3. **Decision moment** (they chose your solution)
+4. **Specific measurable result** (numbers, timeframes)
+5. **Emotional payoff** (peace of mind, confidence, freedom)
+
+Stories should be: Visual, Emotional, Relatable, Concise (<90 seconds), with Clear Message
+
+### CLOSING TECHNIQUES TO IDENTIFY:
+- **Assumptive Close**: "Let's get the paperwork started..."
+- **Alternative Close**: "Would you prefer option A or B?"
+- **Summary Close**: "To recap everything we discussed..."
+- **Urgency Close**: "This pricing is only available until..."
+- **Trial Close**: "Does this feel like the right direction?"
+
+### BUYING READINESS SIGNALS (verbal):
+- "How soon can we start?"
+- "What does the warranty/guarantee look like?"
+- "Do you take [payment method]?"
+- Using "when" instead of "if": "When this is done..."
+- Asking implementation details: "Who would be my contact?"
+- Asking about specific options/packages
+- Leaning in, taking notes, asking to see things again
+
+### OBJECTION HANDLING FORMULAS:
+1. **FEEL-FELT-FOUND**: "I understand how you feel. Many clients felt the same way. What they found was..."
+2. **LAER**: Listen → Acknowledge → Explore → Respond (with question)
+3. **ISOLATE**: "Other than [objection], is there anything else preventing you from moving forward?"
+4. **REFRAME**: Turn objection into reason TO buy
+
+## YOUR ANALYSIS STANDARDS:
+- Every "better response" must be SPECIFIC to THIS conversation, using their exact words
+- Scripts must be ready-to-use, not generic advice
+- Identify the REAL concern behind surface objections
+- Focus on what would have CLOSED THE DEAL, not just "nice to have" tips
+- Be direct and actionable - no fluff
+- Hebrew speakers: You may see Hebrew - analyze it the same way"""
 
 
 def analyze_sales_call(utterances: list, speaker_roles: dict, openai_client: OpenAI) -> dict:
@@ -145,34 +201,151 @@ def format_timestamp(ms: int) -> str:
 
 
 def perform_ai_analysis(transcript: str, metrics: dict, openai_client: OpenAI) -> dict:
-    """Perform comprehensive AI analysis of the sales call."""
+    """Perform comprehensive AI analysis of the sales call with ONE-CALL CLOSE focus."""
     
-    analysis_prompt = f"""Analyze this sales call transcript with a focus on CLOSING THE DEAL or BOOKING THE MEETING.
+    duration_minutes = metrics['total_duration_seconds'] / 60
+    
+    analysis_prompt = f"""## ANALYZE THIS SALES CALL FOR ONE-CALL CLOSE EFFECTIVENESS
 
 ## TRANSCRIPT:
 {transcript}
 
-## CURRENT METRICS:
-- Seller talk time: {metrics['talk_ratio']['seller_percentage']}%
-- Buyer talk time: {metrics['talk_ratio']['buyer_percentage']}%
-- Total duration: {metrics['total_duration_seconds']:.0f} seconds
+## CALL METRICS:
+- Total Duration: {metrics['total_duration_seconds']:.0f} seconds ({duration_minutes:.1f} minutes)
+- Seller Talk: {metrics['talk_ratio']['seller_percentage']}%
+- Buyer Talk: {metrics['talk_ratio']['buyer_percentage']}%
 
-## REQUIRED ANALYSIS (respond in valid JSON format):
+## CRITICAL ANALYSIS QUESTIONS:
+1. Was the deal closed? If not, WHY?
+2. Was price revealed too early? (Should be after 45-60 min of value building)
+3. Were objections PREVENTED or just handled after they came up?
+4. Were trial closes used throughout to check temperature?
+5. Did the seller follow the One-Call Close structure?
+
+## RESPOND IN THIS EXACT JSON FORMAT:
 
 {{
     "call_summary": {{
-        "one_liner": "Brief one-sentence summary of what happened in the call",
-        "outcome": "positive|neutral|negative - based on buyer engagement and next steps",
-        "key_topics": ["list", "of", "main", "topics", "discussed"]
+        "one_liner": "One sentence: What happened and was the deal closed?",
+        "outcome": "closed|nearly_closed|needs_followup|lost",
+        "close_prevented_by": "The #1 reason the deal didn't close (if not closed)",
+        "key_topics": ["main", "topics", "discussed"]
+    }},
+    
+    "one_call_close_analysis": {{
+        "structure_score": 0-100,
+        "phases_detected": {{
+            "pre_frame": {{
+                "present": true/false,
+                "timestamp": "MM:SS or null",
+                "quality": "Did seller set expectation for decision today?",
+                "script_used": "What they said, or what they SHOULD have said"
+            }},
+            "rapport": {{
+                "present": true/false,
+                "duration_seconds": 0,
+                "quality": "How well did they connect personally?"
+            }},
+            "discovery": {{
+                "present": true/false,
+                "duration_seconds": 0,
+                "depth_score": 0-100,
+                "pains_uncovered": ["List of customer pain points discovered"],
+                "cost_of_inaction_discussed": true/false,
+                "missing_questions": ["Questions that should have been asked"]
+            }},
+            "presentation": {{
+                "present": true/false,
+                "linked_to_pains": true/false,
+                "used_you_said_thats_why": true/false,
+                "quality": "Did they present to the customer's stated needs or do a generic pitch?"
+            }},
+            "value_stack": {{
+                "present": true/false,
+                "roi_discussed": true/false,
+                "proof_elements_used": ["testimonials", "case_studies", "statistics used"],
+                "value_built_before_price": true/false
+            }},
+            "price_reveal": {{
+                "timestamp": "MM:SS when price was first mentioned",
+                "timestamp_ms": 0,
+                "minutes_into_call": 0,
+                "too_early": true/false,
+                "price_reveal_assessment": "Was value built sufficiently before price? What should have happened first?"
+            }},
+            "close_attempt": {{
+                "present": true/false,
+                "close_type_used": "assumptive|alternative|summary|urgency|trial|none",
+                "timestamp": "MM:SS",
+                "effectiveness": "How well was the close executed?"
+            }}
+        }},
+        "what_broke_the_structure": "Where did the call deviate from ideal One-Call Close flow?"
+    }},
+    
+    "price_timing_analysis": {{
+        "price_mentioned_at": "MM:SS (first mention of price/cost/investment)",
+        "price_mentioned_at_ms": 0,
+        "minutes_into_call": 0,
+        "ideal_timing": "When price SHOULD have been revealed based on call flow",
+        "was_value_built_first": true/false,
+        "premature_price_damage": "If price was revealed too early, what damage did it cause?",
+        "recommendation": "Specific advice on how to handle price timing better"
+    }},
+    
+    "objection_prevention_analysis": {{
+        "prevention_score": 0-100,
+        "objections_that_were_preventable": [
+            {{
+                "objection": "The objection that came up",
+                "could_have_been_prevented_by": "What should have been said/done EARLIER in the call",
+                "prevention_script": "Exact words to use earlier to prevent this objection"
+            }}
+        ],
+        "pre_emptive_statements_used": ["Things seller said to prevent objections"],
+        "pre_emptive_statements_missing": ["Things seller SHOULD have said to prevent objections"]
+    }},
+    
+    "trial_closes_analysis": {{
+        "trial_closes_used": 0,
+        "trial_closes_needed": "How many should have been used for this call length",
+        "temperature_check_moments": [
+            {{
+                "timestamp": "MM:SS",
+                "timestamp_ms": 0,
+                "what_happened": "Was there a trial close here or should there have been?",
+                "customer_temperature": "hot|warm|cold|unknown",
+                "suggested_trial_close": "What trial close should have been used here"
+            }}
+        ],
+        "overall_assessment": "Did seller maintain pulse on customer's readiness throughout?"
+    }},
+    
+    "buying_signals_detected": {{
+        "signals_found": [
+            {{
+                "timestamp": "MM:SS",
+                "timestamp_ms": 0,
+                "signal": "What the customer said/did",
+                "signal_type": "timing_question|payment_question|implementation_question|when_not_if|enthusiastic_agreement",
+                "seller_response": "How did seller respond?",
+                "optimal_response": "What should seller have done with this buying signal?",
+                "close_opportunity_missed": true/false
+            }}
+        ],
+        "total_buying_signals": 0,
+        "buying_signals_capitalized": 0,
+        "buying_signals_missed": 0,
+        "readiness_score": 0-100
     }},
     
     "customer_interest": {{
-        "overall_level": "high|medium|low|none",
-        "interest_signals": ["List of phrases/behaviors indicating interest"],
-        "hesitation_signals": ["List of phrases/behaviors indicating hesitation"],
+        "overall_level": "hot|warm|lukewarm|cold",
+        "interest_signals": ["Specific quotes showing interest"],
+        "hesitation_signals": ["Specific quotes showing hesitation"],
         "buying_readiness": 0-100,
-        "main_concerns": ["What is really holding them back"],
-        "what_they_want": "What the customer actually needs/wants based on context"
+        "main_concerns": ["The REAL concerns holding them back"],
+        "what_they_want": "What does this customer actually need?"
     }},
     
     "objections": [
@@ -180,23 +353,16 @@ def perform_ai_analysis(transcript: str, metrics: dict, openai_client: OpenAI) -
             "timestamp": "MM:SS",
             "timestamp_ms": 0,
             "type": "price|timing|competition|authority|need|trust|already_have|not_interested|need_to_think|spouse_decision",
-            "buyer_statement": "Exact quote from buyer",
-            "real_concern": "What is the TRUE underlying concern behind this objection",
-            "seller_response": "How seller actually responded",
+            "buyer_statement": "Exact quote",
+            "surface_objection": "What they said",
+            "real_concern": "What they REALLY mean - the underlying fear/concern",
+            "was_preventable": true/false,
+            "how_to_prevent": "What should have been done earlier to prevent this",
+            "seller_response": "How seller responded",
             "handling_score": 1-10,
-            "better_response": "A much better response that addresses the REAL concern, using context from this specific conversation",
-            "technique_used": "Name of sales technique (Feel-Felt-Found, Isolation, Reframe, Assumptive Close, etc.)",
-            "why_better": "Explain how this response addresses their real concern and moves toward closing"
-        }}
-    ],
-    
-    "key_moments": [
-        {{
-            "timestamp": "MM:SS",
-            "timestamp_ms": 0,
-            "type": "positive|negative|missed_opportunity",
-            "description": "What happened",
-            "impact": "How this affected the call"
+            "better_response": "A response that addresses the REAL concern and moves to close. Use their specific context.",
+            "technique_to_use": "Feel-Felt-Found|LAER|Isolate|Reframe|Assumptive",
+            "follow_up_close": "After handling the objection, what closing question should follow?"
         }}
     ],
     
@@ -204,89 +370,11 @@ def perform_ai_analysis(transcript: str, metrics: dict, openai_client: OpenAI) -
         {{
             "timestamp": "MM:SS",
             "timestamp_ms": 0,
-            "type": "discovery_question|diagnose|closing_attempt|rapport_building|value_proposition|objection|pain_point|commitment|next_step",
+            "type": "pre_frame|rapport|discovery_question|pain_point|value_proposition|story|trial_close|price_reveal|objection|buying_signal|close_attempt|commitment|next_step",
             "speaker": "Seller|Buyer",
-            "content": "The actual statement or question",
-            "significance": "Brief note on why this moment matters"
-        }}
-    ],
-    
-    "meddic_score": {{
-        "metrics": {{
-            "score": 0-100,
-            "evidence": "What was discussed about measurable outcomes",
-            "missing": "What should have been asked"
-        }},
-        "economic_buyer": {{
-            "score": 0-100,
-            "evidence": "Evidence of decision-maker involvement",
-            "missing": "What's needed"
-        }},
-        "decision_criteria": {{
-            "score": 0-100,
-            "evidence": "What evaluation criteria were discussed",
-            "missing": "What should have been clarified"
-        }},
-        "decision_process": {{
-            "score": 0-100,
-            "evidence": "Understanding of buying process",
-            "missing": "What's unclear"
-        }},
-        "identify_pain": {{
-            "score": 0-100,
-            "evidence": "Pain points discovered",
-            "missing": "Deeper pains to uncover"
-        }},
-        "champion": {{
-            "score": 0-100,
-            "evidence": "Internal advocate identification",
-            "missing": "Steps to develop champion"
-        }},
-        "total_score": 0-100
-    }},
-    
-    "bant_score": {{
-        "budget": {{
-            "score": 0-100,
-            "evidence": "Budget discussion",
-            "qualified": true/false
-        }},
-        "authority": {{
-            "score": 0-100,
-            "evidence": "Decision authority",
-            "qualified": true/false
-        }},
-        "need": {{
-            "score": 0-100,
-            "evidence": "Need establishment",
-            "qualified": true/false
-        }},
-        "timeline": {{
-            "score": 0-100,
-            "evidence": "Timeline discussion",
-            "qualified": true/false
-        }},
-        "total_score": 0-100,
-        "overall_qualified": true/false
-    }},
-    
-    "seller_performance": {{
-        "overall_score": 0-100,
-        "strengths": ["What seller did well"],
-        "improvements": ["Specific areas to improve"],
-        "talk_ratio_feedback": "Assessment of talk vs listen balance",
-        "question_quality": "How effective were the discovery questions",
-        "objection_handling": "Overall objection handling assessment",
-        "next_steps_clarity": "Were clear next steps established"
-    }},
-    
-    "coaching_suggestions": [
-        {{
-            "priority": "high|medium|low",
-            "area": "discovery|objection_handling|closing|rapport|presentation",
-            "current_behavior": "What the seller is doing now",
-            "suggested_change": "Specific actionable improvement",
-            "example_script": "Exact words they could use"
+            "content": "What was said",
+            "significance": "Why this moment matters for closing",
+            "call_phase": "rapport|discovery|presentation|value_stack|price|close|objection_handling"
         }}
     ],
     
@@ -294,14 +382,13 @@ def perform_ai_analysis(transcript: str, metrics: dict, openai_client: OpenAI) -
         {{
             "timestamp": "MM:SS",
             "timestamp_ms": 0,
-            "story_type": "customer_success|personal_experience|analogy|case_study|pain_story",
-            "original_story": "The story as told by the seller - summarize the key points",
-            "intended_message": "What message was the seller trying to convey with this story",
+            "story_type": "customer_success|pain_story|transformation|social_proof|analogy",
+            "original_story": "Summary of the story told",
+            "intended_purpose": "What was this story trying to achieve?",
             "effectiveness_score": 1-10,
-            "issues": ["What was missing or could be improved - not vivid enough, too long, didn't connect, etc."],
-            "improved_story": "A much better version of this story that is: 1) Highly visual - the customer can picture it clearly, 2) Emotionally engaging - they feel connected to the character, 3) Relatable - they can see themselves in this situation, 4) Concise but impactful, 5) Has a clear message that advances the sale",
-            "storytelling_technique": "The technique used (e.g., 'Before/After', 'Problem-Solution', 'Hero Journey', 'Social Proof', 'Fear of Missing Out')",
-            "why_better": "Explain why this improved version is more effective and how it will help close the sale"
+            "missing_elements": ["What's missing: specific character? measurable result? emotional payoff?"],
+            "improved_story": "A MUCH better version that is visual, emotional, relatable, has specific results, and directly supports closing. Include actual dialogue.",
+            "why_better": "How this improved story builds more value and reduces price resistance"
         }}
     ],
     
@@ -309,10 +396,35 @@ def perform_ai_analysis(transcript: str, metrics: dict, openai_client: OpenAI) -
         {{
             "timestamp": "MM:SS",
             "timestamp_ms": 0,
-            "moment": "Description of the moment where a close could have been attempted",
-            "customer_signal": "What the customer said/did that created this opportunity",
-            "suggested_close": "Exact script for a closing attempt",
-            "close_type": "trial_close|assumptive_close|alternative_close|urgency_close|summary_close"
+            "customer_signal": "What the customer said/did that opened this opportunity",
+            "opportunity_type": "buying_signal|agreement|enthusiasm|pain_admission",
+            "was_taken": true/false,
+            "what_seller_did": "How seller responded",
+            "recommended_close": "Exact script for a closing attempt at this moment",
+            "close_type": "assumptive|alternative|summary|urgency|trial",
+            "expected_outcome": "What would likely happen if this close was used"
+        }}
+    ],
+    
+    "seller_performance": {{
+        "overall_score": 0-100,
+        "close_readiness_score": 0-100,
+        "strengths": ["What seller did well - be specific"],
+        "critical_improvements": ["The 2-3 things that would MOST increase close rate"],
+        "talk_ratio_assessment": "Too much talking? Not enough? Impact on close?",
+        "discovery_quality": "How well did they uncover pain and quantify cost of inaction?",
+        "objection_handling_quality": "Did they address real concerns or just surface objections?",
+        "closing_ability": "Did they ask for the business confidently?"
+    }},
+    
+    "coaching_suggestions": [
+        {{
+            "priority": "critical|high|medium",
+            "area": "pre_frame|discovery|value_building|price_timing|objection_prevention|closing",
+            "the_problem": "What's happening now that hurts close rate",
+            "the_fix": "Exactly what to do differently",
+            "script_example": "Word-for-word example they can use",
+            "expected_impact": "How this will increase closes"
         }}
     ],
     
@@ -320,32 +432,66 @@ def perform_ai_analysis(transcript: str, metrics: dict, openai_client: OpenAI) -
         {{
             "timestamp": "MM:SS",
             "timestamp_ms": 0,
-            "original_seller_statement": "What the seller actually said",
-            "buyer_context": "What the buyer said/asked before this",
-            "improved_response": "A better way to respond that moves toward closing",
-            "technique_used": "Name of sales technique (e.g., 'Feel-Felt-Found', 'Isolation', 'Reframe')",
-            "expected_impact": "How this would improve the conversation and increase close rate"
+            "context": "What was happening in the conversation",
+            "original_response": "What seller said",
+            "problem_with_original": "Why this response doesn't move toward close",
+            "improved_response": "A response that builds value and moves toward closing",
+            "technique": "The sales technique being applied",
+            "why_this_closes": "How this improved response accelerates the close"
         }}
     ],
     
-    "next_steps_recommended": [
-        "Action item 1 for follow-up",
-        "Action item 2 for follow-up"
-    ],
+    "meddic_score": {{
+        "metrics": {{"score": 0-100, "evidence": "...", "missing": "..."}},
+        "economic_buyer": {{"score": 0-100, "evidence": "...", "missing": "..."}},
+        "decision_criteria": {{"score": 0-100, "evidence": "...", "missing": "..."}},
+        "decision_process": {{"score": 0-100, "evidence": "...", "missing": "..."}},
+        "identify_pain": {{"score": 0-100, "evidence": "...", "missing": "..."}},
+        "champion": {{"score": 0-100, "evidence": "...", "missing": "..."}},
+        "total_score": 0-100
+    }},
+    
+    "bant_score": {{
+        "budget": {{"score": 0-100, "evidence": "...", "qualified": true/false}},
+        "authority": {{"score": 0-100, "evidence": "...", "qualified": true/false}},
+        "need": {{"score": 0-100, "evidence": "...", "qualified": true/false}},
+        "timeline": {{"score": 0-100, "evidence": "...", "qualified": true/false}},
+        "total_score": 0-100,
+        "overall_qualified": true/false
+    }},
     
     "deal_risk_score": {{
         "score": 0-100,
-        "risk_level": "low|medium|high",
-        "risk_factors": ["List of concerning signals"],
-        "positive_signals": ["List of encouraging signals"]
-    }}
+        "risk_level": "low|medium|high|dead",
+        "close_probability": 0-100,
+        "risk_factors": ["Specific concerns about this deal"],
+        "positive_signals": ["Reasons this deal can still close"],
+        "save_the_deal_actions": ["If not closed, what specific actions could save this deal"]
+    }},
+    
+    "next_steps_recommended": [
+        "Prioritized action items to close this deal"
+    ],
+    
+    "key_moments": [
+        {{
+            "timestamp": "MM:SS",
+            "timestamp_ms": 0,
+            "type": "positive|negative|missed_opportunity|turning_point",
+            "description": "What happened",
+            "impact_on_close": "How this moment affected the likelihood of closing"
+        }}
+    ]
 }}
 
-IMPORTANT: 
-- Provide SPECIFIC quotes from the transcript
-- Be actionable and constructive
-- Focus on high-impact improvements
-- Return ONLY valid JSON, no markdown or explanation"""
+## CRITICAL INSTRUCTIONS:
+- Be BRUTALLY HONEST about what prevented the close
+- Every "better response" must use SPECIFIC context from THIS call
+- Scripts must be READY TO USE, not generic advice
+- Focus on what would have CLOSED THE DEAL
+- If price was revealed too early, make this a MAJOR point
+- Identify the #1 thing that would have changed the outcome
+- Return ONLY valid JSON"""
 
     try:
         response = openai_client.chat.completions.create(
@@ -374,15 +520,23 @@ IMPORTANT:
         print(f"Error in AI analysis: {e}")
         return {
             "error": str(e),
-            "call_summary": {"one_liner": "Analysis failed", "outcome": "unknown", "key_topics": []},
+            "call_summary": {"one_liner": "Analysis failed", "outcome": "unknown", "close_prevented_by": "Analysis error", "key_topics": []},
+            "one_call_close_analysis": {"structure_score": 0, "phases_detected": {}, "what_broke_the_structure": "Analysis failed"},
+            "price_timing_analysis": {"price_mentioned_at": "N/A", "was_value_built_first": False, "recommendation": ""},
+            "objection_prevention_analysis": {"prevention_score": 0, "objections_that_were_preventable": []},
+            "trial_closes_analysis": {"trial_closes_used": 0, "temperature_check_moments": []},
+            "buying_signals_detected": {"signals_found": [], "total_buying_signals": 0, "readiness_score": 0},
+            "customer_interest": {"overall_level": "unknown", "buying_readiness": 0, "interest_signals": [], "hesitation_signals": []},
             "objections": [],
             "key_moments": [],
             "timeline_events": [],
+            "storytelling_analysis": [],
+            "closing_opportunities": [],
             "meddic_score": {"total_score": 0},
             "bant_score": {"total_score": 0, "overall_qualified": False},
-            "seller_performance": {"overall_score": 0, "strengths": [], "improvements": []},
+            "seller_performance": {"overall_score": 0, "close_readiness_score": 0, "strengths": [], "critical_improvements": []},
             "coaching_suggestions": [],
             "better_responses": [],
             "next_steps_recommended": [],
-            "deal_risk_score": {"score": 50, "risk_level": "medium", "risk_factors": [], "positive_signals": []}
+            "deal_risk_score": {"score": 50, "risk_level": "medium", "close_probability": 0, "risk_factors": [], "positive_signals": [], "save_the_deal_actions": []}
         }

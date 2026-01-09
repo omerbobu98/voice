@@ -8,21 +8,30 @@ Before doing ANYTHING, read these files to understand the project:
 
 ---
 
-## 📋 Session 5 Summary (January 7, 2026)
+## 📋 Session 6 Summary (January 8, 2026)
 
 ### What Was Built
-- ✅ **Enhanced AI Analysis** - Customer interest, closing opportunities, storytelling analysis
-- ✅ **Premium UI Dashboard** - Key metrics (score, buying ready %, objections, risk) at top
-- ✅ **TTS Integration** - OpenAI TTS for AI-suggested responses
-- ✅ **TTSPlayer Component** - Play/pause/stop with progress bar
-- ✅ **Audio Conflict Fix** - Main audio pauses when TTS plays
-- ✅ **PDF Report Generation** - Professional PDF export with ReportLab
-- ✅ **PDF Emoji Fix** - clean_text() removes emojis
-- ✅ **Debug Endpoints** - /api/debug/jobs, /api/debug/api-keys
+- ✅ **Complete UI Redesign** - Clean, minimal, professional design inspired by Gong/Chorus/Salesforce
+- ✅ **PDF Report Redesign** - Single accent color (Indigo #4f46e5), clear typography hierarchy
+- ✅ **New Color Palette** - Slate-based (`slate-800/50`, `slate-700/50`) with Indigo accent
+- ✅ **Cleaner Components** - Cards, metrics, objections, audio player all simplified
+- ✅ **Audio Separation Fix** - "Better Response" plays TTS only, main audio stops completely
+- ✅ **Mobile Responsive** - All components work on phone and desktop
+- ✅ **Deployed** - Frontend to Netlify, Backend auto-deployed to Railway
 
-### Known Issue Discovered
+### Design Decisions (Session 6)
+- **Single Accent Color**: Indigo (#4f46e5) instead of multiple gradients
+- **Card Style**: `bg-slate-800/50 rounded-xl p-5 border border-slate-700/50`
+- **Text Colors**: `text-slate-200` (primary), `text-slate-400` (secondary), `text-slate-500` (muted)
+- **Semantic Colors**: Emerald for success, Amber for warning, Red for danger
+
+### Previous Session (January 7, 2026 - Session 5)
+- ✅ TTS Integration - OpenAI TTS for AI-suggested responses
+- ✅ PDF Report Generation - ReportLab PDF export
+- ✅ Debug Endpoints - /api/debug/jobs, /api/debug/api-keys
+
+### Known Issue
 - **Jobs stored in memory** - Railway redeploy clears jobs dict
-- When we pushed code, Railway restarted and the user's transcription job was lost
 - **Potential fix**: Store jobs in Redis or Supabase for persistence
 
 ---
@@ -67,6 +76,13 @@ curl https://web-production-3215.up.railway.app/api/debug/jobs
 - [x] PDF report download
 - [x] Premium metrics dashboard in analysis view
 
+### Session 6 Additions (UI/PDF Redesign)
+- [x] Complete UI redesign - clean minimal professional
+- [x] PDF report redesign - single accent color, clear hierarchy
+- [x] New color palette - Slate + Indigo accent
+- [x] Audio separation fix - Better Response plays TTS only
+- [x] Mobile responsive design
+
 ---
 
 ## 🎯 WAITING FOR USER INSTRUCTIONS
@@ -75,7 +91,7 @@ curl https://web-production-3215.up.railway.app/api/debug/jobs
 
 Possible tasks:
 - Fix jobs persistence (Redis/Supabase instead of in-memory)
-- UI improvements
+- Further UI improvements
 - New features
 - Bug fixes
 - Deployment issues

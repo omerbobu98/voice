@@ -17,6 +17,7 @@ import AdminDashboard from './pages/AdminDashboard'
 import AdminCallsPage from './pages/AdminCallsPage'
 import AdminCallView from './pages/AdminCallView'
 import { API_URL } from './lib/config'
+import { AnalysisInsights } from './components/analysis'
 
 const stages = [
   { key: 'upload', label: 'Uploading', icon: Upload, progress: 10 },
@@ -1634,6 +1635,17 @@ function MainApp() {
                   />
                 </div>
               )}
+
+              {/* NEW: Analysis Insights Section - Charts, AI Summary, Stories */}
+              <AnalysisInsights
+                analysisResult={analysisResult}
+                result={result}
+                onSeek={seekToTime}
+                onPlayTTS={(text) => {
+                  // TTS functionality can be triggered here
+                  stopAndResetMainAudio()
+                }}
+              />
 
               {/* Visual Timeline */}
               {analysisResult.analysis?.timeline_events?.length > 0 && (
