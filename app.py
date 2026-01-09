@@ -670,6 +670,145 @@ def serve_audio(filename):
     return send_from_directory(UPLOAD_FOLDER, filename)
 
 
+# ============ AI Sales Coach Assistant ============
+
+AI_ASSISTANT_SYSTEM_PROMPT = """You are an ELITE AI Sales Coach Assistant - a world-class expert in frontal sales and the one-call close methodology. You've trained over 10,000 top closers and understand the psychology of persuasion deeply.
+
+## YOUR PERSONALITY:
+- Direct, confident, and actionable
+- Creative with stories and examples
+- Brutally honest but supportive
+- Focused on CLOSING DEALS
+- You speak in a mix of English and Hebrew when appropriate
+
+## YOUR EXPERTISE:
+1. **One-Call Close Methodology** - Structure, timing, and execution
+2. **Objection Prevention & Handling** - Addressing concerns before they become blockers
+3. **Story Selling** - Creating vivid, emotional stories that build value
+4. **Price Timing** - Never reveal price before building full value (45-60+ min)
+5. **Trial Closes** - Temperature checks throughout the conversation
+6. **Buying Signals** - Recognizing and capitalizing on customer interest
+
+## HOW TO RESPOND:
+- If asked about a specific moment in the call, reference it directly
+- When suggesting responses, give EXACT SCRIPTS ready to use
+- When creating stories, make them VISUAL, EMOTIONAL, and SPECIFIC
+- Always connect your advice to CLOSING THE DEAL
+- Be creative and imaginative with stories - make them vivid and memorable
+- Use the customer's specific context from the call
+
+## STORY CREATION GUIDELINES:
+When creating stories to prevent objections or build value:
+1. Start with a character SIMILAR to the prospect (same industry/situation)
+2. Show their INITIAL HESITATION (same objection the prospect might have)
+3. Describe the COST OF INACTION vividly
+4. Show the TRANSFORMATION after they decided
+5. Include SPECIFIC RESULTS (numbers, timeframes)
+6. End with EMOTIONAL PAYOFF (peace of mind, success, freedom)
+7. Keep it under 90 seconds when spoken
+8. Make it so VISUAL they can picture it
+
+## RESPONSE FORMAT:
+- Be conversational and helpful
+- Use bullet points for actionable items
+- Include exact scripts in quotes
+- For stories, format them ready to tell
+- Add relevant emojis sparingly for clarity"""
+
+@app.route('/api/assistant', methods=['POST'])
+def ai_assistant():
+    """AI Sales Coach Assistant - answers questions about the call and provides coaching"""
+    if not openai_client:
+        return jsonify({'error': 'OpenAI API not configured'}), 500
+    
+    data = request.json
+    user_message = data.get('message', '')
+    conversation_history = data.get('history', [])
+    call_context = data.get('call_context', {})
+    selected_text = data.get('selected_text', '')
+    
+    if not user_message:
+        return jsonify({'error': 'Message is required'}), 400
+    
+    # Build context from call data
+    context_parts = []
+    
+    if call_context:
+        # Add transcript summary
+        if call_context.get('transcript'):
+            context_parts.append(f"## CALL TRANSCRIPT:\n{call_context['transcript'][:8000]}")
+        
+        # Add analysis summary
+        if call_context.get('analysis'):
+            analysis = call_context['analysis']
+            
+            if analysis.get('call_summary'):
+                summary = analysis['call_summary']
+                context_parts.append(f"""## CALL SUMMARY:
+- Outcome: {summary.get('outcome', 'unknown')}
+- One-liner: {summary.get('one_liner', 'N/A')}
+- Close prevented by: {summary.get('close_prevented_by', 'N/A')}""")
+            
+            if analysis.get('objections'):
+                objections_text = "\n".join([
+                    f"- [{obj.get('timestamp', 'N/A')}] {obj.get('type', 'objection')}: \"{obj.get('buyer_statement', '')}\" (Handling: {obj.get('handling_score', 'N/A')}/10)"
+                    for obj in analysis['objections'][:5]
+                ])
+                context_parts.append(f"## OBJECTIONS DETECTED:\n{objections_text}")
+            
+            if analysis.get('customer_interest'):
+                interest = analysis['customer_interest']
+                context_parts.append(f"""## CUSTOMER INTEREST:
+- Level: {interest.get('overall_level', 'unknown')}
+- Buying Readiness: {interest.get('buying_readiness', 0)}%
+- Main Concerns: {', '.join(interest.get('main_concerns', [])[:3])}""")
+            
+            if analysis.get('seller_performance'):
+                perf = analysis['seller_performance']
+                context_parts.append(f"""## SELLER PERFORMANCE:
+- Overall Score: {perf.get('overall_score', 0)}/100
+- Strengths: {', '.join(perf.get('strengths', [])[:3])}""")
+    
+    # Add selected text if provided
+    if selected_text:
+        context_parts.append(f"## USER SELECTED THIS TEXT FROM THE CALL:\n\"{selected_text}\"")
+    
+    # Combine context
+    full_context = "\n\n".join(context_parts) if context_parts else "No call context provided."
+    
+    # Build messages for API
+    messages = [
+        {"role": "system", "content": AI_ASSISTANT_SYSTEM_PROMPT},
+        {"role": "system", "content": f"## CURRENT CALL DATA:\n{full_context}"}
+    ]
+    
+    # Add conversation history
+    for msg in conversation_history[-10:]:  # Keep last 10 messages
+        messages.append({"role": msg.get('role', 'user'), "content": msg.get('content', '')})
+    
+    # Add current message
+    messages.append({"role": "user", "content": user_message})
+    
+    try:
+        response = openai_client.chat.completions.create(
+            model="gpt-5.2",
+            messages=messages,
+            temperature=0.7,
+            max_completion_tokens=2000
+        )
+        
+        assistant_response = response.choices[0].message.content.strip()
+        
+        return jsonify({
+            'response': assistant_response,
+            'success': True
+        })
+        
+    except Exception as e:
+        print(f"AI Assistant error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/api/generate-pdf', methods=['POST'])
 def generate_pdf_report():
     """Generate a professional PDF report from analysis data"""

@@ -18,6 +18,7 @@ import AdminCallsPage from './pages/AdminCallsPage'
 import AdminCallView from './pages/AdminCallView'
 import { API_URL } from './lib/config'
 import { AnalysisInsights } from './components/analysis'
+import AIAssistant from './components/AIAssistant'
 
 const stages = [
   { key: 'upload', label: 'Uploading', icon: Upload, progress: 10 },
@@ -375,6 +376,7 @@ function MainApp() {
   const [audioPlaying, setAudioPlaying] = useState(false)
   const [audioCurrentTime, setAudioCurrentTime] = useState(0)
   const [audioDuration, setAudioDuration] = useState(0)
+  const [selectedText, setSelectedText] = useState('')
   const timerRef = useRef(null)
   const pollRef = useRef(null)
   const audioRef = useRef(null)
@@ -1673,6 +1675,16 @@ function MainApp() {
           background: rgba(139,92,246,0.5);
         }
       `}</style>
+
+      {/* AI Sales Coach Assistant - Only show when we have analysis */}
+      {showAnalysis && analysisResult && (
+        <AIAssistant 
+          analysisResult={analysisResult}
+          result={result}
+          selectedText={selectedText}
+          onClearSelection={() => setSelectedText('')}
+        />
+      )}
     </div>
   )
 }
