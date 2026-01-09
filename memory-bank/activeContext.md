@@ -2,20 +2,22 @@
 
 ## Current Work Focus
 
-### Just Completed (January 8, 2026 - Session 6)
+### Just Completed (January 9, 2026 - Session 7)
+- ✅ **AI Sales Coach Assistant** - Floating chat window with GPT-5.2
+- ✅ **Tab Reorganization** - Clear separation: Overview, Deep Insights, Stories
+- ✅ **Removed ALL Duplicate Content** - No more repeated sections across tabs
+- ✅ **Fixed TTS for Stories** - "Listen to Improved Story" now works
+- ✅ **Deleted Coaching Recommendations** - Removed per user request
+- ✅ **New DeepInsightsTab Component** - Professional objections + better responses
+- ✅ **Objection Prevention Stories** - AI generates stories to prevent objections
+- ✅ **Timeline Events in Overview** - Moved from standalone to Overview tab
+- ✅ **One-Call Close AI Prompt** - Enhanced sales_analyzer.py with methodology
+
+### Previous Session (January 8, 2026 - Session 6)
 - ✅ **Complete UI Redesign** - Clean, minimal, professional design
 - ✅ **PDF Report Redesign** - Single accent color (Indigo), clear hierarchy
-- ✅ **Market Research** - Analyzed Gong, Chorus, Salesforce designs
 - ✅ **New Color Palette** - Slate-based with single Indigo accent (#4f46e5)
-- ✅ **Cleaner Components** - Cards, metrics, objections all simplified
-- ✅ **Audio Separation Fix** - Better Response plays TTS only, not main audio
 - ✅ **Mobile Responsive** - All components work on phone and desktop
-
-### Previous Session (January 7, 2026 - Session 5)
-- ✅ **Enhanced AI Analysis Prompt** - Customer interest, closing opportunities, storytelling
-- ✅ **TTS Integration** - Listen to AI-suggested responses via OpenAI TTS
-- ✅ **PDF Report Generation** - Professional PDF export with ReportLab
-- ✅ **Debug Endpoints** - /api/debug/jobs, /api/debug/api-keys
 
 ### Known Issue (to address)
 - **Jobs in Memory** - Railway redeploy clears in-memory jobs dict
@@ -27,13 +29,16 @@ The application is fully functional with:
 2. **Speaker Classification** - GPT-5.2 powered
 3. **Separate Analysis Flow** - "Analyze Call" button triggers deep analysis
 4. **Audio Playback** - Listen to recordings with timestamp navigation
-5. **Visual Timeline** - See call flow with clickable events
+5. **Visual Timeline** - See call flow with clickable events (now in Overview tab)
 6. **Supabase Database** - Calls, analyses, and audio files saved persistently
 7. **Call History** - View and replay past calls with full data
 8. **Admin Dashboard** - View all users, their calls, team stats
 9. **TTS Playback** - Listen to AI suggestions with mini audio player
 10. **PDF Export** - Professional analysis report with clean design
 11. **Clean UI** - Minimal design with single accent color
+12. **AI Sales Coach Assistant** - Interactive GPT-5.2 chat for personalized coaching
+13. **Organized Tabs** - Overview, Deep Insights, Stories with NO duplicates
+14. **Objection Prevention Stories** - AI-generated stories to prevent common objections
 
 ## Recent Changes (Session 4)
 

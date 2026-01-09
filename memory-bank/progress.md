@@ -19,7 +19,6 @@
 - [x] BANT qualification scoring
 - [x] Objection detection and categorization
 - [x] Better response suggestions with explanations
-- [x] AI coaching suggestions with example scripts
 - [x] Deal risk assessment
 - [x] Recommended next steps
 - [x] Overall performance score
@@ -28,6 +27,25 @@
 - [x] **Customer Interest Analysis** - Buying readiness %, concerns, what they want
 - [x] **Closing Opportunities** - Missed opportunities with suggested closes
 - [x] **Storytelling Analysis** - Detects stories, suggests improved versions
+- [x] **Objection Prevention Stories** - AI generates stories to prevent objections (NEW Session 7)
+
+### AI Sales Coach Assistant - NEW January 9, 2026 (Session 7)
+- [x] Floating chat button in bottom-right corner
+- [x] Professional chat window with message history
+- [x] GPT-5.2 powered responses with call context
+- [x] Suggested questions for quick start
+- [x] Copy assistant responses
+- [x] Minimize/maximize/close controls
+- [x] Clear chat functionality
+- [x] Selected text from transcript support (state ready)
+- [x] Backend `/api/assistant` endpoint with sales coach system prompt
+
+### Tab Organization - REDESIGNED January 9, 2026 (Session 7)
+- [x] **Overview Tab**: AI Summary, Skill Radar, Topic Frequency, Talk Pattern, Timeline Events
+- [x] **Deep Insights Tab**: Objections with better responses, Response improvements, Buying signals
+- [x] **Stories Tab**: Stories you told (with improvements), Objection prevention stories
+- [x] **NO DUPLICATES** - Each piece of content appears in ONE tab only
+- [x] Coaching Recommendations section REMOVED per user request
 
 ### TTS (Text-to-Speech) - NEW January 7, 2026
 - [x] OpenAI TTS integration for AI responses
@@ -124,16 +142,18 @@
 
 ## Current Status
 
-**Phase**: MVP Complete + Admin Dashboard + Audio Playback + TTS + PDF Export + UI Redesign
-**Last Updated**: January 8, 2026 (Session 6)
+**Phase**: MVP Complete + Admin Dashboard + Audio Playback + TTS + PDF Export + UI Redesign + AI Assistant
+**Last Updated**: January 9, 2026 (Session 7)
 
 The core application is fully functional:
 1. Users can upload audio files
 2. Transcription works with speaker identification
 3. "Analyze Call" button triggers comprehensive AI analysis
-4. Results displayed in dedicated view with all insights
-5. TTS playback for AI-suggested responses
+4. Results displayed in organized tabs (Overview, Deep Insights, Stories)
+5. TTS playback for AI-suggested responses and stories
 6. PDF report download
+7. **AI Sales Coach Assistant** - Interactive chat for personalized coaching
+8. **Objection Prevention Stories** - AI generates stories to prevent common objections
 
 ## Known Issues 🐛
 

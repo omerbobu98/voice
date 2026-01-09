@@ -8,27 +8,54 @@ Before doing ANYTHING, read these files to understand the project:
 
 ---
 
-## 📋 Session 6 Summary (January 8, 2026)
+## 📋 Session 7 Summary (January 9, 2026)
 
 ### What Was Built
-- ✅ **Complete UI Redesign** - Clean, minimal, professional design inspired by Gong/Chorus/Salesforce
-- ✅ **PDF Report Redesign** - Single accent color (Indigo #4f46e5), clear typography hierarchy
-- ✅ **New Color Palette** - Slate-based (`slate-800/50`, `slate-700/50`) with Indigo accent
-- ✅ **Cleaner Components** - Cards, metrics, objections, audio player all simplified
-- ✅ **Audio Separation Fix** - "Better Response" plays TTS only, main audio stops completely
-- ✅ **Mobile Responsive** - All components work on phone and desktop
-- ✅ **Deployed** - Frontend to Netlify, Backend auto-deployed to Railway
+- ✅ **AI Sales Coach Assistant** - Floating chat window with GPT-5.2 integration
+  - Floating button in bottom-right corner (shows when analysis is available)
+  - Professional chat UI with message history
+  - Suggested questions for quick start
+  - Copy responses, minimize/maximize, clear chat
+  - Backend `/api/assistant` endpoint with sales coach system prompt
+  - Receives full call context (transcript, analysis, objections)
+  
+- ✅ **Tab Reorganization** - Clear separation with NO duplicates
+  - **Overview Tab**: AI Summary, Skill Radar, Topic Frequency, Talk Pattern, Timeline Events
+  - **Deep Insights Tab**: Objections + Better Responses, Response Improvements, Buying Signals
+  - **Stories Tab**: Stories you told + Objection Prevention Stories
+  
+- ✅ **New Components Created**
+  - `AIAssistant.jsx` - Floating chat component
+  - `DeepInsightsTab.jsx` - Professional objections display
+  - `PreventionStoryCard` - Card for objection prevention stories
+  
+- ✅ **AI Prompt Enhancements** (`sales_analyzer.py`)
+  - One-Call Close methodology focus
+  - Price timing analysis (never reveal before 45-60 min)
+  - Objection prevention stories generation
+  - Trial closes analysis
+  - Buying signals detection
+  
+- ✅ **Removed/Changed**
+  - Deleted Coaching Recommendations section (per user request)
+  - Removed ~600 lines of duplicate content from App.jsx
+  - Fixed TTS for "Listen to Improved Story" button
 
-### Design Decisions (Session 6)
-- **Single Accent Color**: Indigo (#4f46e5) instead of multiple gradients
-- **Card Style**: `bg-slate-800/50 rounded-xl p-5 border border-slate-700/50`
-- **Text Colors**: `text-slate-200` (primary), `text-slate-400` (secondary), `text-slate-500` (muted)
-- **Semantic Colors**: Emerald for success, Amber for warning, Red for danger
+### New Backend Endpoint
+```python
+POST /api/assistant
+Body: {
+  "message": "user question",
+  "history": [...previous messages...],
+  "call_context": { transcript, analysis },
+  "selected_text": "optional selected text"
+}
+Response: { "response": "AI coach response", "success": true }
+```
 
-### Previous Session (January 7, 2026 - Session 5)
-- ✅ TTS Integration - OpenAI TTS for AI-suggested responses
-- ✅ PDF Report Generation - ReportLab PDF export
-- ✅ Debug Endpoints - /api/debug/jobs, /api/debug/api-keys
+### Previous Sessions
+- **Session 6**: UI/PDF Redesign, Clean minimal professional design
+- **Session 5**: TTS Integration, PDF Export, Debug Endpoints
 
 ### Known Issue
 - **Jobs stored in memory** - Railway redeploy clears jobs dict
@@ -82,6 +109,15 @@ curl https://web-production-3215.up.railway.app/api/debug/jobs
 - [x] New color palette - Slate + Indigo accent
 - [x] Audio separation fix - Better Response plays TTS only
 - [x] Mobile responsive design
+
+### Session 7 Additions (AI Assistant + Tab Reorganization)
+- [x] AI Sales Coach Assistant - floating chat with GPT-5.2
+- [x] Tab reorganization - Overview, Deep Insights, Stories (NO duplicates)
+- [x] Objection Prevention Stories - AI generates stories to prevent objections
+- [x] Timeline Events moved to Overview tab
+- [x] DeepInsightsTab component - clean objections display
+- [x] One-Call Close methodology in AI prompt
+- [x] Removed Coaching Recommendations section
 
 ---
 
