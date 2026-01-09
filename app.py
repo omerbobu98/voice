@@ -215,20 +215,32 @@ def analyze_call(job_id):
     return jsonify({'analysis_id': analysis_id})
 
 def run_deep_analysis(analysis_id, utterances, speaker_roles, call_id=None):
-    """Run comprehensive sales analysis"""
+    """Run comprehensive sales analysis with parallel processing"""
     try:
-        jobs[analysis_id]['progress'] = 10
-        jobs[analysis_id]['stage'] = 'Analyzing conversation patterns...'
+        jobs[analysis_id]['progress'] = 5
+        jobs[analysis_id]['stage'] = 'Starting parallel analysis (6 AI calls)...'
         
-        # Perform comprehensive analysis
+        # Progress callback for parallel analysis
+        def update_progress(progress):
+            jobs[analysis_id]['progress'] = min(progress, 88)
+            completed = max(1, (progress - 10) // 13)
+            jobs[analysis_id]['stage'] = f'Analyzing... ({completed}/6 complete)'
+        
+        # Perform comprehensive parallel analysis
         sales_analysis = analyze_sales_call(utterances, speaker_roles, openai_client)
         
         jobs[analysis_id]['progress'] = 90
-        jobs[analysis_id]['stage'] = 'Saving results...'
+        jobs[analysis_id]['stage'] = 'Finalizing analysis...'
         
         # Save to database
         if call_id:
+            jobs[analysis_id]['stage'] = 'Saving to database...'
             save_analysis(call_id, sales_analysis.get('metrics', {}), sales_analysis)
+        
+        # Check for partial errors
+        if sales_analysis.get('_parallel_errors'):
+            error_count = len(sales_analysis['_parallel_errors'])
+            print(f"[run_deep_analysis] Completed with {error_count} partial errors")
         
         jobs[analysis_id]['progress'] = 100
         jobs[analysis_id]['stage'] = 'Analysis complete!'
@@ -672,52 +684,18 @@ def serve_audio(filename):
 
 # ============ AI Sales Coach Assistant ============
 
-AI_ASSISTANT_SYSTEM_PROMPT = """You are an ELITE AI Sales Coach Assistant - a world-class expert in frontal sales and the one-call close methodology. You've trained over 10,000 top closers and understand the psychology of persuasion deeply.
+AI_ASSISTANT_SYSTEM_PROMPT = """You are an elite AI Sales Coach - expert in one-call close methodology.
 
-## YOUR PERSONALITY:
-- Direct, confident, and actionable
-- Creative with stories and examples
-- Brutally honest but supportive
-- Focused on CLOSING DEALS
-- You speak in a mix of English and Hebrew when appropriate
+RESPOND STYLE: Direct, actionable, specific. Use their exact context.
+- Scripts: Ready-to-use, in quotes
+- Stories: Visual, emotional, <90 seconds
+- Always focus on CLOSING THE DEAL
 
-## YOUR EXPERTISE:
-1. **One-Call Close Methodology** - Structure, timing, and execution
-2. **Objection Prevention & Handling** - Addressing concerns before they become blockers
-3. **Story Selling** - Creating vivid, emotional stories that build value
-4. **Price Timing** - Never reveal price before building full value (45-60+ min)
-5. **Trial Closes** - Temperature checks throughout the conversation
-6. **Buying Signals** - Recognizing and capitalizing on customer interest
-
-## HOW TO RESPOND:
-- If asked about a specific moment in the call, reference it directly
-- When suggesting responses, give EXACT SCRIPTS ready to use
-- When creating stories, make them VISUAL, EMOTIONAL, and SPECIFIC
-- Always connect your advice to CLOSING THE DEAL
-- Be creative and imaginative with stories - make them vivid and memorable
-- Use the customer's specific context from the call
-
-## STORY CREATION GUIDELINES:
-When creating stories to prevent objections or build value:
-1. Start with a character SIMILAR to the prospect (same industry/situation)
-2. Show their INITIAL HESITATION (same objection the prospect might have)
-3. Describe the COST OF INACTION vividly
-4. Show the TRANSFORMATION after they decided
-5. Include SPECIFIC RESULTS (numbers, timeframes)
-6. End with EMOTIONAL PAYOFF (peace of mind, success, freedom)
-7. Keep it under 90 seconds when spoken
-8. Make it so VISUAL they can picture it
-
-## RESPONSE FORMAT:
-- Be conversational and helpful
-- Use bullet points for actionable items
-- Include exact scripts in quotes
-- For stories, format them ready to tell
-- Add relevant emojis sparingly for clarity"""
+EXPERTISE: One-Call Close, Objection Prevention, Story Selling, Price Timing, Trial Closes, Buying Signals."""
 
 @app.route('/api/assistant', methods=['POST'])
 def ai_assistant():
-    """AI Sales Coach Assistant - answers questions about the call and provides coaching"""
+    """AI Sales Coach Assistant - optimized for fast, quality responses"""
     if not openai_client:
         return jsonify({'error': 'OpenAI API not configured'}), 500
     
@@ -730,77 +708,64 @@ def ai_assistant():
     if not user_message:
         return jsonify({'error': 'Message is required'}), 400
     
-    # Build context from call data
+    # Build COMPACT context (optimized for speed)
     context_parts = []
     
     if call_context:
-        # Add transcript summary
-        if call_context.get('transcript'):
-            context_parts.append(f"## CALL TRANSCRIPT:\n{call_context['transcript'][:8000]}")
+        analysis = call_context.get('analysis', {})
         
-        # Add analysis summary
-        if call_context.get('analysis'):
-            analysis = call_context['analysis']
-            
-            if analysis.get('call_summary'):
-                summary = analysis['call_summary']
-                context_parts.append(f"""## CALL SUMMARY:
-- Outcome: {summary.get('outcome', 'unknown')}
-- One-liner: {summary.get('one_liner', 'N/A')}
-- Close prevented by: {summary.get('close_prevented_by', 'N/A')}""")
-            
-            if analysis.get('objections'):
-                objections_text = "\n".join([
-                    f"- [{obj.get('timestamp', 'N/A')}] {obj.get('type', 'objection')}: \"{obj.get('buyer_statement', '')}\" (Handling: {obj.get('handling_score', 'N/A')}/10)"
-                    for obj in analysis['objections'][:5]
-                ])
-                context_parts.append(f"## OBJECTIONS DETECTED:\n{objections_text}")
-            
-            if analysis.get('customer_interest'):
-                interest = analysis['customer_interest']
-                context_parts.append(f"""## CUSTOMER INTEREST:
-- Level: {interest.get('overall_level', 'unknown')}
-- Buying Readiness: {interest.get('buying_readiness', 0)}%
-- Main Concerns: {', '.join(interest.get('main_concerns', [])[:3])}""")
-            
-            if analysis.get('seller_performance'):
-                perf = analysis['seller_performance']
-                context_parts.append(f"""## SELLER PERFORMANCE:
-- Overall Score: {perf.get('overall_score', 0)}/100
-- Strengths: {', '.join(perf.get('strengths', [])[:3])}""")
+        # Compact summary
+        if analysis.get('call_summary'):
+            s = analysis['call_summary']
+            context_parts.append(f"CALL: {s.get('outcome', '?')} | {s.get('one_liner', '')[:200]}")
+        
+        # Key objections (compact)
+        if analysis.get('objections'):
+            objs = [f"[{o.get('type','')}] \"{o.get('buyer_statement', '')[:80]}\"" 
+                   for o in analysis['objections'][:3]]
+            context_parts.append(f"OBJECTIONS: {' | '.join(objs)}")
+        
+        # Interest level
+        if analysis.get('customer_interest'):
+            ci = analysis['customer_interest']
+            context_parts.append(f"INTEREST: {ci.get('overall_level', '?')} ({ci.get('buying_readiness', 0)}%)")
+        
+        # Performance
+        if analysis.get('seller_performance'):
+            sp = analysis['seller_performance']
+            context_parts.append(f"SCORE: {sp.get('overall_score', 0)}/100")
+        
+        # Transcript (limited)
+        if call_context.get('transcript'):
+            context_parts.append(f"TRANSCRIPT:\n{call_context['transcript'][:4000]}")
     
-    # Add selected text if provided
+    # Selected text
     if selected_text:
-        context_parts.append(f"## USER SELECTED THIS TEXT FROM THE CALL:\n\"{selected_text}\"")
+        context_parts.append(f"SELECTED: \"{selected_text[:500]}\"")
     
-    # Combine context
-    full_context = "\n\n".join(context_parts) if context_parts else "No call context provided."
+    context = "\n".join(context_parts) if context_parts else "No context."
     
-    # Build messages for API
+    # Build messages
     messages = [
-        {"role": "system", "content": AI_ASSISTANT_SYSTEM_PROMPT},
-        {"role": "system", "content": f"## CURRENT CALL DATA:\n{full_context}"}
+        {"role": "system", "content": AI_ASSISTANT_SYSTEM_PROMPT + f"\n\nCALL DATA:\n{context}"}
     ]
     
-    # Add conversation history
-    for msg in conversation_history[-10:]:  # Keep last 10 messages
-        messages.append({"role": msg.get('role', 'user'), "content": msg.get('content', '')})
+    # Add conversation history (last 6 for speed)
+    for msg in conversation_history[-6:]:
+        messages.append({"role": msg.get('role', 'user'), "content": msg.get('content', '')[:1000]})
     
-    # Add current message
     messages.append({"role": "user", "content": user_message})
     
     try:
         response = openai_client.chat.completions.create(
             model="gpt-5.2",
             messages=messages,
-            temperature=0.7,
-            max_completion_tokens=2000
+            temperature=0.6,
+            max_completion_tokens=1200
         )
         
-        assistant_response = response.choices[0].message.content.strip()
-        
         return jsonify({
-            'response': assistant_response,
+            'response': response.choices[0].message.content.strip(),
             'success': True
         })
         
