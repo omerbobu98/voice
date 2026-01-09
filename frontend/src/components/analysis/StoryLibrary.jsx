@@ -49,30 +49,34 @@ export default function StoryLibrary({ stories, onSeek, TTSButton }) {
   }
 
   return (
-    <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 overflow-hidden">
-      {/* Header */}
-      <div className="p-4 border-b border-slate-700/50">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-pink-500/20 rounded-lg flex items-center justify-center">
-              <BookOpen className="w-4 h-4 text-pink-400" />
+    <div className="bg-gradient-to-br from-slate-800/90 to-slate-900/90 rounded-2xl border border-pink-500/20 overflow-hidden shadow-xl shadow-pink-500/5">
+      {/* Header - Premium Design */}
+      <div className="p-5 border-b border-slate-700/50 bg-gradient-to-r from-pink-500/10 via-rose-500/5 to-transparent">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 bg-gradient-to-br from-pink-500 to-rose-500 rounded-2xl flex items-center justify-center shadow-lg shadow-pink-500/30">
+              <BookOpen className="w-7 h-7 text-white" />
             </div>
             <div>
-              <h3 className="text-base font-semibold text-slate-200">Story Library</h3>
-              <p className="text-xs text-slate-500">{stories.length} stories detected</p>
+              <h3 className="text-xl font-bold text-white">Story Library</h3>
+              <p className="text-sm text-slate-400">{stories.length} stories detected in this call</p>
             </div>
+          </div>
+          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-slate-800/60 rounded-full">
+            <Sparkles className="w-4 h-4 text-pink-400" />
+            <span className="text-xs text-slate-400">AI Enhanced</span>
           </div>
         </div>
 
-        {/* Filter Pills */}
+        {/* Filter Pills - Premium */}
         {storyTypes.length > 1 && (
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setFilter('all')}
-              className={`px-2 py-1 rounded-full text-xs font-medium transition-colors ${
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
                 filter === 'all' 
-                  ? 'bg-indigo-500 text-white' 
-                  : 'bg-slate-700/50 text-slate-400 hover:text-slate-200'
+                  ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-lg shadow-pink-500/30' 
+                  : 'bg-slate-800/60 text-slate-400 hover:text-slate-200 hover:bg-slate-700/60'
               }`}
             >
               All ({stories.length})
@@ -81,10 +85,10 @@ export default function StoryLibrary({ stories, onSeek, TTSButton }) {
               <button
                 key={type}
                 onClick={() => setFilter(type)}
-                className={`px-2 py-1 rounded-full text-xs font-medium transition-colors ${
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
                   filter === type 
-                    ? 'bg-indigo-500 text-white' 
-                    : 'bg-slate-700/50 text-slate-400 hover:text-slate-200'
+                    ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-lg shadow-pink-500/30' 
+                    : 'bg-slate-800/60 text-slate-400 hover:text-slate-200 hover:bg-slate-700/60'
                 }`}
               >
                 {getStoryTypeIcon(type)} {formatStoryType(type)}
@@ -94,26 +98,28 @@ export default function StoryLibrary({ stories, onSeek, TTSButton }) {
         )}
       </div>
 
-      {/* Stories List */}
+      {/* Stories List - Premium Cards */}
       <div className="divide-y divide-slate-700/30">
         {filteredStories.map((story, i) => (
-          <div key={i} className="p-4">
+          <div key={i} className="p-5 hover:bg-slate-800/30 transition-colors">
             {/* Story Header */}
             <button
               onClick={() => setExpandedStory(expandedStory === i ? null : i)}
-              className="w-full text-left"
+              className="w-full text-left group"
             >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-start gap-3 flex-1">
-                  <span className="text-xl">{getStoryTypeIcon(story.story_type)}</span>
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-start gap-4 flex-1">
+                  <div className="w-12 h-12 bg-gradient-to-br from-pink-500/20 to-rose-500/20 rounded-xl flex items-center justify-center text-2xl flex-shrink-0">
+                    {getStoryTypeIcon(story.story_type)}
+                  </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs px-2 py-0.5 bg-slate-700 rounded text-slate-300">
+                    <div className="flex flex-wrap items-center gap-2 mb-2">
+                      <span className="text-xs px-3 py-1.5 bg-slate-800/80 rounded-xl text-slate-300 font-bold">
                         {formatStoryType(story.story_type)}
                       </span>
                       {story.timestamp && (
                         <button 
-                          className="text-xs font-mono px-2 py-0.5 bg-pink-500/20 text-pink-400 rounded hover:bg-pink-500/30 transition-colors flex items-center gap-1"
+                          className="text-xs font-mono px-3 py-1.5 bg-pink-500/20 text-pink-400 rounded-xl hover:bg-pink-500/30 transition-all flex items-center gap-1.5 hover:scale-105"
                           onClick={(e) => {
                             e.stopPropagation()
                             if (onSeek && story.timestamp_ms) {
@@ -125,48 +131,44 @@ export default function StoryLibrary({ stories, onSeek, TTSButton }) {
                         </button>
                       )}
                       {story.storytelling_technique && (
-                        <span className="text-xs px-2 py-0.5 bg-violet-500/20 text-violet-400 rounded hidden sm:inline">
+                        <span className="text-xs px-3 py-1.5 bg-violet-500/20 text-violet-400 rounded-xl hidden sm:inline font-medium">
                           {story.storytelling_technique}
                         </span>
                       )}
                     </div>
-                    <p className="text-sm text-slate-300 line-clamp-2">
+                    <p className="text-base text-slate-200 line-clamp-2 leading-relaxed font-medium">
                       {story.intended_message || story.original_story?.substring(0, 100) + '...'}
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <span className={`px-2 py-1 rounded text-sm font-bold ${getScoreColor(story.effectiveness_score)}`}>
+                <div className="flex items-center gap-3 flex-shrink-0">
+                  <div className={`px-4 py-2 rounded-xl text-base font-bold ${getScoreColor(story.effectiveness_score)}`}>
                     {story.effectiveness_score}/10
-                  </span>
-                  {expandedStory === i ? (
-                    <ChevronUp className="w-4 h-4 text-slate-400" />
-                  ) : (
-                    <ChevronDown className="w-4 h-4 text-slate-400" />
-                  )}
+                  </div>
+                  <div className={`w-8 h-8 rounded-full bg-slate-800/60 flex items-center justify-center transition-transform duration-300 ${expandedStory === i ? 'rotate-180' : ''}`}>
+                    <ChevronDown className="w-5 h-5 text-slate-400" />
+                  </div>
                 </div>
               </div>
             </button>
 
-            {/* Expanded Content */}
+            {/* Expanded Content - Premium */}
             {expandedStory === i && (
-              <div className="mt-4 space-y-3">
+              <div className="mt-5 space-y-4 animate-fadeIn">
                 {/* Original Story */}
-                <div className="p-3 bg-slate-900/50 rounded-lg border-l-2 border-slate-500">
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-xs text-slate-500 font-semibold">📖 Original Story</p>
-                  </div>
-                  <p className="text-sm text-slate-400">{story.original_story}</p>
+                <div className="p-5 bg-slate-900/60 rounded-2xl border-l-4 border-slate-500">
+                  <p className="text-xs text-slate-500 font-bold mb-3 uppercase tracking-wide">📖 Original Story</p>
+                  <p className="text-sm text-slate-300 leading-relaxed">{story.original_story}</p>
                 </div>
 
                 {/* Issues */}
                 {story.issues?.length > 0 && (
-                  <div className="p-3 bg-amber-500/10 rounded-lg border-l-2 border-amber-500">
-                    <p className="text-xs text-amber-400 font-semibold mb-2">⚠️ What to Improve</p>
-                    <ul className="space-y-1">
+                  <div className="p-4 bg-gradient-to-r from-amber-500/15 to-orange-500/10 rounded-2xl border border-amber-500/30">
+                    <p className="text-xs text-amber-400 font-bold mb-3 uppercase tracking-wide">⚠️ What to Improve</p>
+                    <ul className="space-y-2">
                       {story.issues.map((issue, j) => (
-                        <li key={j} className="text-sm text-slate-400 flex items-start gap-2">
-                          <span className="text-amber-400">•</span> {issue}
+                        <li key={j} className="text-sm text-slate-300 flex items-start gap-2">
+                          <span className="text-amber-400 mt-0.5">•</span> {issue}
                         </li>
                       ))}
                     </ul>
@@ -174,26 +176,26 @@ export default function StoryLibrary({ stories, onSeek, TTSButton }) {
                 )}
 
                 {/* Improved Story */}
-                <div className="p-3 bg-emerald-500/10 rounded-lg border-l-2 border-emerald-500">
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-xs text-emerald-400 font-semibold flex items-center gap-1">
-                      <Sparkles className="w-3 h-3" /> Improved Version
+                <div className="p-5 bg-gradient-to-br from-emerald-500/15 to-green-500/10 rounded-2xl border-l-4 border-emerald-500 shadow-lg shadow-emerald-500/10">
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-sm text-emerald-400 font-bold flex items-center gap-2">
+                      <Sparkles className="w-4 h-4" /> Improved Version
                     </p>
                     <button
                       onClick={() => copyToClipboard(story.improved_story, `story-${i}`)}
-                      className="p-1 hover:bg-emerald-500/20 rounded transition-colors"
+                      className="p-2 hover:bg-emerald-500/20 rounded-xl transition-all hover:scale-110"
                       title="Copy improved story"
                     >
                       {copied === `story-${i}` ? (
-                        <Check className="w-3 h-3 text-emerald-400" />
+                        <Check className="w-4 h-4 text-emerald-400" />
                       ) : (
-                        <Copy className="w-3 h-3 text-emerald-400" />
+                        <Copy className="w-4 h-4 text-emerald-400" />
                       )}
                     </button>
                   </div>
-                  <p className="text-sm text-emerald-200 leading-relaxed">{story.improved_story}</p>
+                  <p className="text-base text-emerald-100 leading-relaxed font-medium">{story.improved_story}</p>
                   {story.why_better && (
-                    <p className="text-xs text-slate-400 mt-2 pt-2 border-t border-emerald-500/20 italic">
+                    <p className="text-sm text-slate-400 mt-4 pt-4 border-t border-emerald-500/20 italic">
                       💡 {story.why_better}
                     </p>
                   )}
@@ -201,8 +203,8 @@ export default function StoryLibrary({ stories, onSeek, TTSButton }) {
 
                 {/* TTS Button */}
                 {TTSButton && (
-                  <div className="mt-2">
-                    <TTSButton text={story.improved_story} label="Listen to Improved Story" />
+                  <div className="mt-3">
+                    <TTSButton text={story.improved_story} label="🔊 Listen to Improved Story" />
                   </div>
                 )}
               </div>
@@ -211,16 +213,18 @@ export default function StoryLibrary({ stories, onSeek, TTSButton }) {
         ))}
       </div>
 
-      {/* Tips Section */}
-      <div className="p-4 bg-slate-900/30 border-t border-slate-700/30">
-        <div className="flex items-start gap-2">
-          <Star className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+      {/* Tips Section - Premium */}
+      <div className="p-5 bg-gradient-to-r from-amber-500/10 to-orange-500/5 border-t border-amber-500/20">
+        <div className="flex items-start gap-4">
+          <div className="w-10 h-10 bg-gradient-to-br from-amber-500 to-orange-500 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg shadow-amber-500/20">
+            <Star className="w-5 h-5 text-white" />
+          </div>
           <div>
-            <p className="text-xs text-slate-400 font-medium mb-1">Storytelling Tips</p>
-            <ul className="text-xs text-slate-500 space-y-0.5">
-              <li>• Make stories visual - help them picture the scenario</li>
-              <li>• Include specific numbers and results</li>
-              <li>• Connect emotionally before presenting facts</li>
+            <p className="text-sm text-amber-400 font-bold mb-2">Pro Storytelling Tips</p>
+            <ul className="text-sm text-slate-400 space-y-1.5">
+              <li className="flex items-center gap-2"><span className="text-amber-400">→</span> Make stories visual - help them picture the scenario</li>
+              <li className="flex items-center gap-2"><span className="text-amber-400">→</span> Include specific numbers and results</li>
+              <li className="flex items-center gap-2"><span className="text-amber-400">→</span> Connect emotionally before presenting facts</li>
             </ul>
           </div>
         </div>

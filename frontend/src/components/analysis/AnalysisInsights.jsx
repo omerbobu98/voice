@@ -111,9 +111,9 @@ function PreventionStoryCard({ story, TTSButton }) {
 }
 
 const tabs = [
-  { id: 'overview', label: 'Overview', icon: BarChart3 },
-  { id: 'insights', label: 'Deep Insights', icon: Zap },
-  { id: 'stories', label: 'Stories', icon: BookOpen },
+  { id: 'overview', label: 'Overview', icon: BarChart3, gradient: 'from-blue-500 to-cyan-500' },
+  { id: 'insights', label: 'Deep Insights', icon: Zap, gradient: 'from-violet-500 to-purple-500' },
+  { id: 'stories', label: 'Stories', icon: BookOpen, gradient: 'from-pink-500 to-rose-500' },
 ]
 
 export default function AnalysisInsights({ 
@@ -284,8 +284,8 @@ export default function AnalysisInsights({
         </div>
       )}
 
-      {/* Tab Navigation */}
-      <div className="flex items-center gap-1 p-1 bg-slate-800/30 rounded-xl border border-slate-700/30">
+      {/* Tab Navigation - Premium Design */}
+      <div className="flex items-center gap-2 p-1.5 bg-slate-900/60 backdrop-blur-sm rounded-2xl border border-slate-700/50 shadow-lg">
         {tabs.map(tab => {
           // Hide stories tab if no stories, hide insights if no data
           if (tab.id === 'stories' && !hasStories) return null
@@ -298,14 +298,14 @@ export default function AnalysisInsights({
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
+              className={`flex-1 flex items-center justify-center gap-2.5 px-5 py-3 rounded-xl text-sm font-semibold transition-all duration-300 ${
                 isActive
-                  ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/20'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
+                  ? `bg-gradient-to-r ${tab.gradient} text-white shadow-xl shadow-indigo-500/30 scale-[1.02]`
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
               }`}
             >
-              <Icon className="w-4 h-4" />
-              <span className="hidden sm:inline">{tab.label}</span>
+              <Icon className={`w-4 h-4 ${isActive ? 'animate-pulse' : ''}`} />
+              <span>{tab.label}</span>
             </button>
           )
         })}
@@ -314,15 +314,15 @@ export default function AnalysisInsights({
       {/* Tab Content */}
       <div className="min-h-[400px]">
         {activeTab === 'overview' && (
-          <div className="space-y-4">
+          <div className="space-y-6">
             {/* Top Row - Summary & Skill */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <AISummaryCard analysisResult={analysisResult} result={result} />
               <SkillRadarChart analysisResult={analysisResult} />
             </div>
 
             {/* Middle Row - Charts */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <TopicFrequencyChart analysisResult={analysisResult} />
               <TalkPatternChart 
                 utterances={result?.utterances || []}
@@ -332,59 +332,63 @@ export default function AnalysisInsights({
               />
             </div>
 
-            {/* Timeline Events */}
+            {/* Timeline Events - Premium Design */}
             {analysisResult?.analysis?.timeline_events?.length > 0 && (
-              <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 overflow-hidden">
-                <div className="p-4 border-b border-slate-700/50 bg-slate-800/80">
+              <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 rounded-2xl border border-slate-700/50 overflow-hidden shadow-xl">
+                <div className="p-5 border-b border-slate-700/50 bg-gradient-to-r from-cyan-500/10 to-indigo-500/10">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-cyan-500/20 rounded-xl flex items-center justify-center">
-                        <Activity className="w-5 h-5 text-cyan-400" />
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-gradient-to-br from-cyan-500 to-indigo-500 rounded-xl flex items-center justify-center shadow-lg shadow-cyan-500/20">
+                        <Activity className="w-6 h-6 text-white" />
                       </div>
                       <div>
-                        <h3 className="text-lg font-semibold text-slate-200">Call Timeline</h3>
-                        <p className="text-sm text-slate-500">{analysisResult.analysis.timeline_events.length} key moments</p>
+                        <h3 className="text-xl font-bold text-white">Call Timeline</h3>
+                        <p className="text-sm text-slate-400">{analysisResult.analysis.timeline_events.length} key moments detected</p>
                       </div>
+                    </div>
+                    <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-slate-800/60 rounded-full">
+                      <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      <span className="text-xs text-slate-400">Interactive</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="p-4 relative">
-                  {/* Timeline bar */}
-                  <div className="absolute left-8 top-4 bottom-4 w-0.5 bg-gradient-to-b from-cyan-500 via-indigo-500 to-violet-500" />
+                <div className="p-5 relative">
+                  {/* Timeline bar with gradient */}
+                  <div className="absolute left-9 top-5 bottom-5 w-1 bg-gradient-to-b from-cyan-500 via-indigo-500 to-violet-500 rounded-full opacity-60" />
                   
-                  <div className="space-y-3 max-h-[400px] overflow-y-auto custom-scrollbar">
+                  <div className="space-y-4 max-h-[450px] overflow-y-auto custom-scrollbar pr-2">
                     {analysisResult.analysis.timeline_events.map((event, i) => {
                       const eventColors = {
-                        discovery_question: { bg: 'bg-cyan-500', text: 'text-cyan-400', label: '🔍 Discovery' },
-                        diagnose: { bg: 'bg-blue-500', text: 'text-blue-400', label: '🩺 Diagnose' },
-                        closing_attempt: { bg: 'bg-emerald-500', text: 'text-emerald-400', label: '🎯 Closing' },
-                        rapport_building: { bg: 'bg-pink-500', text: 'text-pink-400', label: '🤝 Rapport' },
-                        value_proposition: { bg: 'bg-amber-500', text: 'text-amber-400', label: '💎 Value' },
-                        objection: { bg: 'bg-red-500', text: 'text-red-400', label: '⚠️ Objection' },
-                        pain_point: { bg: 'bg-orange-500', text: 'text-orange-400', label: '😣 Pain' },
-                        commitment: { bg: 'bg-green-500', text: 'text-green-400', label: '✅ Commitment' },
-                        next_step: { bg: 'bg-violet-500', text: 'text-violet-400', label: '➡️ Next Step' },
+                        discovery_question: { bg: 'bg-cyan-500', text: 'text-cyan-400', label: '🔍 Discovery', glow: 'shadow-cyan-500/30' },
+                        diagnose: { bg: 'bg-blue-500', text: 'text-blue-400', label: '🩺 Diagnose', glow: 'shadow-blue-500/30' },
+                        closing_attempt: { bg: 'bg-emerald-500', text: 'text-emerald-400', label: '🎯 Closing', glow: 'shadow-emerald-500/30' },
+                        rapport_building: { bg: 'bg-pink-500', text: 'text-pink-400', label: '🤝 Rapport', glow: 'shadow-pink-500/30' },
+                        value_proposition: { bg: 'bg-amber-500', text: 'text-amber-400', label: '💎 Value', glow: 'shadow-amber-500/30' },
+                        objection: { bg: 'bg-red-500', text: 'text-red-400', label: '⚠️ Objection', glow: 'shadow-red-500/30' },
+                        pain_point: { bg: 'bg-orange-500', text: 'text-orange-400', label: '😣 Pain', glow: 'shadow-orange-500/30' },
+                        commitment: { bg: 'bg-green-500', text: 'text-green-400', label: '✅ Commitment', glow: 'shadow-green-500/30' },
+                        next_step: { bg: 'bg-violet-500', text: 'text-violet-400', label: '➡️ Next Step', glow: 'shadow-violet-500/30' },
                       }
-                      const colors = eventColors[event.type] || { bg: 'bg-slate-500', text: 'text-slate-400', label: event.type }
+                      const colors = eventColors[event.type] || { bg: 'bg-slate-500', text: 'text-slate-400', label: event.type, glow: '' }
                       
                       return (
                         <div 
                           key={i} 
-                          className="relative pl-10 cursor-pointer group"
+                          className="relative pl-12 cursor-pointer group"
                           onClick={() => onSeek && event.timestamp_ms && onSeek(event.timestamp_ms)}
                         >
-                          <div className={`absolute left-[22px] w-3 h-3 rounded-full ${colors.bg} border-2 border-slate-800 group-hover:scale-125 transition-transform`} />
+                          <div className={`absolute left-[26px] w-4 h-4 rounded-full ${colors.bg} border-3 border-slate-800 group-hover:scale-150 transition-all duration-300 shadow-lg ${colors.glow}`} />
                           
-                          <div className="p-3 rounded-xl bg-slate-900/50 border border-slate-700/30 group-hover:border-slate-600/50 transition-all">
-                            <div className="flex flex-wrap items-center gap-2 mb-1">
-                              <span className={`text-xs font-semibold ${colors.text}`}>{colors.label}</span>
-                              <span className="text-xs font-mono text-slate-500">{event.timestamp}</span>
-                              <span className={`text-xs px-1.5 py-0.5 rounded ${event.speaker === 'Seller' ? 'bg-blue-500/20 text-blue-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
+                          <div className="p-4 rounded-xl bg-slate-800/60 border border-slate-700/40 group-hover:border-slate-600 group-hover:bg-slate-800/80 transition-all duration-300 group-hover:shadow-lg">
+                            <div className="flex flex-wrap items-center gap-2 mb-2">
+                              <span className={`text-xs font-bold px-2.5 py-1 rounded-lg ${colors.text} bg-slate-900/60`}>{colors.label}</span>
+                              <span className="text-xs font-mono px-2 py-1 bg-indigo-500/20 text-indigo-400 rounded-lg">{event.timestamp}</span>
+                              <span className={`text-xs px-2 py-1 rounded-lg font-medium ${event.speaker === 'Seller' ? 'bg-blue-500/20 text-blue-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
                                 {event.speaker}
                               </span>
                             </div>
-                            <p className="text-sm text-slate-300">"{event.content}"</p>
+                            <p className="text-sm text-slate-300 leading-relaxed">"{event.content}"</p>
                           </div>
                         </div>
                       )
@@ -422,17 +426,22 @@ export default function AnalysisInsights({
               </div>
             )}
 
-            {/* Objection Prevention Stories */}
+            {/* Objection Prevention Stories - Premium Design */}
             {analysisResult?.analysis?.objection_prevention_stories?.length > 0 && (
-              <div className="bg-gradient-to-br from-violet-500/10 to-pink-500/10 rounded-xl border border-violet-500/20 overflow-hidden">
-                <div className="p-4 border-b border-violet-500/20 bg-violet-500/5">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-violet-500/20 rounded-xl flex items-center justify-center">
-                      <Zap className="w-5 h-5 text-violet-400" />
+              <div className="bg-gradient-to-br from-violet-500/15 to-pink-500/10 rounded-2xl border border-violet-500/30 overflow-hidden shadow-xl shadow-violet-500/10">
+                <div className="p-5 border-b border-violet-500/20 bg-gradient-to-r from-violet-500/15 via-purple-500/10 to-transparent">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="w-14 h-14 bg-gradient-to-br from-violet-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-lg shadow-violet-500/30">
+                        <Zap className="w-7 h-7 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-bold text-white">Objection Prevention Stories</h3>
+                        <p className="text-sm text-slate-400">Tell these stories BEFORE objections come up</p>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="text-lg font-semibold text-slate-200">Objection Prevention Stories</h3>
-                      <p className="text-sm text-slate-500">Tell these stories BEFORE objections come up</p>
+                    <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-violet-500/20 rounded-full">
+                      <span className="text-xs text-violet-300 font-medium">🛡️ Prevention</span>
                     </div>
                   </div>
                 </div>
