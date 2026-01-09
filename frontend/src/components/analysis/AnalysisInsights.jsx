@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { BarChart3, MessageSquare, Target, Activity, BookOpen, Zap, Volume2, PlayCircle, PauseCircle, X } from 'lucide-react'
+import { BarChart3, MessageSquare, Target, Activity, BookOpen, Zap, Volume2, PlayCircle, PauseCircle, X, ChevronDown, ChevronUp, Copy, Check, Clock, Shield } from 'lucide-react'
 import axios from 'axios'
 import { API_URL } from '../../lib/config'
 import SkillRadarChart from '../charts/SkillRadarChart'
@@ -8,6 +8,107 @@ import TalkPatternChart from '../charts/TalkPatternChart'
 import AISummaryCard from './AISummaryCard'
 import StoryLibrary from './StoryLibrary'
 import DeepInsightsTab from './DeepInsightsTab'
+
+// Prevention Story Card Component
+function PreventionStoryCard({ story, TTSButton }) {
+  const [expanded, setExpanded] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  const copyStory = async () => {
+    try {
+      await navigator.clipboard.writeText(story.the_story)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch (err) {
+      console.error('Failed to copy:', err)
+    }
+  }
+
+  const objectionLabels = {
+    need_to_think: { label: '🤔 "צריך לחשוב"', color: 'bg-amber-500/20 text-amber-400' },
+    spouse_decision: { label: '👫 "צריך לדבר עם בן/בת זוג"', color: 'bg-pink-500/20 text-pink-400' },
+    too_expensive: { label: '💰 "יקר לי"', color: 'bg-red-500/20 text-red-400' },
+    getting_quotes: { label: '📋 "בודק הצעות"', color: 'bg-blue-500/20 text-blue-400' },
+    bad_timing: { label: '⏰ "לא עכשיו"', color: 'bg-orange-500/20 text-orange-400' },
+    already_have_solution: { label: '✅ "יש לי כבר"', color: 'bg-slate-500/20 text-slate-400' },
+  }
+
+  const objectionInfo = objectionLabels[story.objection_to_prevent] || { 
+    label: story.objection_to_prevent, 
+    color: 'bg-slate-500/20 text-slate-400' 
+  }
+
+  return (
+    <div className="p-4">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full text-left"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1">
+            <div className="flex flex-wrap items-center gap-2 mb-2">
+              <span className={`px-2 py-1 rounded-lg text-xs font-medium ${objectionInfo.color}`}>
+                {objectionInfo.label}
+              </span>
+              <span className="text-xs text-slate-500 flex items-center gap-1">
+                <Clock className="w-3 h-3" /> {story.when_to_tell}
+              </span>
+            </div>
+            <h4 className="text-base font-semibold text-slate-200">{story.story_title}</h4>
+            <p className="text-sm text-slate-400 mt-1">{story.setup_line}</p>
+          </div>
+          {expanded ? (
+            <ChevronUp className="w-5 h-5 text-slate-400 flex-shrink-0" />
+          ) : (
+            <ChevronDown className="w-5 h-5 text-slate-400 flex-shrink-0" />
+          )}
+        </div>
+      </button>
+
+      {expanded && (
+        <div className="mt-4 space-y-4">
+          {/* The Story */}
+          <div className="p-4 bg-slate-900/50 rounded-xl border-l-4 border-violet-500">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs text-violet-400 font-semibold">📖 The Story</p>
+              <button
+                onClick={copyStory}
+                className="p-1.5 hover:bg-violet-500/20 rounded-lg transition-colors"
+              >
+                {copied ? (
+                  <Check className="w-4 h-4 text-emerald-400" />
+                ) : (
+                  <Copy className="w-4 h-4 text-violet-400" />
+                )}
+              </button>
+            </div>
+            <p className="text-slate-300 leading-relaxed whitespace-pre-line">{story.the_story}</p>
+            
+            {TTSButton && (
+              <div className="mt-3">
+                <TTSButton text={story.the_story} label="🔊 Listen to Story" />
+              </div>
+            )}
+          </div>
+
+          {/* Closing Bridge */}
+          <div className="p-3 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
+            <p className="text-xs text-emerald-400 font-semibold mb-1">🎯 After the story, ask:</p>
+            <p className="text-emerald-200 font-medium">"{story.closing_bridge}"</p>
+          </div>
+
+          {/* Why This Prevents */}
+          <div className="p-3 bg-slate-800/50 rounded-xl">
+            <p className="text-xs text-slate-500 mb-1 flex items-center gap-1">
+              <Shield className="w-3 h-3" /> Why this prevents the objection:
+            </p>
+            <p className="text-sm text-slate-400">{story.why_this_prevents}</p>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
 
 const tabs = [
   { id: 'overview', label: 'Overview', icon: BarChart3 },
@@ -213,25 +314,16 @@ export default function AnalysisInsights({
       {/* Tab Content */}
       <div className="min-h-[400px]">
         {activeTab === 'overview' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {/* Left Column */}
-            <div className="space-y-4">
-              {/* AI Summary */}
-              <AISummaryCard 
-                analysisResult={analysisResult} 
-                result={result}
-              />
-              
-              {/* Topic Coverage */}
-              <TopicFrequencyChart analysisResult={analysisResult} />
+          <div className="space-y-4">
+            {/* Top Row - Summary & Skill */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <AISummaryCard analysisResult={analysisResult} result={result} />
+              <SkillRadarChart analysisResult={analysisResult} />
             </div>
 
-            {/* Right Column */}
-            <div className="space-y-4">
-              {/* Skill Radar */}
-              <SkillRadarChart analysisResult={analysisResult} />
-              
-              {/* Talk Pattern */}
+            {/* Middle Row - Charts */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <TopicFrequencyChart analysisResult={analysisResult} />
               <TalkPatternChart 
                 utterances={result?.utterances || []}
                 speakerRoles={result?.speaker_roles || {}}
@@ -239,6 +331,68 @@ export default function AnalysisInsights({
                 onSeek={onSeek}
               />
             </div>
+
+            {/* Timeline Events */}
+            {analysisResult?.analysis?.timeline_events?.length > 0 && (
+              <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 overflow-hidden">
+                <div className="p-4 border-b border-slate-700/50 bg-slate-800/80">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-cyan-500/20 rounded-xl flex items-center justify-center">
+                        <Activity className="w-5 h-5 text-cyan-400" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold text-slate-200">Call Timeline</h3>
+                        <p className="text-sm text-slate-500">{analysisResult.analysis.timeline_events.length} key moments</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-4 relative">
+                  {/* Timeline bar */}
+                  <div className="absolute left-8 top-4 bottom-4 w-0.5 bg-gradient-to-b from-cyan-500 via-indigo-500 to-violet-500" />
+                  
+                  <div className="space-y-3 max-h-[400px] overflow-y-auto custom-scrollbar">
+                    {analysisResult.analysis.timeline_events.map((event, i) => {
+                      const eventColors = {
+                        discovery_question: { bg: 'bg-cyan-500', text: 'text-cyan-400', label: '🔍 Discovery' },
+                        diagnose: { bg: 'bg-blue-500', text: 'text-blue-400', label: '🩺 Diagnose' },
+                        closing_attempt: { bg: 'bg-emerald-500', text: 'text-emerald-400', label: '🎯 Closing' },
+                        rapport_building: { bg: 'bg-pink-500', text: 'text-pink-400', label: '🤝 Rapport' },
+                        value_proposition: { bg: 'bg-amber-500', text: 'text-amber-400', label: '💎 Value' },
+                        objection: { bg: 'bg-red-500', text: 'text-red-400', label: '⚠️ Objection' },
+                        pain_point: { bg: 'bg-orange-500', text: 'text-orange-400', label: '😣 Pain' },
+                        commitment: { bg: 'bg-green-500', text: 'text-green-400', label: '✅ Commitment' },
+                        next_step: { bg: 'bg-violet-500', text: 'text-violet-400', label: '➡️ Next Step' },
+                      }
+                      const colors = eventColors[event.type] || { bg: 'bg-slate-500', text: 'text-slate-400', label: event.type }
+                      
+                      return (
+                        <div 
+                          key={i} 
+                          className="relative pl-10 cursor-pointer group"
+                          onClick={() => onSeek && event.timestamp_ms && onSeek(event.timestamp_ms)}
+                        >
+                          <div className={`absolute left-[22px] w-3 h-3 rounded-full ${colors.bg} border-2 border-slate-800 group-hover:scale-125 transition-transform`} />
+                          
+                          <div className="p-3 rounded-xl bg-slate-900/50 border border-slate-700/30 group-hover:border-slate-600/50 transition-all">
+                            <div className="flex flex-wrap items-center gap-2 mb-1">
+                              <span className={`text-xs font-semibold ${colors.text}`}>{colors.label}</span>
+                              <span className="text-xs font-mono text-slate-500">{event.timestamp}</span>
+                              <span className={`text-xs px-1.5 py-0.5 rounded ${event.speaker === 'Seller' ? 'bg-blue-500/20 text-blue-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
+                                {event.speaker}
+                              </span>
+                            </div>
+                            <p className="text-sm text-slate-300">"{event.content}"</p>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -250,71 +404,57 @@ export default function AnalysisInsights({
           />
         )}
 
-        {activeTab === 'stories' && hasStories && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            {/* Story Library - Full Width on Mobile, 2/3 on Desktop */}
-            <div className="lg:col-span-2">
-              <StoryLibrary 
-                stories={stories}
-                onSeek={onSeek}
-                TTSButton={TTSButton}
-              />
-            </div>
-            
-            {/* Story Tips Sidebar */}
-            <div className="space-y-4">
-              {/* Story Stats */}
-              <div className="bg-slate-800/50 rounded-xl p-5 border border-slate-700/50">
-                <h3 className="text-base font-semibold text-slate-200 mb-4 flex items-center gap-2">
-                  <BookOpen className="w-4 h-4 text-pink-400" />
-                  Story Stats
-                </h3>
-                
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-slate-400">Stories Told</span>
-                    <span className="text-lg font-bold text-slate-200">{stories.length}</span>
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-slate-400">Avg Score</span>
-                    <span className="text-lg font-bold text-indigo-400">
-                      {Math.round(stories.reduce((sum, s) => sum + (s.effectiveness_score || 0), 0) / stories.length)}/10
-                    </span>
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-slate-400">High Impact</span>
-                    <span className="text-lg font-bold text-emerald-400">
-                      {stories.filter(s => s.effectiveness_score >= 7).length}
-                    </span>
+        {activeTab === 'stories' && (
+          <div className="space-y-6">
+            {/* Stories You Told - Only show if there are stories */}
+            {hasStories && (
+              <div>
+                <h2 className="text-lg font-semibold text-slate-200 mb-4 flex items-center gap-2">
+                  <BookOpen className="w-5 h-5 text-pink-400" />
+                  Stories You Told
+                  <span className="text-sm font-normal text-slate-500">({stories.length})</span>
+                </h2>
+                <StoryLibrary 
+                  stories={stories}
+                  onSeek={onSeek}
+                  TTSButton={TTSButton}
+                />
+              </div>
+            )}
+
+            {/* Objection Prevention Stories */}
+            {analysisResult?.analysis?.objection_prevention_stories?.length > 0 && (
+              <div className="bg-gradient-to-br from-violet-500/10 to-pink-500/10 rounded-xl border border-violet-500/20 overflow-hidden">
+                <div className="p-4 border-b border-violet-500/20 bg-violet-500/5">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-violet-500/20 rounded-xl flex items-center justify-center">
+                      <Zap className="w-5 h-5 text-violet-400" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-slate-200">Objection Prevention Stories</h3>
+                      <p className="text-sm text-slate-500">Tell these stories BEFORE objections come up</p>
+                    </div>
                   </div>
                 </div>
+
+                <div className="divide-y divide-violet-500/10">
+                  {analysisResult.analysis.objection_prevention_stories.map((story, i) => (
+                    <PreventionStoryCard key={i} story={story} TTSButton={TTSButton} />
+                  ))}
+                </div>
               </div>
-              
-              {/* Storytelling Guide */}
-              <div className="bg-gradient-to-br from-pink-500/10 to-violet-500/10 rounded-xl p-5 border border-pink-500/20">
-                <h3 className="text-sm font-semibold text-slate-200 mb-3">Effective Story Framework</h3>
-                <ol className="space-y-2 text-xs text-slate-400">
-                  <li className="flex items-start gap-2">
-                    <span className="w-5 h-5 bg-pink-500/20 rounded flex items-center justify-center text-pink-400 font-bold flex-shrink-0">1</span>
-                    <span><strong className="text-slate-300">Hook</strong> - Start with a relatable situation</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="w-5 h-5 bg-pink-500/20 rounded flex items-center justify-center text-pink-400 font-bold flex-shrink-0">2</span>
-                    <span><strong className="text-slate-300">Problem</strong> - Paint the pain vividly</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="w-5 h-5 bg-pink-500/20 rounded flex items-center justify-center text-pink-400 font-bold flex-shrink-0">3</span>
-                    <span><strong className="text-slate-300">Solution</strong> - Show the transformation</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="w-5 h-5 bg-pink-500/20 rounded flex items-center justify-center text-pink-400 font-bold flex-shrink-0">4</span>
-                    <span><strong className="text-slate-300">Result</strong> - Use specific numbers</span>
-                  </li>
-                </ol>
+            )}
+
+            {/* Empty state */}
+            {!hasStories && !analysisResult?.analysis?.objection_prevention_stories?.length && (
+              <div className="bg-slate-800/50 rounded-xl p-12 border border-slate-700/50 text-center">
+                <div className="w-16 h-16 bg-slate-700/50 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <BookOpen className="w-8 h-8 text-slate-500" />
+                </div>
+                <h3 className="text-lg font-semibold text-slate-300 mb-2">No Stories Detected</h3>
+                <p className="text-slate-500">This call didn't include any stories. Storytelling is powerful for building value!</p>
               </div>
-            </div>
+            )}
           </div>
         )}
       </div>

@@ -392,6 +392,18 @@ def perform_ai_analysis(transcript: str, metrics: dict, openai_client: OpenAI) -
         }}
     ],
     
+    "objection_prevention_stories": [
+        {{
+            "objection_to_prevent": "need_to_think|spouse_decision|too_expensive|getting_quotes|bad_timing|already_have_solution",
+            "story_title": "Short catchy title for this story",
+            "when_to_tell": "The ideal moment in the call to tell this story (e.g., 'During discovery when they mention spouse')",
+            "setup_line": "The transition phrase to naturally introduce this story",
+            "the_story": "A complete, visual, emotional story (60-90 seconds when spoken) that preemptively handles this objection. Include: 1) A relatable character in similar situation, 2) Their initial hesitation (same as the objection), 3) What happened when they waited/didn't decide, 4) The cost of inaction, 5) Their transformation after deciding, 6) Specific measurable results. Make it VISUAL - help them picture it.",
+            "closing_bridge": "The question or statement to use right after the story to check if they relate",
+            "why_this_prevents": "How this story psychologically prevents the objection from coming up later"
+        }}
+    ],
+    
     "closing_opportunities": [
         {{
             "timestamp": "MM:SS",
@@ -531,6 +543,7 @@ def perform_ai_analysis(transcript: str, metrics: dict, openai_client: OpenAI) -
             "key_moments": [],
             "timeline_events": [],
             "storytelling_analysis": [],
+            "objection_prevention_stories": [],
             "closing_opportunities": [],
             "meddic_score": {"total_score": 0},
             "bant_score": {"total_score": 0, "overall_qualified": False},
