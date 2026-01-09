@@ -1,10 +1,13 @@
-import { useState } from 'react'
-import { BarChart3, MessageSquare, Target, Activity, BookOpen, Zap } from 'lucide-react'
+import { useState, useRef } from 'react'
+import { BarChart3, MessageSquare, Target, Activity, BookOpen, Zap, Volume2, PlayCircle, PauseCircle, X } from 'lucide-react'
+import axios from 'axios'
+import { API_URL } from '../../lib/config'
 import SkillRadarChart from '../charts/SkillRadarChart'
 import TopicFrequencyChart from '../charts/TopicFrequencyChart'
 import TalkPatternChart from '../charts/TalkPatternChart'
 import AISummaryCard from './AISummaryCard'
 import StoryLibrary from './StoryLibrary'
+import DeepInsightsTab from './DeepInsightsTab'
 
 const tabs = [
   { id: 'overview', label: 'Overview', icon: BarChart3 },
@@ -16,20 +19,176 @@ export default function AnalysisInsights({
   analysisResult, 
   result, 
   onSeek,
-  onPlayTTS 
+  onStopMainAudio 
 }) {
   const [activeTab, setActiveTab] = useState('overview')
+  const [ttsLoading, setTtsLoading] = useState(false)
+  const [ttsAudioUrl, setTtsAudioUrl] = useState(null)
+  const [ttsPlaying, setTtsPlaying] = useState(false)
+  const [ttsCurrentTime, setTtsCurrentTime] = useState(0)
+  const [ttsDuration, setTtsDuration] = useState(0)
+  const ttsAudioRef = useRef(null)
   
   const stories = analysisResult?.analysis?.storytelling_analysis || []
   const hasStories = stories.length > 0
+  const hasObjections = (analysisResult?.analysis?.objections?.length || 0) > 0
+  const hasBetterResponses = (analysisResult?.analysis?.better_responses?.length || 0) > 0
+  const hasDeepInsights = hasObjections || hasBetterResponses
+
+  // TTS Functions
+  const generateAndPlayTTS = async (text) => {
+    if (ttsLoading) return
+    
+    // Stop main audio first
+    if (onStopMainAudio) onStopMainAudio()
+    
+    // If already have audio for different text, reset
+    setTtsLoading(true)
+    setTtsAudioUrl(null)
+    
+    try {
+      const response = await axios.post(`${API_URL}/api/tts`, { 
+        text,
+        voice: 'nova'
+      })
+      const fullUrl = `${API_URL}${response.data.audio_url}`
+      setTtsAudioUrl(fullUrl)
+      
+      // Auto-play after a brief delay
+      setTimeout(() => {
+        if (ttsAudioRef.current) {
+          ttsAudioRef.current.play()
+          setTtsPlaying(true)
+        }
+      }, 100)
+    } catch (err) {
+      console.error('TTS error:', err)
+    } finally {
+      setTtsLoading(false)
+    }
+  }
+
+  const toggleTtsPlay = () => {
+    if (!ttsAudioRef.current) return
+    if (ttsPlaying) {
+      ttsAudioRef.current.pause()
+      setTtsPlaying(false)
+    } else {
+      if (onStopMainAudio) onStopMainAudio()
+      ttsAudioRef.current.play()
+      setTtsPlaying(true)
+    }
+  }
+
+  const stopTts = () => {
+    if (ttsAudioRef.current) {
+      ttsAudioRef.current.pause()
+      ttsAudioRef.current.currentTime = 0
+      setTtsPlaying(false)
+      setTtsCurrentTime(0)
+    }
+  }
+
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = Math.floor(seconds % 60)
+    return `${mins}:${secs.toString().padStart(2, '0')}`
+  }
+
+  // TTS Button Component to pass to children
+  const TTSButton = ({ text, label = "🔊 Listen" }) => {
+    if (!text) return null
+    
+    return (
+      <button
+        onClick={() => generateAndPlayTTS(text)}
+        disabled={ttsLoading}
+        className="flex items-center gap-2 px-3 py-2 bg-violet-500/20 hover:bg-violet-500/30 text-violet-300 rounded-lg transition-all text-sm font-medium disabled:opacity-50 w-full justify-center"
+      >
+        {ttsLoading ? (
+          <>
+            <div className="w-4 h-4 border-2 border-violet-400 border-t-transparent rounded-full animate-spin" />
+            <span>Generating...</span>
+          </>
+        ) : (
+          <>
+            <Volume2 className="w-4 h-4" />
+            <span>{label}</span>
+          </>
+        )}
+      </button>
+    )
+  }
 
   return (
     <div className="space-y-4">
+      {/* Global TTS Audio Player */}
+      {ttsAudioUrl && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-slate-900/95 backdrop-blur-xl rounded-2xl p-3 border border-violet-500/30 shadow-2xl shadow-violet-500/20 max-w-sm w-[90%]">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={toggleTtsPlay}
+              className="w-10 h-10 bg-gradient-to-br from-violet-500 to-fuchsia-500 rounded-full flex items-center justify-center shadow-lg hover:scale-105 transition-transform flex-shrink-0"
+            >
+              {ttsPlaying ? (
+                <PauseCircle className="w-5 h-5 text-white" />
+              ) : (
+                <PlayCircle className="w-5 h-5 text-white" />
+              )}
+            </button>
+            
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs text-violet-300 font-medium">AI Voice</span>
+                <span className="text-xs text-slate-400 font-mono">
+                  {formatTime(ttsCurrentTime)} / {formatTime(ttsDuration)}
+                </span>
+              </div>
+              <div 
+                className="h-1.5 bg-slate-700 rounded-full cursor-pointer overflow-hidden"
+                onClick={(e) => {
+                  const rect = e.currentTarget.getBoundingClientRect()
+                  const percent = (e.clientX - rect.left) / rect.width
+                  if (ttsAudioRef.current && ttsDuration > 0) {
+                    ttsAudioRef.current.currentTime = percent * ttsDuration
+                  }
+                }}
+              >
+                <div 
+                  className="h-full bg-gradient-to-r from-violet-500 to-fuchsia-500 rounded-full transition-all"
+                  style={{ width: `${ttsDuration > 0 ? (ttsCurrentTime / ttsDuration) * 100 : 0}%` }}
+                />
+              </div>
+            </div>
+            
+            <button
+              onClick={() => {
+                stopTts()
+                setTtsAudioUrl(null)
+              }}
+              className="w-8 h-8 bg-slate-700 hover:bg-red-500/30 rounded-full flex items-center justify-center transition-colors flex-shrink-0"
+            >
+              <X className="w-4 h-4 text-slate-400" />
+            </button>
+          </div>
+          
+          <audio
+            ref={ttsAudioRef}
+            src={ttsAudioUrl}
+            onTimeUpdate={(e) => setTtsCurrentTime(e.target.currentTime)}
+            onLoadedMetadata={(e) => setTtsDuration(e.target.duration)}
+            onEnded={() => setTtsPlaying(false)}
+            className="hidden"
+          />
+        </div>
+      )}
+
       {/* Tab Navigation */}
       <div className="flex items-center gap-1 p-1 bg-slate-800/30 rounded-xl border border-slate-700/30">
         {tabs.map(tab => {
-          // Hide stories tab if no stories
+          // Hide stories tab if no stories, hide insights if no data
           if (tab.id === 'stories' && !hasStories) return null
+          if (tab.id === 'insights' && !hasDeepInsights) return null
           
           const Icon = tab.icon
           const isActive = activeTab === tab.id
@@ -83,111 +242,12 @@ export default function AnalysisInsights({
           </div>
         )}
 
-        {activeTab === 'insights' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {/* Left Column - Performance Analysis */}
-            <div className="space-y-4">
-              {/* Skill Radar - Larger */}
-              <SkillRadarChart analysisResult={analysisResult} />
-              
-              {/* Strengths & Improvements */}
-              {analysisResult?.analysis?.seller_performance && (
-                <div className="bg-slate-800/50 rounded-xl p-5 border border-slate-700/50">
-                  <h3 className="text-base font-semibold text-slate-200 mb-4 flex items-center gap-2">
-                    <Target className="w-4 h-4 text-indigo-400" />
-                    Performance Analysis
-                  </h3>
-                  
-                  <div className="space-y-4">
-                    {/* Strengths */}
-                    {analysisResult.analysis.seller_performance.strengths?.length > 0 && (
-                      <div>
-                        <p className="text-xs text-emerald-400 uppercase tracking-wide mb-2">Strengths</p>
-                        <ul className="space-y-1">
-                          {analysisResult.analysis.seller_performance.strengths.map((s, i) => (
-                            <li key={i} className="text-sm text-slate-300 flex items-start gap-2">
-                              <span className="text-emerald-400">✓</span> {s}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                    
-                    {/* Areas to Improve */}
-                    {analysisResult.analysis.seller_performance.improvements?.length > 0 && (
-                      <div>
-                        <p className="text-xs text-amber-400 uppercase tracking-wide mb-2">Areas to Improve</p>
-                        <ul className="space-y-1">
-                          {analysisResult.analysis.seller_performance.improvements.map((imp, i) => (
-                            <li key={i} className="text-sm text-slate-300 flex items-start gap-2">
-                              <span className="text-amber-400">→</span> {imp}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                    
-                    {/* Talk Ratio Feedback */}
-                    {analysisResult.analysis.seller_performance.talk_ratio_feedback && (
-                      <div className="pt-3 border-t border-slate-700/50">
-                        <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">Talk Ratio</p>
-                        <p className="text-sm text-slate-400">{analysisResult.analysis.seller_performance.talk_ratio_feedback}</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Right Column - Conversation Analysis */}
-            <div className="space-y-4">
-              {/* Topic Coverage */}
-              <TopicFrequencyChart analysisResult={analysisResult} />
-              
-              {/* Talk Pattern */}
-              <TalkPatternChart 
-                utterances={result?.utterances || []}
-                speakerRoles={result?.speaker_roles || {}}
-                totalDuration={result?.audio_duration || analysisResult?.metrics?.total_duration_seconds || 0}
-                onSeek={onSeek}
-              />
-              
-              {/* Key Moments Quick View */}
-              {analysisResult?.analysis?.key_moments?.length > 0 && (
-                <div className="bg-slate-800/50 rounded-xl p-5 border border-slate-700/50">
-                  <h3 className="text-base font-semibold text-slate-200 mb-4 flex items-center gap-2">
-                    <Activity className="w-4 h-4 text-indigo-400" />
-                    Key Moments
-                  </h3>
-                  <div className="space-y-2 max-h-[200px] overflow-y-auto custom-scrollbar">
-                    {analysisResult.analysis.key_moments.slice(0, 5).map((moment, i) => (
-                      <div 
-                        key={i}
-                        className={`p-2 rounded-lg cursor-pointer transition-all ${
-                          moment.type === 'positive' ? 'bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20' :
-                          moment.type === 'negative' ? 'bg-red-500/10 hover:bg-red-500/20 border border-red-500/20' :
-                          'bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20'
-                        }`}
-                        onClick={() => onSeek && moment.timestamp_ms && onSeek(moment.timestamp_ms)}
-                      >
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-xs font-mono text-slate-400">{moment.timestamp}</span>
-                          <span className={`text-xs px-1.5 py-0.5 rounded ${
-                            moment.type === 'positive' ? 'bg-emerald-500/20 text-emerald-400' :
-                            moment.type === 'negative' ? 'bg-red-500/20 text-red-400' :
-                            'bg-amber-500/20 text-amber-400'
-                          }`}>
-                            {moment.type}
-                          </span>
-                        </div>
-                        <p className="text-xs text-slate-300">{moment.description}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
+        {activeTab === 'insights' && hasDeepInsights && (
+          <DeepInsightsTab 
+            analysisResult={analysisResult}
+            onSeek={onSeek}
+            TTSButton={TTSButton}
+          />
         )}
 
         {activeTab === 'stories' && hasStories && (
@@ -197,7 +257,7 @@ export default function AnalysisInsights({
               <StoryLibrary 
                 stories={stories}
                 onSeek={onSeek}
-                onPlayAudio={onPlayTTS}
+                TTSButton={TTSButton}
               />
             </div>
             

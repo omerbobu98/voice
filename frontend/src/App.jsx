@@ -1641,10 +1641,7 @@ function MainApp() {
                 analysisResult={analysisResult}
                 result={result}
                 onSeek={seekToTime}
-                onPlayTTS={(text) => {
-                  // TTS functionality can be triggered here
-                  stopAndResetMainAudio()
-                }}
+                onStopMainAudio={stopAndResetMainAudio}
               />
 
               {/* Visual Timeline */}
@@ -2115,73 +2112,6 @@ function MainApp() {
                 </div>
               )}
 
-              {/* Better Responses */}
-              {analysisResult.analysis?.better_responses?.length > 0 && (
-                <div className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-white/10">
-                  <h3 className="text-lg sm:text-xl font-bold text-white mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3">
-                    <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400" />
-                    More Response Improvements
-                  </h3>
-                  <div className="space-y-4">
-                    {analysisResult.analysis.better_responses.map((resp, i) => (
-                      <div key={i} className="bg-white/[0.03] rounded-2xl p-5 border border-white/5">
-                        <div className="flex items-center gap-3 mb-4">
-                          <span className="text-sm text-gray-500 font-mono">{resp.timestamp}</span>
-                          <span className="px-3 py-1 bg-violet-500/20 text-violet-300 rounded-lg text-sm font-medium">{resp.technique_used}</span>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="p-4 bg-gray-500/10 rounded-xl">
-                            <p className="text-xs text-gray-400 mb-2">❌ Original:</p>
-                            <p className="text-gray-400 line-through">"{resp.original_seller_statement}"</p>
-                          </div>
-                          <div className="p-4 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
-                            <p className="text-xs text-emerald-400 mb-2">✅ Improved:</p>
-                            <p className="text-emerald-200 font-medium">"{resp.improved_response}"</p>
-                            {/* TTS Player for Improved Response - Separate from call audio */}
-                            <TTSPlayer text={resp.improved_response} label="🔊 שמע" onPlay={stopAndResetMainAudio} />
-                          </div>
-                        </div>
-                        <p className="text-sm text-gray-500 mt-3">{resp.expected_impact}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Coaching Suggestions */}
-              {analysisResult.analysis?.coaching_suggestions?.length > 0 && (
-                <div className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] rounded-3xl p-6 border border-white/10">
-                  <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
-                    <Award className="w-5 h-5 text-yellow-400" />
-                    Coaching Recommendations
-                  </h3>
-                  <div className="space-y-4">
-                    {analysisResult.analysis.coaching_suggestions.map((sug, i) => (
-                      <div key={i} className={`p-5 rounded-2xl border ${
-                        sug.priority === 'high' ? 'bg-red-500/10 border-red-500/30' :
-                        sug.priority === 'medium' ? 'bg-yellow-500/10 border-yellow-500/30' :
-                        'bg-gray-500/10 border-gray-500/30'
-                      }`}>
-                        <div className="flex items-center gap-3 mb-3">
-                          <span className={`px-3 py-1 rounded-lg text-xs font-bold ${
-                            sug.priority === 'high' ? 'bg-red-500 text-white' :
-                            sug.priority === 'medium' ? 'bg-yellow-500 text-black' :
-                            'bg-gray-500 text-white'
-                          }`}>{sug.priority?.toUpperCase()}</span>
-                          <span className="text-sm text-gray-500 capitalize">{sug.area}</span>
-                        </div>
-                        <p className="text-gray-300 mb-3">{sug.suggested_change}</p>
-                        {sug.example_script && (
-                          <div className="p-4 bg-violet-500/10 rounded-xl border border-violet-500/20">
-                            <p className="text-xs text-violet-400 mb-2">Example script:</p>
-                            <p className="text-violet-200 italic">"{sug.example_script}"</p>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
 
               {/* Deal Risk */}
               {analysisResult.analysis?.deal_risk_score && (

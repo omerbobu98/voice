@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { BookOpen, Play, Star, Copy, Check, ChevronDown, ChevronUp, Sparkles } from 'lucide-react'
+import { BookOpen, Play, Star, Copy, Check, ChevronDown, ChevronUp, Sparkles, Volume2 } from 'lucide-react'
 
-export default function StoryLibrary({ stories, onPlayAudio, onSeek }) {
+export default function StoryLibrary({ stories, onSeek, TTSButton }) {
   const [expandedStory, setExpandedStory] = useState(null)
   const [copied, setCopied] = useState(null)
   const [filter, setFilter] = useState('all')
@@ -199,15 +199,11 @@ export default function StoryLibrary({ stories, onPlayAudio, onSeek }) {
                   )}
                 </div>
 
-                {/* TTS Button - would be passed as prop */}
-                {onPlayAudio && (
-                  <button
-                    onClick={() => onPlayAudio(story.improved_story)}
-                    className="w-full py-2 bg-pink-500/20 hover:bg-pink-500/30 text-pink-400 rounded-lg transition-colors text-sm font-medium flex items-center justify-center gap-2"
-                  >
-                    <Play className="w-4 h-4" />
-                    Listen to Improved Story
-                  </button>
+                {/* TTS Button */}
+                {TTSButton && (
+                  <div className="mt-2">
+                    <TTSButton text={story.improved_story} label="Listen to Improved Story" />
+                  </div>
                 )}
               </div>
             )}
