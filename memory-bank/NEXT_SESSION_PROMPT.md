@@ -1,63 +1,45 @@
 # 🚀 SalesAI - Next Session Instructions
 
-## ⚠️ FIRST: Read Memory Bank
-Before doing ANYTHING, read these files to understand the project:
-1. `memory-bank/progress.md` - What's been built
-2. `memory-bank/activeContext.md` - Recent changes and current state
-3. `memory-bank/productContext.md` - Product goals
-4. `memory-bank/COMPLETE_SYSTEM_DOCUMENTATION.md` - **FULL system documentation** (1,099 lines)
+## ⚠️ קודם כל: קרא את כל ה-Memory Bank
+לפני שעושים משהו, קרא את הקבצים האלה כדי להבין את הפרויקט:
+1. `memory-bank/progress.md` - מה נבנה
+2. `memory-bank/activeContext.md` - שינויים אחרונים ומצב נוכחי
+3. `memory-bank/productContext.md` - מטרות המוצר
+4. `memory-bank/COMPLETE_SYSTEM_DOCUMENTATION.md` - **תיעוד מלא של המערכת** (1,099 שורות)
+
+**אחרי שקראת - שאל את המשתמש מה הוא רוצה לעשות.**
 
 ---
 
-## 📋 Session 8 Summary (January 10, 2026)
+## 📋 Session 9 Summary (January 10, 2026)
 
-### What Was Built
-- ✅ **Interactive Topic Coverage Chart**
-  - Click any bar or pill to see details in modal
-  - `TopicDetailModal.jsx` - Shows objections, closing attempts, value props, buying signals, pain points, price reveals
-  - Navigate to Deep Insights from modal
-  - Timestamp click to seek audio
-  
-- ✅ **Interactive Skill Breakdown Chart**
-  - Click legend items for detailed analysis
-  - `SkillDetailModal.jsx` - Shows score, what was found, room for improvement, related moments, 4 pro tips per skill
-  - Color-coded score status (Strong/Needs Work/Critical)
-  
-- ✅ **Premium PDF Report Redesign**
-  - Enterprise grade design with cards and color coding
-  - Cover page with key metrics cards (Performance, Buying Readiness, Objections, Risk)
-  - Executive Summary with outcome badge
-  - Customer Interest with two-column layout
-  - Objections with professional card design
-  - Seller Performance with large centered score
-  - Coaching Recommendations with priority badges
-  - Professional header/footer on all pages
-  
-- ✅ **TTS Fix**
-  - Improved audio playback with `onCanPlayThrough` event
-  - Better error handling for autoplay restrictions
-  - Audio ready state management
-  
-- ✅ **Complete System Documentation**
-  - Created `COMPLETE_SYSTEM_DOCUMENTATION.md` (1,099 lines)
-  - Full explanation of Overview, Deep Insights, Stories tabs
-  - All AI prompts documented
-  - How to rebuild from scratch guide
-  - How to make it better suggestions
-  - Technical implementation details
+### What Was Fixed
+- ✅ **OpenAI Quota Issue (429 Error)** - User added credits to OpenAI
+- ✅ **JSON Parsing Error** - AI responses were malformed, added robust brace-matching extraction
+- ✅ **Model: GPT-5.2** - User wants to keep gpt-5.2 for quality (DO NOT change model!)
 
-### New Components Created
-- `TopicDetailModal.jsx` - Modal for topic details
-- `SkillDetailModal.jsx` - Modal for skill analysis
+### Key Changes Made
+```python
+# sales_analyzer.py - Improved JSON parsing (lines 519-549)
+# Now handles:
+# - Markdown code blocks (```json)
+# - Extra content before/after JSON
+# - Proper brace matching to extract valid JSON
+```
+
+### Analysis Time
+- **Normal: 1-3 minutes** with gpt-5.2 and comprehensive prompt
+- The prompt is ~25KB with 20+ analysis sections
+- This is expected behavior, NOT a bug
 
 ### Previous Sessions
+- **Session 8**: Interactive Topic Coverage, Skill Breakdown modals, Premium PDF
 - **Session 7**: AI Sales Coach Assistant, Tab Reorganization, Objection Prevention Stories
 - **Session 6**: UI/PDF Redesign, Clean minimal professional design
-- **Session 5**: TTS Integration, PDF Export, Debug Endpoints
 
-### Known Issue
+### Known Issues
 - **Jobs stored in memory** - Railway redeploy clears jobs dict
-- **Potential fix**: Store jobs in Redis or Supabase for persistence
+- **Analysis takes 1-3 minutes** - Normal for gpt-5.2 with full prompt
 
 ---
 
@@ -128,16 +110,20 @@ curl https://web-production-3215.up.railway.app/api/debug/jobs
 
 ---
 
-## 🎯 WAITING FOR USER INSTRUCTIONS
+## 🎯 ממתין להוראות המשתמש
 
-**The user will tell you what to work on next.**
+**המשתמש יגיד לך מה לעשות.**
 
-Possible tasks:
+משימות אפשריות:
 - Fix jobs persistence (Redis/Supabase instead of in-memory)
-- Further UI improvements
-- New features
-- Bug fixes
-- Deployment issues
+- שיפורי UI נוספים
+- פיצ'רים חדשים
+- תיקוני באגים
+- בעיות deployment
+
+### ⚠️ חשוב!
+- **אל תשנה את המודל מ-gpt-5.2** - המשתמש רוצה לשמור על איכות
+- **ניתוח לוקח 1-3 דקות** - זה נורמלי, לא באג
 
 ---
 

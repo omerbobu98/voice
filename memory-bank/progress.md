@@ -155,7 +155,7 @@
 ## Current Status
 
 **Phase**: MVP Complete + Admin Dashboard + Audio Playback + TTS + PDF Export + UI Redesign + AI Assistant + Interactive Overview
-**Last Updated**: January 10, 2026 (Session 8)
+**Last Updated**: January 10, 2026 (Session 9)
 
 The core application is fully functional:
 1. Users can upload audio files
@@ -179,9 +179,12 @@ The core application is fully functional:
 - ~~TTS and main audio playing simultaneously~~ → Fixed: stopMainAudio callback
 - ~~PDF generation failing with emojis~~ → Fixed: clean_text() function
 - ~~Jobs lost on Railway redeploy~~ → In-memory jobs cleared on restart
+- ~~OpenAI quota exceeded (429)~~ → Fixed: User added credits
+- ~~JSON parsing error in AI responses~~ → Fixed: Robust brace-matching extraction
 
 ### Open
 - Jobs stored in memory (lost on Railway redeploy) - consider Redis/DB persistence
+- Analysis takes 1-3 minutes with gpt-5.2 (normal for comprehensive prompt)
 
 ## Evolution of Project Decisions
 
