@@ -184,96 +184,107 @@ export default function LiveCallPage() {
   }
   
   const startRecording = async () => {
+    // Start timer immediately
+    setIsRecording(true)
+    startTimer()
+    
     try {
-      // Get AssemblyAI real-time token
-      const headers = await getAuthHeaders()
-      const tokenRes = await axios.get(`${API_URL}/api/live/assemblyai-token`, { headers })
-      const { token } = tokenRes.data
+      // Get microphone access first
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      streamRef.current = stream
       
-      if (!token) {
-        throw new Error('Failed to get transcription token')
-      }
-      
-      // Get microphone access
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        audio: {
-          sampleRate: 16000,
-          channelCount: 1,
-          echoCancellation: true,
-          noiseSuppression: true
-        } 
-      })
-      
-      // Create audio context for processing
-      audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 })
-      const source = audioContextRef.current.createMediaStreamSource(stream)
-      const processor = audioContextRef.current.createScriptProcessor(4096, 1, 1)
-      
-      // Connect to AssemblyAI WebSocket
-      const socket = new WebSocket(`wss://api.assemblyai.com/v2/realtime/ws?sample_rate=16000&token=${token}`)
-      socketRef.current = socket
-      
-      socket.onopen = () => {
-        console.log('AssemblyAI WebSocket connected')
-        setConnectionStatus('connected')
-      }
-      
-      socket.onmessage = (event) => {
-        const data = JSON.parse(event.data)
-        
-        if (data.message_type === 'FinalTranscript' && data.text) {
-          // Final transcript - add to transcript list
-          const newChunk = {
-            text: data.text,
-            speaker: 'unknown', // AssemblyAI real-time doesn't do diarization
-            timestamp: duration,
-            confidence: data.confidence
-          }
-          setTranscript(prev => [...prev, newChunk])
-          setLiveText('')
-          
-          // Update word counts
-          const words = data.text.split(' ').length
-          setTotalWords(prev => prev + words)
-        } else if (data.message_type === 'PartialTranscript' && data.text) {
-          // Partial transcript - show live
-          setLiveText(data.text)
-        }
-      }
-      
-      socket.onerror = (error) => {
-        console.error('WebSocket error:', error)
+      // Try to get AssemblyAI real-time token
+      let token = null
+      try {
+        const headers = await getAuthHeaders()
+        const tokenRes = await axios.get(`${API_URL}/api/live/assemblyai-token`, { headers })
+        token = tokenRes.data?.token
+        console.log('Got AssemblyAI token:', token ? 'yes' : 'no')
+      } catch (tokenErr) {
+        console.error('Failed to get AssemblyAI token:', tokenErr)
         setConnectionStatus('error')
       }
       
-      socket.onclose = () => {
-        console.log('WebSocket closed')
-        setConnectionStatus('disconnected')
-      }
-      
-      // Process audio and send to WebSocket
-      processor.onaudioprocess = (e) => {
-        if (socket.readyState === WebSocket.OPEN && !isPaused) {
-          const inputData = e.inputBuffer.getChannelData(0)
-          // Convert to 16-bit PCM
-          const pcmData = new Int16Array(inputData.length)
-          for (let i = 0; i < inputData.length; i++) {
-            pcmData[i] = Math.max(-32768, Math.min(32767, inputData[i] * 32768))
-          }
-          // Send as base64
-          const base64 = btoa(String.fromCharCode(...new Uint8Array(pcmData.buffer)))
-          socket.send(JSON.stringify({ audio_data: base64 }))
+      if (token) {
+        // Create audio context for processing
+        audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)()
+        const source = audioContextRef.current.createMediaStreamSource(stream)
+        const processor = audioContextRef.current.createScriptProcessor(4096, 1, 1)
+        
+        // Connect to AssemblyAI WebSocket
+        setConnectionStatus('connecting')
+        const socket = new WebSocket(`wss://api.assemblyai.com/v2/realtime/ws?sample_rate=16000&token=${token}`)
+        socketRef.current = socket
+        
+        socket.onopen = () => {
+          console.log('AssemblyAI WebSocket connected!')
+          setConnectionStatus('connected')
         }
+        
+        socket.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data)
+            console.log('AssemblyAI message:', data.message_type, data.text?.substring(0, 50))
+            
+            if (data.message_type === 'FinalTranscript' && data.text) {
+              const newChunk = {
+                text: data.text,
+                speaker: 'דובר',
+                timestamp: duration,
+                confidence: data.confidence
+              }
+              setTranscript(prev => [...prev, newChunk])
+              setLiveText('')
+              setTotalWords(prev => prev + data.text.split(' ').length)
+            } else if (data.message_type === 'PartialTranscript' && data.text) {
+              setLiveText(data.text)
+            } else if (data.error) {
+              console.error('AssemblyAI error:', data.error)
+              setConnectionStatus('error')
+            }
+          } catch (parseErr) {
+            console.error('Error parsing message:', parseErr)
+          }
+        }
+        
+        socket.onerror = (error) => {
+          console.error('WebSocket error:', error)
+          setConnectionStatus('error')
+        }
+        
+        socket.onclose = (event) => {
+          console.log('WebSocket closed:', event.code, event.reason)
+          setConnectionStatus('disconnected')
+        }
+        
+        // Process audio and send to WebSocket
+        processor.onaudioprocess = (e) => {
+          if (socket.readyState === WebSocket.OPEN && !isPaused) {
+            const inputData = e.inputBuffer.getChannelData(0)
+            // Convert float32 to int16
+            const pcmData = new Int16Array(inputData.length)
+            for (let i = 0; i < inputData.length; i++) {
+              const s = Math.max(-1, Math.min(1, inputData[i]))
+              pcmData[i] = s < 0 ? s * 0x8000 : s * 0x7FFF
+            }
+            // Send as base64
+            const uint8 = new Uint8Array(pcmData.buffer)
+            let binary = ''
+            for (let i = 0; i < uint8.length; i++) {
+              binary += String.fromCharCode(uint8[i])
+            }
+            const base64 = btoa(binary)
+            socket.send(JSON.stringify({ audio_data: base64 }))
+          }
+        }
+        
+        source.connect(processor)
+        processor.connect(audioContextRef.current.destination)
+      } else {
+        // No token - manual mode only
+        console.log('Running in manual mode - no real-time transcription')
+        setConnectionStatus('manual')
       }
-      
-      source.connect(processor)
-      processor.connect(audioContextRef.current.destination)
-      
-      // Store stream for cleanup
-      streamRef.current = stream
-      
-      setIsRecording(true)
-      startTimer()
       
       // Start analysis interval (every 20 seconds)
       analyzeIntervalRef.current = setInterval(() => {
@@ -282,7 +293,8 @@ export default function LiveCallPage() {
       
     } catch (err) {
       console.error('Error starting recording:', err)
-      alert('לא ניתן להתחיל הקלטה: ' + err.message)
+      setConnectionStatus('error')
+      alert('שגיאה: ' + err.message)
     }
   }
   
@@ -625,11 +637,15 @@ export default function LiveCallPage() {
             <div className="flex items-center gap-2">
               <div className={`w-2 h-2 rounded-full ${
                 connectionStatus === 'connected' ? 'bg-emerald-500 animate-pulse' :
+                connectionStatus === 'connecting' ? 'bg-yellow-500 animate-pulse' :
+                connectionStatus === 'manual' ? 'bg-blue-500' :
                 connectionStatus === 'error' ? 'bg-red-500' : 'bg-gray-500'
               }`} />
               <span className="text-xs text-gray-400">
-                {connectionStatus === 'connected' ? 'מחובר - מקליט' :
-                 connectionStatus === 'error' ? 'שגיאת חיבור' : 'מנותק'}
+                {connectionStatus === 'connected' ? '🎤 מחובר - מתמלל בזמן אמת' :
+                 connectionStatus === 'connecting' ? '⏳ מתחבר...' :
+                 connectionStatus === 'manual' ? '✏️ מצב ידני - הקלד טקסט למטה' :
+                 connectionStatus === 'error' ? '❌ שגיאת חיבור - השתמש במצב ידני' : 'מנותק'}
               </span>
             </div>
             <span className="text-xs text-gray-500">{totalWords} מילים</span>
