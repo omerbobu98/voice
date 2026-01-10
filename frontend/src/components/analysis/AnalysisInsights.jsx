@@ -143,29 +143,52 @@ export default function AnalysisInsights({
     // Stop main audio first
     if (onStopMainAudio) onStopMainAudio()
     
-    // If already have audio for different text, reset
+    // If already have audio, stop and reset
+    if (ttsAudioRef.current) {
+      ttsAudioRef.current.pause()
+      ttsAudioRef.current.currentTime = 0
+    }
+    
     setTtsLoading(true)
     setTtsAudioUrl(null)
+    setTtsPlaying(false)
     
     try {
       const response = await axios.post(`${API_URL}/api/tts`, { 
         text,
         voice: 'nova'
       })
-      const fullUrl = `${API_URL}${response.data.audio_url}`
-      setTtsAudioUrl(fullUrl)
       
-      // Auto-play after a brief delay
-      setTimeout(() => {
-        if (ttsAudioRef.current) {
-          ttsAudioRef.current.play()
-          setTtsPlaying(true)
-        }
-      }, 100)
+      if (!response.data.audio_url) {
+        console.error('TTS: No audio URL returned')
+        return
+      }
+      
+      const fullUrl = `${API_URL}${response.data.audio_url}`
+      console.log('TTS audio URL:', fullUrl)
+      setTtsAudioUrl(fullUrl)
+      // Audio will auto-play via onCanPlayThrough event
+      
     } catch (err) {
       console.error('TTS error:', err)
+      alert('Failed to generate audio. Please try again.')
     } finally {
       setTtsLoading(false)
+    }
+  }
+  
+  // Handle audio ready to play
+  const handleTtsCanPlay = () => {
+    if (ttsAudioRef.current && ttsAudioUrl) {
+      ttsAudioRef.current.play()
+        .then(() => {
+          setTtsPlaying(true)
+        })
+        .catch(err => {
+          console.error('TTS play error:', err)
+          // Autoplay was blocked, user needs to click play
+          setTtsPlaying(false)
+        })
     }
   }
 
@@ -278,7 +301,9 @@ export default function AnalysisInsights({
             src={ttsAudioUrl}
             onTimeUpdate={(e) => setTtsCurrentTime(e.target.currentTime)}
             onLoadedMetadata={(e) => setTtsDuration(e.target.duration)}
+            onCanPlayThrough={handleTtsCanPlay}
             onEnded={() => setTtsPlaying(false)}
+            onError={(e) => console.error('TTS audio error:', e)}
             className="hidden"
           />
         </div>
