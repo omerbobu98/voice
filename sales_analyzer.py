@@ -520,10 +520,33 @@ def perform_ai_analysis(transcript: str, metrics: dict, openai_client: OpenAI) -
         
         # Clean up response if wrapped in markdown
         if response_text.startswith('```'):
-            response_text = response_text.split('```')[1]
-            if response_text.startswith('json'):
-                response_text = response_text[4:]
-            response_text = response_text.strip()
+            parts = response_text.split('```')
+            if len(parts) >= 2:
+                response_text = parts[1]
+                if response_text.startswith('json'):
+                    response_text = response_text[4:]
+                response_text = response_text.strip()
+        
+        # Try to extract JSON if there's extra content
+        if not response_text.startswith('{'):
+            start_idx = response_text.find('{')
+            if start_idx != -1:
+                response_text = response_text[start_idx:]
+        
+        # Find the matching closing brace
+        if response_text.startswith('{'):
+            brace_count = 0
+            end_idx = 0
+            for i, char in enumerate(response_text):
+                if char == '{':
+                    brace_count += 1
+                elif char == '}':
+                    brace_count -= 1
+                    if brace_count == 0:
+                        end_idx = i + 1
+                        break
+            if end_idx > 0:
+                response_text = response_text[:end_idx]
         
         analysis = json.loads(response_text)
         return analysis
