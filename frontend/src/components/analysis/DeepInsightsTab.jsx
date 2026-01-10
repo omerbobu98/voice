@@ -20,150 +20,76 @@ export default function DeepInsightsTab({ analysisResult, onSeek, TTSButton }) {
     }
   }
 
-  // Objection type definitions with emoji, color, and description
-  const objectionTypes = {
-    price: { 
-      emoji: '💰', 
-      label: 'Price Objection', 
-      color: 'from-red-500/20 to-red-600/10 border-red-500/40',
-      textColor: 'text-red-400',
-      description: 'Customer concerned about cost or value for money'
-    },
-    timing: { 
-      emoji: '⏰', 
-      label: 'Timing Objection', 
-      color: 'from-amber-500/20 to-amber-600/10 border-amber-500/40',
-      textColor: 'text-amber-400',
-      description: 'Customer says now is not the right time'
-    },
-    authority: { 
-      emoji: '👔', 
-      label: 'Authority Objection', 
-      color: 'from-purple-500/20 to-purple-600/10 border-purple-500/40',
-      textColor: 'text-purple-400',
-      description: 'Customer needs approval from someone else'
-    },
-    need: { 
-      emoji: '🤔', 
-      label: 'Need Objection', 
-      color: 'from-blue-500/20 to-blue-600/10 border-blue-500/40',
-      textColor: 'text-blue-400',
-      description: 'Customer questions if they really need this'
-    },
-    trust: { 
-      emoji: '🛡️', 
-      label: 'Trust Objection', 
-      color: 'from-orange-500/20 to-orange-600/10 border-orange-500/40',
-      textColor: 'text-orange-400',
-      description: 'Customer has concerns about credibility or reliability'
-    },
-    spouse_decision: { 
-      emoji: '👫', 
-      label: 'Partner Decision', 
-      color: 'from-pink-500/20 to-pink-600/10 border-pink-500/40',
-      textColor: 'text-pink-400',
-      description: 'Customer needs to consult with spouse/partner'
-    },
-    need_to_think: { 
-      emoji: '💭', 
-      label: 'Need to Think', 
-      color: 'from-cyan-500/20 to-cyan-600/10 border-cyan-500/40',
-      textColor: 'text-cyan-400',
-      description: 'Customer wants time to consider - often a stall tactic'
-    },
-    competition: { 
-      emoji: '🏃', 
-      label: 'Competition', 
-      color: 'from-indigo-500/20 to-indigo-600/10 border-indigo-500/40',
-      textColor: 'text-indigo-400',
-      description: 'Customer comparing with competitors'
+  // Professional objection type labels
+  const getTypeLabel = (type) => {
+    const labels = {
+      price: 'Price Concern',
+      timing: 'Timing Issue',
+      authority: 'Authority/Decision',
+      need: 'Need Uncertainty',
+      trust: 'Trust Concern',
+      spouse_decision: 'Partner Consultation',
+      need_to_think: 'Needs Time',
+      competition: 'Competition'
     }
+    return labels[type] || (type?.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Objection')
   }
 
-  const getObjectionInfo = (type) => {
-    return objectionTypes[type] || { 
-      emoji: '❓', 
-      label: type?.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Unknown',
-      color: 'from-slate-500/20 to-slate-600/10 border-slate-500/40',
-      textColor: 'text-slate-400',
-      description: 'Customer raised a concern'
-    }
-  }
-
-  const getScoreColor = (score) => {
-    if (score >= 7) return 'text-emerald-400 bg-emerald-500/20'
-    if (score >= 4) return 'text-amber-400 bg-amber-500/20'
-    return 'text-red-400 bg-red-500/20'
-  }
-
-  const getScoreBg = (score) => {
-    if (score >= 7) return 'from-emerald-500/10 to-emerald-600/5'
-    if (score >= 4) return 'from-amber-500/10 to-amber-600/5'
-    return 'from-red-500/10 to-red-600/5'
+  const getScoreStyle = (score) => {
+    if (score >= 7) return 'text-emerald-400 bg-emerald-500/15 border-emerald-500/30'
+    if (score >= 4) return 'text-amber-400 bg-amber-500/15 border-amber-500/30'
+    return 'text-red-400 bg-red-500/15 border-red-500/30'
   }
 
   return (
     <div className="space-y-6">
-      {/* Objections Section - Professional Redesign */}
+      {/* Objections Section - Professional Clean Design */}
       {objections.length > 0 && (
-        <div className="space-y-4">
+        <div className="bg-slate-800/60 rounded-xl border border-slate-700/50 overflow-hidden">
           {/* Header */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-gradient-to-br from-red-500/30 to-orange-500/20 rounded-xl flex items-center justify-center border border-red-500/30">
-                <AlertTriangle className="w-6 h-6 text-red-400" />
+          <div className="p-4 sm:p-5 border-b border-slate-700/50 bg-slate-800/80">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 sm:w-11 sm:h-11 bg-slate-700/50 rounded-lg flex items-center justify-center border border-slate-600/50">
+                  <AlertTriangle className="w-5 h-5 text-slate-300" />
+                </div>
+                <div>
+                  <h2 className="text-lg sm:text-xl font-semibold text-slate-100">Objections Analysis</h2>
+                  <p className="text-xs sm:text-sm text-slate-400">{objections.length} objection{objections.length > 1 ? 's' : ''} detected</p>
+                </div>
               </div>
-              <div>
-                <h2 className="text-xl font-bold text-slate-100">Objections Analysis</h2>
-                <p className="text-sm text-slate-500">{objections.length} objections detected in this call</p>
+              <div className="text-center px-3 py-1.5 bg-slate-700/50 rounded-lg border border-slate-600/30">
+                <span className="text-lg font-bold text-slate-200">
+                  {Math.round(objections.reduce((sum, o) => sum + (o.handling_score || 0), 0) / objections.length)}
+                </span>
+                <span className="text-sm text-slate-400">/10</span>
+                <p className="text-xs text-slate-500">Avg Score</p>
               </div>
-            </div>
-            <div className="text-center px-4 py-2 bg-slate-800/80 rounded-xl border border-slate-700/50">
-              <div className="text-2xl font-bold text-slate-200">
-                {Math.round(objections.reduce((sum, o) => sum + (o.handling_score || 0), 0) / objections.length)}<span className="text-lg text-slate-500">/10</span>
-              </div>
-              <p className="text-xs text-slate-500">Average Handling Score</p>
             </div>
           </div>
 
-          {/* Objection Cards */}
-          <div className="space-y-4">
+          {/* All Objections */}
+          <div className="divide-y divide-slate-700/30">
             {objections.map((objection, i) => {
-              const typeInfo = getObjectionInfo(objection.type)
               const isExpanded = expandedObjection === i
               
               return (
-                <div 
-                  key={i} 
-                  className={`rounded-2xl border overflow-hidden transition-all duration-300 ${
-                    isExpanded 
-                      ? 'bg-gradient-to-br ' + typeInfo.color + ' shadow-lg' 
-                      : 'bg-slate-800/50 border-slate-700/50 hover:border-slate-600/50'
-                  }`}
-                >
-                  {/* Card Header - Always Visible */}
+                <div key={i} className="hover:bg-slate-800/40 transition-colors">
+                  {/* Objection Header - Clickable */}
                   <button
                     onClick={() => setExpandedObjection(isExpanded ? null : i)}
-                    className="w-full p-4 text-left"
+                    className="w-full p-4 sm:p-5 text-left"
                   >
-                    <div className="flex items-start gap-4">
-                      {/* Type Icon */}
-                      <div className={`w-14 h-14 rounded-xl flex items-center justify-center text-2xl flex-shrink-0 ${
-                        isExpanded ? 'bg-white/10' : 'bg-slate-700/50'
-                      }`}>
-                        {typeInfo.emoji}
-                      </div>
-                      
-                      {/* Main Content */}
+                    <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
                         {/* Top Row: Type, Timestamp, Score */}
-                        <div className="flex flex-wrap items-center gap-2 mb-2">
-                          <span className={`font-semibold ${typeInfo.textColor}`}>
-                            {typeInfo.label}
+                        <div className="flex flex-wrap items-center gap-2 mb-3">
+                          <span className="px-2.5 py-1 bg-slate-700/60 text-slate-300 text-xs sm:text-sm font-medium rounded border border-slate-600/40">
+                            {getTypeLabel(objection.type)}
                           </span>
                           {objection.timestamp && (
                             <button 
-                              className="text-xs font-mono px-2 py-1 bg-indigo-500/20 text-indigo-400 rounded-lg hover:bg-indigo-500/30 transition-colors flex items-center gap-1"
+                              className="text-xs font-mono px-2 py-1 bg-indigo-500/15 text-indigo-400 rounded hover:bg-indigo-500/25 transition-colors flex items-center gap-1"
                               onClick={(e) => {
                                 e.stopPropagation()
                                 if (onSeek && objection.timestamp_ms) {
@@ -175,34 +101,28 @@ export default function DeepInsightsTab({ analysisResult, onSeek, TTSButton }) {
                             </button>
                           )}
                           {objection.was_preventable && (
-                            <span className="text-xs px-2 py-1 bg-amber-500/20 text-amber-400 rounded-lg flex items-center gap-1">
-                              <Shield className="w-3 h-3" /> Preventable
+                            <span className="text-xs px-2 py-1 bg-amber-500/15 text-amber-400 rounded border border-amber-500/30">
+                              Preventable
                             </span>
                           )}
-                          <span className={`ml-auto px-2 py-1 rounded-lg text-sm font-bold ${getScoreColor(objection.handling_score)}`}>
+                          <span className={`ml-auto px-2.5 py-1 rounded text-sm font-semibold border ${getScoreStyle(objection.handling_score)}`}>
                             {objection.handling_score}/10
                           </span>
                         </div>
                         
-                        {/* Type Description */}
-                        <p className="text-xs text-slate-500 mb-3">{typeInfo.description}</p>
-                        
                         {/* Customer Quote */}
-                        <div className="p-3 bg-slate-900/40 rounded-xl border-l-4 border-red-500/50">
-                          <div className="flex items-center gap-2 mb-1">
-                            <User className="w-4 h-4 text-red-400" />
-                            <span className="text-xs font-semibold text-red-400">Customer Said:</span>
-                          </div>
-                          <p className="text-slate-200 font-medium leading-relaxed">"{objection.buyer_statement}"</p>
+                        <div className="p-3 sm:p-4 bg-slate-900/50 rounded-lg border-l-3 border-l-red-500/60">
+                          <p className="text-xs text-slate-500 uppercase tracking-wide mb-1.5 font-medium">Customer</p>
+                          <p className="text-slate-200 text-sm sm:text-base leading-relaxed">"{objection.buyer_statement}"</p>
                         </div>
                       </div>
                       
                       {/* Expand Icon */}
-                      <div className={`p-2 rounded-lg transition-colors ${isExpanded ? 'bg-white/10' : 'bg-slate-700/30'}`}>
+                      <div className="p-2 rounded-lg bg-slate-700/30 flex-shrink-0">
                         {isExpanded ? (
-                          <ChevronUp className="w-5 h-5 text-slate-400" />
+                          <ChevronUp className="w-4 h-4 sm:w-5 sm:h-5 text-slate-400" />
                         ) : (
-                          <ChevronDown className="w-5 h-5 text-slate-400" />
+                          <ChevronDown className="w-4 h-4 sm:w-5 sm:h-5 text-slate-400" />
                         )}
                       </div>
                     </div>
@@ -210,42 +130,37 @@ export default function DeepInsightsTab({ analysisResult, onSeek, TTSButton }) {
 
                   {/* Expanded Content */}
                   {isExpanded && (
-                    <div className="px-4 pb-4 space-y-4">
+                    <div className="px-4 sm:px-5 pb-4 sm:pb-5 space-y-3">
                       {/* Real Concern */}
                       {objection.real_concern && (
-                        <div className="p-3 bg-slate-900/30 rounded-xl border border-slate-700/30">
-                          <div className="flex items-center gap-2 mb-1">
-                            <Lightbulb className="w-4 h-4 text-amber-400" />
-                            <span className="text-xs font-semibold text-amber-400">The Real Concern:</span>
-                          </div>
-                          <p className="text-slate-300 text-sm">{objection.real_concern}</p>
+                        <div className="p-3 sm:p-4 bg-slate-900/30 rounded-lg border border-slate-700/30">
+                          <p className="text-xs text-amber-400 uppercase tracking-wide mb-1.5 font-medium">Underlying Concern</p>
+                          <p className="text-slate-300 text-sm sm:text-base">{objection.real_concern}</p>
                         </div>
                       )}
                       
-                      {/* What Seller Said */}
-                      <div className="p-4 bg-slate-900/40 rounded-xl border-l-4 border-slate-500">
-                        <div className="flex items-center gap-2 mb-2">
-                          <UserCircle className="w-4 h-4 text-slate-400" />
-                          <span className="text-xs font-semibold text-slate-400">Your Response:</span>
+                      {/* Seller Response */}
+                      {objection.seller_response && (
+                        <div className="p-3 sm:p-4 bg-slate-900/30 rounded-lg border-l-3 border-l-slate-500/60">
+                          <p className="text-xs text-slate-500 uppercase tracking-wide mb-1.5 font-medium">Your Response</p>
+                          <p className="text-slate-300 text-sm sm:text-base leading-relaxed">"{objection.seller_response}"</p>
                         </div>
-                        <p className="text-slate-300 leading-relaxed">"{objection.seller_response}"</p>
-                      </div>
+                      )}
 
                       {/* Better Response */}
-                      <div className="p-4 bg-emerald-500/10 rounded-xl border-l-4 border-emerald-500">
-                        <div className="flex items-center justify-between mb-2">
+                      <div className="p-3 sm:p-4 bg-emerald-500/8 rounded-lg border border-emerald-500/20">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
                           <div className="flex items-center gap-2">
-                            <Zap className="w-4 h-4 text-emerald-400" />
-                            <span className="text-sm font-semibold text-emerald-400">Better Response</span>
+                            <p className="text-xs text-emerald-400 uppercase tracking-wide font-medium">Recommended Response</p>
                             {objection.technique_to_use && (
-                              <span className="text-xs px-2 py-0.5 bg-emerald-500/20 text-emerald-300 rounded-lg">
+                              <span className="text-xs px-2 py-0.5 bg-emerald-500/15 text-emerald-400 rounded">
                                 {objection.technique_to_use}
                               </span>
                             )}
                           </div>
                           <button
                             onClick={() => copyToClipboard(objection.better_response, `obj-${i}`)}
-                            className="p-2 hover:bg-emerald-500/20 rounded-lg transition-colors"
+                            className="p-1.5 hover:bg-emerald-500/20 rounded transition-colors self-start sm:self-auto"
                           >
                             {copiedId === `obj-${i}` ? (
                               <Check className="w-4 h-4 text-emerald-400" />
@@ -254,32 +169,29 @@ export default function DeepInsightsTab({ analysisResult, onSeek, TTSButton }) {
                             )}
                           </button>
                         </div>
-                        <p className="text-emerald-100 leading-relaxed text-lg font-medium">"{objection.better_response}"</p>
+                        <p className="text-emerald-100 text-sm sm:text-base leading-relaxed">"{objection.better_response}"</p>
                         
                         {/* Follow-up Close */}
                         {objection.follow_up_close && (
-                          <div className="mt-4 pt-3 border-t border-emerald-500/20">
-                            <p className="text-xs text-emerald-400 mb-1 font-semibold">➜ Then close with:</p>
-                            <p className="text-emerald-200 italic">"{objection.follow_up_close}"</p>
+                          <div className="mt-3 pt-3 border-t border-emerald-500/20">
+                            <p className="text-xs text-emerald-400 uppercase tracking-wide mb-1 font-medium">Follow-up Close</p>
+                            <p className="text-emerald-200 text-sm sm:text-base italic">"{objection.follow_up_close}"</p>
                           </div>
                         )}
 
                         {/* TTS Button */}
                         {TTSButton && (
-                          <div className="mt-4">
-                            <TTSButton text={objection.better_response} label="🔊 Listen to Better Response" />
+                          <div className="mt-3">
+                            <TTSButton text={objection.better_response} label="Listen" />
                           </div>
                         )}
                       </div>
 
                       {/* Prevention Tip */}
                       {objection.how_to_prevent && (
-                        <div className="p-4 bg-violet-500/10 rounded-xl border border-violet-500/20">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Shield className="w-4 h-4 text-violet-400" />
-                            <span className="text-sm font-semibold text-violet-400">How to Prevent This Next Time</span>
-                          </div>
-                          <p className="text-slate-300">{objection.how_to_prevent}</p>
+                        <div className="p-3 sm:p-4 bg-slate-900/30 rounded-lg border border-slate-700/30">
+                          <p className="text-xs text-violet-400 uppercase tracking-wide mb-1.5 font-medium">Prevention Strategy</p>
+                          <p className="text-slate-300 text-sm sm:text-base">{objection.how_to_prevent}</p>
                         </div>
                       )}
                     </div>

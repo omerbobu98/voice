@@ -332,157 +332,178 @@ export default function AnalysisInsights({
               />
             </div>
 
-            {/* Objections Quick View - Shows in Overview for prominence */}
+            {/* Objections Analysis - Professional View */}
             {hasObjections && (
-              <div className="bg-gradient-to-br from-red-500/5 via-slate-800/50 to-orange-500/5 rounded-2xl border border-red-500/20 overflow-hidden shadow-lg">
-                <div className="p-5 border-b border-red-500/20 bg-gradient-to-r from-red-500/10 to-transparent">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-gradient-to-br from-red-500/30 to-orange-500/20 rounded-xl flex items-center justify-center border border-red-500/30 shadow-lg shadow-red-500/10">
-                        <MessageSquare className="w-6 h-6 text-red-400" />
+              <div className="bg-slate-800/60 rounded-xl border border-slate-700/50 overflow-hidden">
+                {/* Header */}
+                <div className="p-4 sm:p-5 border-b border-slate-700/50 bg-slate-800/80">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 sm:w-11 sm:h-11 bg-slate-700/50 rounded-lg flex items-center justify-center border border-slate-600/50">
+                        <Target className="w-5 h-5 text-slate-300" />
                       </div>
                       <div>
-                        <h3 className="text-xl font-bold text-slate-100">Objections Detected</h3>
-                        <p className="text-sm text-slate-400">{analysisResult.analysis.objections.length} customer concerns identified</p>
+                        <h3 className="text-lg sm:text-xl font-semibold text-slate-100">Objections Analysis</h3>
+                        <p className="text-xs sm:text-sm text-slate-400">{analysisResult.analysis.objections.length} objection{analysisResult.analysis.objections.length > 1 ? 's' : ''} identified</p>
                       </div>
                     </div>
-                    <button
-                      onClick={() => setActiveTab('insights')}
-                      className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-300 text-sm font-medium rounded-xl transition-all hover:scale-105 border border-red-500/30"
-                    >
-                      View Full Analysis →
-                    </button>
+                    <div className="flex items-center gap-3">
+                      <div className="text-center px-3 py-1.5 bg-slate-700/50 rounded-lg border border-slate-600/30">
+                        <span className="text-lg font-bold text-slate-200">
+                          {Math.round(analysisResult.analysis.objections.reduce((sum, o) => sum + (o.handling_score || 0), 0) / analysisResult.analysis.objections.length)}
+                        </span>
+                        <span className="text-sm text-slate-400">/10</span>
+                        <p className="text-xs text-slate-500">Avg Score</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                <div className="p-4 space-y-3 max-h-[400px] overflow-y-auto custom-scrollbar">
-                  {analysisResult.analysis.objections.slice(0, 3).map((objection, i) => {
-                    const typeInfo = {
-                      price: { emoji: '💰', label: 'Price', color: 'from-red-500/20 to-red-600/10 border-red-500/30 text-red-400' },
-                      timing: { emoji: '⏰', label: 'Timing', color: 'from-amber-500/20 to-amber-600/10 border-amber-500/30 text-amber-400' },
-                      authority: { emoji: '👔', label: 'Authority', color: 'from-purple-500/20 to-purple-600/10 border-purple-500/30 text-purple-400' },
-                      need: { emoji: '🤔', label: 'Need', color: 'from-blue-500/20 to-blue-600/10 border-blue-500/30 text-blue-400' },
-                      trust: { emoji: '🛡️', label: 'Trust', color: 'from-orange-500/20 to-orange-600/10 border-orange-500/30 text-orange-400' },
-                      spouse_decision: { emoji: '👫', label: 'Partner', color: 'from-pink-500/20 to-pink-600/10 border-pink-500/30 text-pink-400' },
-                      need_to_think: { emoji: '💭', label: 'Think', color: 'from-cyan-500/20 to-cyan-600/10 border-cyan-500/30 text-cyan-400' },
+                {/* All Objections */}
+                <div className="divide-y divide-slate-700/30">
+                  {analysisResult.analysis.objections.map((objection, i) => {
+                    const typeLabels = {
+                      price: 'Price Concern',
+                      timing: 'Timing Issue',
+                      authority: 'Authority/Decision',
+                      need: 'Need Uncertainty',
+                      trust: 'Trust Concern',
+                      spouse_decision: 'Partner Consultation',
+                      need_to_think: 'Needs Time',
+                      competition: 'Competition'
                     }
-                    const info = typeInfo[objection.type] || { emoji: '❓', label: objection.type, color: 'from-slate-500/20 to-slate-600/10 border-slate-500/30 text-slate-400' }
+                    const typeLabel = typeLabels[objection.type] || (objection.type?.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Objection')
                     
                     return (
-                      <div key={i} className={`p-4 bg-gradient-to-br ${info.color} rounded-xl border`}>
-                        {/* Header */}
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xl">{info.emoji}</span>
-                            <span className={`font-semibold ${info.color.split(' ').pop()}`}>{info.label} Objection</span>
-                          </div>
-                          <div className="flex items-center gap-2">
+                      <div key={i} className="p-4 sm:p-5 hover:bg-slate-800/40 transition-colors">
+                        {/* Objection Header */}
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="px-2.5 py-1 bg-slate-700/60 text-slate-300 text-xs sm:text-sm font-medium rounded border border-slate-600/40">
+                              {typeLabel}
+                            </span>
                             {objection.timestamp && (
                               <button 
                                 onClick={() => onSeek && objection.timestamp_ms && onSeek(objection.timestamp_ms)}
-                                className="text-xs font-mono px-2 py-1 bg-indigo-500/20 text-indigo-400 rounded-lg hover:bg-indigo-500/30 transition-colors flex items-center gap-1"
+                                className="text-xs font-mono px-2 py-1 bg-indigo-500/15 text-indigo-400 rounded hover:bg-indigo-500/25 transition-colors flex items-center gap-1"
                               >
-                                <Activity className="w-3 h-3" /> {objection.timestamp}
+                                <Play className="w-3 h-3" /> {objection.timestamp}
                               </button>
                             )}
-                            <span className={`px-2 py-1 rounded-lg text-sm font-bold ${
-                              objection.handling_score >= 7 ? 'bg-emerald-500/20 text-emerald-400' : 
-                              objection.handling_score >= 4 ? 'bg-amber-500/20 text-amber-400' : 'bg-red-500/20 text-red-400'
-                            }`}>
-                              {objection.handling_score}/10
-                            </span>
+                          </div>
+                          <div className={`px-2.5 py-1 rounded text-sm font-semibold ${
+                            objection.handling_score >= 7 ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' : 
+                            objection.handling_score >= 4 ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30' : 
+                            'bg-red-500/15 text-red-400 border border-red-500/30'
+                          }`}>
+                            Handling: {objection.handling_score}/10
                           </div>
                         </div>
                         
-                        {/* Customer Quote */}
-                        <div className="p-3 bg-slate-900/50 rounded-xl border-l-4 border-red-500/50 mb-3">
-                          <p className="text-xs text-red-400 mb-1 font-semibold">🗣️ Customer:</p>
-                          <p className="text-slate-200 font-medium">"{objection.buyer_statement}"</p>
-                        </div>
-                        
-                        {/* Better Response Preview */}
-                        <div className="p-3 bg-emerald-500/10 rounded-xl border-l-4 border-emerald-500">
-                          <p className="text-xs text-emerald-400 mb-1 font-semibold">✨ Better Response:</p>
-                          <p className="text-emerald-200 text-sm line-clamp-2">{objection.better_response}</p>
+                        {/* Conversation Flow */}
+                        <div className="space-y-3">
+                          {/* Customer Statement */}
+                          <div className="p-3 sm:p-4 bg-slate-900/50 rounded-lg border-l-3 border-l-red-500/60">
+                            <p className="text-xs text-slate-500 uppercase tracking-wide mb-1.5 font-medium">Customer</p>
+                            <p className="text-slate-200 text-sm sm:text-base leading-relaxed">"{objection.buyer_statement}"</p>
+                          </div>
+                          
+                          {/* Seller Response */}
+                          {objection.seller_response && (
+                            <div className="p-3 sm:p-4 bg-slate-900/30 rounded-lg border-l-3 border-l-slate-500/60">
+                              <p className="text-xs text-slate-500 uppercase tracking-wide mb-1.5 font-medium">Your Response</p>
+                              <p className="text-slate-300 text-sm sm:text-base leading-relaxed">"{objection.seller_response}"</p>
+                            </div>
+                          )}
+                          
+                          {/* Better Response */}
+                          <div className="p-3 sm:p-4 bg-emerald-500/8 rounded-lg border border-emerald-500/20">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+                              <div className="flex items-center gap-2">
+                                <p className="text-xs text-emerald-400 uppercase tracking-wide font-medium">Recommended Response</p>
+                                {objection.technique_to_use && (
+                                  <span className="text-xs px-2 py-0.5 bg-emerald-500/15 text-emerald-400 rounded">
+                                    {objection.technique_to_use}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <p className="text-emerald-100 text-sm sm:text-base leading-relaxed">"{objection.better_response}"</p>
+                            
+                            {TTSButton && objection.better_response && (
+                              <div className="mt-3">
+                                <TTSButton text={objection.better_response} label="Listen" />
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                     )
                   })}
-                  
-                  {analysisResult.analysis.objections.length > 3 && (
-                    <button
-                      onClick={() => setActiveTab('insights')}
-                      className="w-full py-3 text-center text-sm text-red-400 hover:text-red-300 transition-colors bg-red-500/5 hover:bg-red-500/10 rounded-xl border border-red-500/20"
-                    >
-                      + {analysisResult.analysis.objections.length - 3} more objections - Click for detailed analysis
-                    </button>
-                  )}
                 </div>
               </div>
             )}
 
-            {/* Timeline Events - Professional Redesign */}
+            {/* Timeline Events - Professional View */}
             {analysisResult?.analysis?.timeline_events?.length > 0 && (
-              <div className="bg-gradient-to-br from-cyan-500/5 via-slate-800/50 to-indigo-500/5 rounded-2xl border border-cyan-500/20 overflow-hidden shadow-lg">
-                <div className="p-5 border-b border-cyan-500/20 bg-gradient-to-r from-cyan-500/10 to-transparent">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-gradient-to-br from-cyan-500/30 to-indigo-500/20 rounded-xl flex items-center justify-center border border-cyan-500/30 shadow-lg shadow-cyan-500/10">
-                        <Activity className="w-6 h-6 text-cyan-400" />
-                      </div>
-                      <div>
-                        <h3 className="text-xl font-bold text-slate-100">Call Timeline</h3>
-                        <p className="text-sm text-slate-400">{analysisResult.analysis.timeline_events.length} key moments in the conversation</p>
-                      </div>
+              <div className="bg-slate-800/60 rounded-xl border border-slate-700/50 overflow-hidden">
+                {/* Header */}
+                <div className="p-4 sm:p-5 border-b border-slate-700/50 bg-slate-800/80">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 sm:w-11 sm:h-11 bg-slate-700/50 rounded-lg flex items-center justify-center border border-slate-600/50">
+                      <Activity className="w-5 h-5 text-slate-300" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg sm:text-xl font-semibold text-slate-100">Call Timeline</h3>
+                      <p className="text-xs sm:text-sm text-slate-400">{analysisResult.analysis.timeline_events.length} key moments</p>
                     </div>
                   </div>
                 </div>
 
-                <div className="p-5 relative">
+                <div className="p-4 sm:p-5 relative">
                   {/* Timeline vertical bar */}
-                  <div className="absolute left-9 top-5 bottom-5 w-1 bg-gradient-to-b from-cyan-500 via-indigo-500 to-violet-500 rounded-full" />
+                  <div className="absolute left-7 sm:left-9 top-4 bottom-4 w-0.5 bg-slate-600/50" />
                   
-                  <div className="space-y-4 max-h-[500px] overflow-y-auto custom-scrollbar pr-2">
+                  <div className="space-y-3 max-h-[500px] overflow-y-auto custom-scrollbar">
                     {analysisResult.analysis.timeline_events.map((event, i) => {
                       const eventTypes = {
-                        discovery_question: { bg: 'bg-cyan-500', glow: 'shadow-cyan-500/50', text: 'text-cyan-400', emoji: '🔍', label: 'Discovery Question' },
-                        diagnose: { bg: 'bg-blue-500', glow: 'shadow-blue-500/50', text: 'text-blue-400', emoji: '🩺', label: 'Diagnosis' },
-                        closing_attempt: { bg: 'bg-emerald-500', glow: 'shadow-emerald-500/50', text: 'text-emerald-400', emoji: '🎯', label: 'Closing Attempt' },
-                        rapport_building: { bg: 'bg-pink-500', glow: 'shadow-pink-500/50', text: 'text-pink-400', emoji: '🤝', label: 'Rapport Building' },
-                        value_proposition: { bg: 'bg-amber-500', glow: 'shadow-amber-500/50', text: 'text-amber-400', emoji: '💎', label: 'Value Proposition' },
-                        objection: { bg: 'bg-red-500', glow: 'shadow-red-500/50', text: 'text-red-400', emoji: '⚠️', label: 'Objection Raised' },
-                        pain_point: { bg: 'bg-orange-500', glow: 'shadow-orange-500/50', text: 'text-orange-400', emoji: '😣', label: 'Pain Point' },
-                        commitment: { bg: 'bg-green-500', glow: 'shadow-green-500/50', text: 'text-green-400', emoji: '✅', label: 'Commitment' },
-                        next_step: { bg: 'bg-violet-500', glow: 'shadow-violet-500/50', text: 'text-violet-400', emoji: '➡️', label: 'Next Step' },
-                        trial_close: { bg: 'bg-teal-500', glow: 'shadow-teal-500/50', text: 'text-teal-400', emoji: '🌡️', label: 'Trial Close' },
-                        buying_signal: { bg: 'bg-lime-500', glow: 'shadow-lime-500/50', text: 'text-lime-400', emoji: '💫', label: 'Buying Signal' },
+                        discovery_question: { bg: 'bg-cyan-500', text: 'text-cyan-400', label: 'Discovery' },
+                        diagnose: { bg: 'bg-blue-500', text: 'text-blue-400', label: 'Diagnosis' },
+                        closing_attempt: { bg: 'bg-emerald-500', text: 'text-emerald-400', label: 'Closing Attempt' },
+                        rapport_building: { bg: 'bg-pink-500', text: 'text-pink-400', label: 'Rapport' },
+                        value_proposition: { bg: 'bg-amber-500', text: 'text-amber-400', label: 'Value Prop' },
+                        objection: { bg: 'bg-red-500', text: 'text-red-400', label: 'Objection' },
+                        pain_point: { bg: 'bg-orange-500', text: 'text-orange-400', label: 'Pain Point' },
+                        commitment: { bg: 'bg-green-500', text: 'text-green-400', label: 'Commitment' },
+                        next_step: { bg: 'bg-violet-500', text: 'text-violet-400', label: 'Next Step' },
+                        trial_close: { bg: 'bg-teal-500', text: 'text-teal-400', label: 'Trial Close' },
+                        buying_signal: { bg: 'bg-lime-500', text: 'text-lime-400', label: 'Buying Signal' },
                       }
-                      const type = eventTypes[event.type] || { bg: 'bg-slate-500', glow: 'shadow-slate-500/50', text: 'text-slate-400', emoji: '📌', label: event.type }
+                      const type = eventTypes[event.type] || { bg: 'bg-slate-500', text: 'text-slate-400', label: event.type }
                       
                       return (
                         <div 
                           key={i} 
-                          className="relative pl-12 cursor-pointer group"
+                          className="relative pl-10 sm:pl-12 cursor-pointer group"
                           onClick={() => onSeek && event.timestamp_ms && onSeek(event.timestamp_ms)}
                         >
                           {/* Timeline dot */}
-                          <div className={`absolute left-[26px] w-5 h-5 rounded-full ${type.bg} border-4 border-slate-800 group-hover:scale-125 transition-all duration-200 shadow-lg ${type.glow} z-10`} />
+                          <div className={`absolute left-[18px] sm:left-[26px] w-4 h-4 rounded-full ${type.bg} border-3 border-slate-800 group-hover:scale-110 transition-transform z-10`} />
                           
                           {/* Event card */}
-                          <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-700/40 group-hover:border-slate-600/60 group-hover:bg-slate-800/60 transition-all duration-200 shadow-md">
+                          <div className="p-3 sm:p-4 rounded-lg bg-slate-900/50 border border-slate-700/40 group-hover:border-slate-600/50 transition-colors">
                             <div className="flex flex-wrap items-center gap-2 mb-2">
-                              <span className="text-lg">{type.emoji}</span>
-                              <span className={`text-sm font-bold ${type.text}`}>{type.label}</span>
-                              <span className="text-xs font-mono px-2 py-0.5 bg-slate-700/50 text-slate-400 rounded">{event.timestamp}</span>
-                              <span className={`text-xs px-2 py-0.5 rounded-lg font-medium ${
+                              <span className={`text-xs sm:text-sm font-semibold ${type.text}`}>{type.label}</span>
+                              <span className="text-xs font-mono px-1.5 py-0.5 bg-slate-700/50 text-slate-400 rounded">{event.timestamp}</span>
+                              <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${
                                 event.speaker === 'Seller' 
-                                  ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' 
-                                  : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                                  ? 'bg-blue-500/15 text-blue-400' 
+                                  : 'bg-emerald-500/15 text-emerald-400'
                               }`}>
-                                {event.speaker === 'Seller' ? '👤 You' : '🧑‍💼 Customer'}
+                                {event.speaker === 'Seller' ? 'You' : 'Customer'}
                               </span>
                             </div>
-                            <p className="text-slate-200 leading-relaxed">"{event.content}"</p>
+                            <p className="text-slate-200 text-sm sm:text-base leading-relaxed">"{event.content}"</p>
                           </div>
                         </div>
                       )
