@@ -100,12 +100,19 @@ export default function LiveCallPage() {
   const [isPlayingCoaching, setIsPlayingCoaching] = useState(false)
   const [coachingQueue, setCoachingQueue] = useState([])
   
+  // New state for real-time transcription
+  const [liveText, setLiveText] = useState('')
+  const [connectionStatus, setConnectionStatus] = useState('disconnected')
+  const [totalWords, setTotalWords] = useState(0)
+  
   // Audio refs
   const mediaRecorderRef = useRef(null)
   const audioContextRef = useRef(null)
   const coachingAudioRef = useRef(null)
   const timerRef = useRef(null)
   const analyzeIntervalRef = useRef(null)
+  const socketRef = useRef(null)
+  const streamRef = useRef(null)
   
   // Check for active session on mount
   useEffect(() => {
@@ -178,33 +185,104 @@ export default function LiveCallPage() {
   
   const startRecording = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      // Get AssemblyAI real-time token
+      const headers = await getAuthHeaders()
+      const tokenRes = await axios.get(`${API_URL}/api/live/assemblyai-token`, { headers })
+      const { token } = tokenRes.data
       
-      // Create audio context for analysis
-      audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)()
+      if (!token) {
+        throw new Error('Failed to get transcription token')
+      }
       
-      // Create media recorder
-      mediaRecorderRef.current = new MediaRecorder(stream)
+      // Get microphone access
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          sampleRate: 16000,
+          channelCount: 1,
+          echoCancellation: true,
+          noiseSuppression: true
+        } 
+      })
       
-      mediaRecorderRef.current.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          // In real implementation, send to AssemblyAI real-time API
-          // For now, we'll simulate with manual input
+      // Create audio context for processing
+      audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 })
+      const source = audioContextRef.current.createMediaStreamSource(stream)
+      const processor = audioContextRef.current.createScriptProcessor(4096, 1, 1)
+      
+      // Connect to AssemblyAI WebSocket
+      const socket = new WebSocket(`wss://api.assemblyai.com/v2/realtime/ws?sample_rate=16000&token=${token}`)
+      socketRef.current = socket
+      
+      socket.onopen = () => {
+        console.log('AssemblyAI WebSocket connected')
+        setConnectionStatus('connected')
+      }
+      
+      socket.onmessage = (event) => {
+        const data = JSON.parse(event.data)
+        
+        if (data.message_type === 'FinalTranscript' && data.text) {
+          // Final transcript - add to transcript list
+          const newChunk = {
+            text: data.text,
+            speaker: 'unknown', // AssemblyAI real-time doesn't do diarization
+            timestamp: duration,
+            confidence: data.confidence
+          }
+          setTranscript(prev => [...prev, newChunk])
+          setLiveText('')
+          
+          // Update word counts
+          const words = data.text.split(' ').length
+          setTotalWords(prev => prev + words)
+        } else if (data.message_type === 'PartialTranscript' && data.text) {
+          // Partial transcript - show live
+          setLiveText(data.text)
         }
       }
       
-      mediaRecorderRef.current.start(1000) // Capture every second
+      socket.onerror = (error) => {
+        console.error('WebSocket error:', error)
+        setConnectionStatus('error')
+      }
+      
+      socket.onclose = () => {
+        console.log('WebSocket closed')
+        setConnectionStatus('disconnected')
+      }
+      
+      // Process audio and send to WebSocket
+      processor.onaudioprocess = (e) => {
+        if (socket.readyState === WebSocket.OPEN && !isPaused) {
+          const inputData = e.inputBuffer.getChannelData(0)
+          // Convert to 16-bit PCM
+          const pcmData = new Int16Array(inputData.length)
+          for (let i = 0; i < inputData.length; i++) {
+            pcmData[i] = Math.max(-32768, Math.min(32767, inputData[i] * 32768))
+          }
+          // Send as base64
+          const base64 = btoa(String.fromCharCode(...new Uint8Array(pcmData.buffer)))
+          socket.send(JSON.stringify({ audio_data: base64 }))
+        }
+      }
+      
+      source.connect(processor)
+      processor.connect(audioContextRef.current.destination)
+      
+      // Store stream for cleanup
+      streamRef.current = stream
+      
       setIsRecording(true)
       startTimer()
       
-      // Start analysis interval (every 15 seconds)
+      // Start analysis interval (every 20 seconds)
       analyzeIntervalRef.current = setInterval(() => {
         analyzeCurrentChunk()
-      }, 15000)
+      }, 20000)
       
     } catch (err) {
       console.error('Error starting recording:', err)
-      alert('לא ניתן לגשת למיקרופון')
+      alert('לא ניתן להתחיל הקלטה: ' + err.message)
     }
   }
   
@@ -227,23 +305,38 @@ export default function LiveCallPage() {
   const endSession = async () => {
     if (!session) return
     
-    // Stop recording
-    if (mediaRecorderRef.current) {
-      mediaRecorderRef.current.stop()
+    // Stop WebSocket
+    if (socketRef.current) {
+      socketRef.current.close()
+      socketRef.current = null
     }
+    
+    // Stop audio stream
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop())
+      streamRef.current = null
+    }
+    
+    // Stop audio context
+    if (audioContextRef.current) {
+      audioContextRef.current.close()
+      audioContextRef.current = null
+    }
+    
     if (analyzeIntervalRef.current) {
       clearInterval(analyzeIntervalRef.current)
     }
     stopTimer()
     setIsRecording(false)
+    setConnectionStatus('disconnected')
     
     try {
       const headers = await getAuthHeaders()
-      const fullTranscript = transcript.map(t => `${t.speaker}: ${t.text}`).join('\n')
+      const fullTranscript = transcript.map(t => t.text).join(' ')
       
       await axios.post(`${API_URL}/api/live/sessions/${session.id}/end`, {
         transcript: fullTranscript,
-        total_words: transcript.reduce((acc, t) => acc + t.text.split(' ').length, 0),
+        total_words: totalWords,
         seller_talk_percentage: sellerTalkPct,
         buyer_talk_percentage: 100 - sellerTalkPct,
         objections_count: insights.filter(i => i.insight_type === 'objection_detected').length,
@@ -262,19 +355,19 @@ export default function LiveCallPage() {
   const analyzeCurrentChunk = async () => {
     if (!session || transcript.length === 0) return
     
-    // Get last 30 seconds of transcript
-    const recentTranscript = transcript.slice(-10).map(t => `${t.speaker}: ${t.text}`).join('\n')
-    const fullContext = transcript.map(t => `${t.speaker}: ${t.text}`).join('\n')
+    // Get recent transcript (last 10 chunks)
+    const recentText = transcript.slice(-10).map(t => t.text).join(' ')
+    const fullTranscript = transcript.map(t => t.text).join(' ')
     
     try {
       const headers = await getAuthHeaders()
-      const response = await axios.post(`${API_URL}/api/live/sessions/${session.id}/analyze`, {
-        transcript_chunk: recentTranscript,
-        full_context: fullContext,
+      const response = await axios.post(`${API_URL}/api/live/sessions/${session.id}/process-transcript`, {
+        recent_text: recentText,
+        full_transcript: fullTranscript,
         duration_seconds: duration,
-        seller_talk_percentage: sellerTalkPct,
-        coaching_language: coachingLanguage,
-        timestamp_ms: duration * 1000
+        seller_words: Math.round(totalWords * sellerTalkPct / 100),
+        buyer_words: Math.round(totalWords * (100 - sellerTalkPct) / 100),
+        coaching_language: coachingLanguage
       }, { headers })
       
       if (response.data.has_insight && response.data.insight) {
@@ -346,23 +439,16 @@ export default function LiveCallPage() {
     }
   }
   
-  // Manual transcript input (for demo/testing)
+  // Manual transcript input (backup/testing)
   const addManualTranscript = (speaker, text) => {
     const newChunk = {
       speaker,
       text,
-      timestamp: duration
+      timestamp: duration,
+      confidence: 1.0
     }
     setTranscript(prev => [...prev, newChunk])
-    
-    // Update talk ratio
-    const sellerWords = transcript.filter(t => t.speaker === 'מוכר').reduce((acc, t) => acc + t.text.split(' ').length, 0)
-    const buyerWords = transcript.filter(t => t.speaker === 'לקוח').reduce((acc, t) => acc + t.text.split(' ').length, 0)
-    const total = sellerWords + buyerWords + text.split(' ').length
-    if (total > 0) {
-      const newSellerWords = speaker === 'מוכר' ? sellerWords + text.split(' ').length : sellerWords
-      setSellerTalkPct(Math.round((newSellerWords / total) * 100))
-    }
+    setTotalWords(prev => prev + text.split(' ').length)
   }
   
   // Setup Modal
@@ -534,50 +620,68 @@ export default function LiveCallPage() {
       <div className="flex-1 flex">
         {/* Left Panel - Transcript */}
         <div className="flex-1 flex flex-col border-r border-white/10">
+          {/* Connection Status */}
+          <div className="px-4 py-2 border-b border-white/10 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className={`w-2 h-2 rounded-full ${
+                connectionStatus === 'connected' ? 'bg-emerald-500 animate-pulse' :
+                connectionStatus === 'error' ? 'bg-red-500' : 'bg-gray-500'
+              }`} />
+              <span className="text-xs text-gray-400">
+                {connectionStatus === 'connected' ? 'מחובר - מקליט' :
+                 connectionStatus === 'error' ? 'שגיאת חיבור' : 'מנותק'}
+              </span>
+            </div>
+            <span className="text-xs text-gray-500">{totalWords} מילים</span>
+          </div>
+          
           {/* Transcript Area */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-3">
-            {transcript.length === 0 ? (
+          <div className="flex-1 overflow-y-auto p-4 space-y-3" id="transcript-container">
+            {transcript.length === 0 && !liveText ? (
               <div className="text-center py-20 text-gray-500">
-                <Mic className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p>התמלול יופיע כאן...</p>
-                <p className="text-sm mt-2">הוסף טקסט ידני למטה לבדיקה</p>
+                <Mic className="w-12 h-12 mx-auto mb-4 opacity-50 animate-pulse" />
+                <p>מתחיל להקליט...</p>
+                <p className="text-sm mt-2">התמלול יופיע כאן בזמן אמת</p>
               </div>
             ) : (
-              transcript.map((chunk, index) => (
-                <div
-                  key={index}
-                  className={`p-3 rounded-xl ${
-                    chunk.speaker === 'מוכר' 
-                      ? 'bg-blue-500/10 border-l-4 border-blue-500 ml-8' 
-                      : 'bg-emerald-500/10 border-l-4 border-emerald-500 mr-8'
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className={`text-xs font-medium ${
-                      chunk.speaker === 'מוכר' ? 'text-blue-400' : 'text-emerald-400'
-                    }`}>
-                      {chunk.speaker}
-                    </span>
-                    <span className="text-xs text-gray-500">{formatDuration(chunk.timestamp)}</span>
+              <>
+                {transcript.map((chunk, index) => (
+                  <div
+                    key={index}
+                    className="p-3 rounded-xl bg-white/[0.05] border-l-4 border-violet-500"
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs text-gray-500">{formatDuration(chunk.timestamp)}</span>
+                      {chunk.confidence && (
+                        <span className="text-xs text-gray-600">{Math.round(chunk.confidence * 100)}%</span>
+                      )}
+                    </div>
+                    <p className="text-white text-sm" dir="auto">{chunk.text}</p>
                   </div>
-                  <p className="text-white text-sm">{chunk.text}</p>
-                </div>
-              ))
+                ))}
+                
+                {/* Live text being transcribed */}
+                {liveText && (
+                  <div className="p-3 rounded-xl bg-violet-500/10 border-l-4 border-violet-400 animate-pulse">
+                    <p className="text-violet-300 text-sm" dir="auto">{liveText}...</p>
+                  </div>
+                )}
+              </>
             )}
           </div>
           
-          {/* Manual Input (for demo) */}
+          {/* Manual Input - kept for testing/backup */}
           <div className="p-4 border-t border-white/10 bg-black/20">
             <div className="flex gap-2">
               <input
                 type="text"
                 value={currentChunk}
                 onChange={(e) => setCurrentChunk(e.target.value)}
-                placeholder="הקלד טקסט לבדיקה..."
+                placeholder="הקלד טקסט ידני (גיבוי)..."
                 className="flex-1 bg-white/[0.05] border border-white/10 rounded-xl px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-violet-500/50 text-sm"
                 onKeyPress={(e) => {
                   if (e.key === 'Enter' && currentChunk) {
-                    addManualTranscript('מוכר', currentChunk)
+                    addManualTranscript('ידני', currentChunk)
                     setCurrentChunk('')
                   }
                 }}
@@ -585,24 +689,13 @@ export default function LiveCallPage() {
               <button
                 onClick={() => {
                   if (currentChunk) {
-                    addManualTranscript('מוכר', currentChunk)
+                    addManualTranscript('ידני', currentChunk)
                     setCurrentChunk('')
                   }
                 }}
-                className="px-4 py-2 bg-blue-500/20 text-blue-400 rounded-xl hover:bg-blue-500/30 transition-colors text-sm"
+                className="px-4 py-2 bg-violet-500/20 text-violet-400 rounded-xl hover:bg-violet-500/30 transition-colors text-sm"
               >
-                מוכר
-              </button>
-              <button
-                onClick={() => {
-                  if (currentChunk) {
-                    addManualTranscript('לקוח', currentChunk)
-                    setCurrentChunk('')
-                  }
-                }}
-                className="px-4 py-2 bg-emerald-500/20 text-emerald-400 rounded-xl hover:bg-emerald-500/30 transition-colors text-sm"
-              >
-                לקוח
+                הוסף
               </button>
               <button
                 onClick={analyzeCurrentChunk}

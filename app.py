@@ -850,56 +850,78 @@ def generate_pdf_report():
 # ============ Live Call Session Endpoints ============
 
 LIVE_COACH_SYSTEM_PROMPT = """You are an ELITE REAL-TIME Sales Coach providing INSTANT coaching during a live sales call.
+You are trained in ONE-CALL CLOSE methodology and help reps close deals on the spot.
+
+## SALES METHODOLOGY (FOLLOW THIS):
+
+### CALL STRUCTURE:
+1. **Rapport & Context** (2-5 min) - Build trust, ask about their home/situation
+2. **Discovery Mode** (7-12 min) - Ask, don't tell. Listen more than talk.
+3. **Presentation** (15-20 min) - Show value, use stories, plant seeds
+4. **Close** (5-10 min) - Assumptive close, handle objections
+
+### SCORING WEIGHTS:
+- Knowledge (30-40%): Product, incentives, customer needs
+- Sales Tactics (25-35%): Questioning, objection handling, emotional triggers
+- Time Efficiency (15-25%): Discovery, presentation, follow-up balance
+- Control (10-20%): Leading conversation, steering urgency
+
+### KEY DISCOVERY QUESTIONS TO SUGGEST:
+**Context/Rapport:**
+- "How long have you been living in the house?"
+- "What do you love most about it?"
+
+**Motivation (emotional driver):**
+- "What made you start thinking about this project?"
+- "If you could wave a magic wand and fix one thing, what would it be?"
+
+**Prior Attempts (reveals objections):**
+- "Have you talked to any contractors or gotten bids?"
+- "What stopped you from moving forward with them?"
+
+**Financial Readiness:**
+- "Have you applied for financing before?"
+- "Do you know anyone who's taken advantage of [state program]?"
+
+### PAIN DISCOVERY BY PRODUCT:
+- **Roof**: Age, leaks, water damage worry, life expectancy
+- **Windows**: Drafts, temperature change, condensation, noise
+- **HVAC**: Age, uneven temperatures, rising bills, repair costs
+- **Exterior**: Peeling, cracking, fading, color change desire
 
 ## YOUR ROLE:
-You analyze transcript chunks in real-time and provide IMMEDIATE, ACTIONABLE coaching.
+Analyze transcript in real-time. When you detect something, provide IMMEDIATE coaching.
+The rep has an earpiece - keep audio scripts SHORT (15-25 words max).
 
-## RESPONSE RULES:
-1. Be BRIEF but COMPLETE - the rep needs to understand quickly
-2. Provide EXACT SCRIPTS they can say immediately
-3. Focus on ONE thing at a time - don't overwhelm
-4. Always relate to closing the deal
+## WHEN TO COACH:
 
-## COACHING TYPES:
+### OBJECTION_DETECTED (URGENT) 🔴
+Customer says: price concern, need to think, spouse, timing, competitor
+→ Give immediate response script with Feel-Felt-Found or LAER technique
 
-### OBJECTION_DETECTED (URGENT)
-When customer raises concern:
-- Acknowledge the objection type
-- Provide immediate response script (30-60 words max)
-- Include closing bridge question
+### BUYING_SIGNAL (URGENT) 🟢
+Customer asks: pricing, timeline, next steps, shows excitement
+→ Alert to close NOW, give assumptive close script
 
-### BUYING_SIGNAL (URGENT)
-When customer shows interest:
-- Alert that this is a closing opportunity
-- Provide specific closing script
-- Be assumptive
+### DISCOVERY_PROMPT (HIGH) 🟡
+Rep talked too much OR missed pain point opportunity
+→ Suggest specific discovery question from the list above
 
-### TALK_BALANCE_ALERT (HIGH)
-When seller talks too much:
-- Brief reminder to ask a question
-- Suggest specific discovery question
+### CLOSING_OPPORTUNITY (HIGH) 🟣
+Enough value built, customer engaged
+→ Provide trial close or assumptive close script
 
-### DISCOVERY_PROMPT (MEDIUM)
-When more discovery needed:
-- Suggest specific question to ask
-- Explain what info to uncover
-
-### CLOSING_OPPORTUNITY (HIGH)
-When it's time to close:
-- Provide specific closing technique
-- Give exact script
-
-## OUTPUT FORMAT (JSON):
+## OUTPUT FORMAT (JSON ONLY):
 {
-  "insight_type": "objection_detected|buying_signal|talk_balance_alert|discovery_prompt|closing_opportunity|value_building_cue",
+  "insight_type": "objection_detected|buying_signal|discovery_prompt|closing_opportunity|talk_balance_alert|value_building_cue",
   "priority": "urgent|high|medium|low",
-  "coaching_message": "Brief explanation for the rep",
-  "suggested_response": "Exact script to say (in Hebrew or English based on call language)",
-  "technique": "Name of sales technique",
-  "audio_script": "Short version for TTS (15-25 words max)"
+  "coaching_message": "Brief explanation (Hebrew preferred)",
+  "suggested_response": "Exact script to say NOW",
+  "technique": "Feel-Felt-Found|LAER|Assumptive Close|Trial Close|Pain Discovery",
+  "audio_script": "SHORT version for earpiece TTS (15-25 words, Hebrew)"
 }
 
-Return ONLY valid JSON. If nothing actionable, return: {"insight_type": "none"}
+Return ONLY valid JSON. If nothing actionable: {"insight_type": "none"}
 """
 
 
@@ -1161,6 +1183,133 @@ def get_active_live_session():
     
     session = get_active_session(user_id)
     return jsonify({'session': session, 'has_active': session is not None})
+
+
+@app.route('/api/live/assemblyai-token', methods=['GET'])
+def get_assemblyai_token():
+    """Get a temporary token for AssemblyAI real-time transcription"""
+    user_id = get_user_id_from_token()
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    if not ASSEMBLYAI_API_KEY:
+        return jsonify({'error': 'AssemblyAI not configured'}), 500
+    
+    try:
+        import requests
+        response = requests.post(
+            'https://api.assemblyai.com/v2/realtime/token',
+            headers={'authorization': ASSEMBLYAI_API_KEY},
+            json={'expires_in': 3600}  # 1 hour token
+        )
+        
+        if response.status_code == 200:
+            return jsonify(response.json())
+        else:
+            return jsonify({'error': 'Failed to get token', 'status': response.status_code}), 500
+    except Exception as e:
+        print(f"[get_assemblyai_token] Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/live/sessions/<session_id>/process-transcript', methods=['POST'])
+def process_live_transcript(session_id):
+    """Process a batch of transcript and analyze for coaching insights"""
+    if not openai_client:
+        return jsonify({'error': 'OpenAI not configured'}), 500
+    
+    user_id = get_user_id_from_token()
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    data = request.json
+    if not data:
+        return jsonify({'error': 'Data required'}), 400
+    
+    # Get the recent transcript text
+    recent_text = data.get('recent_text', '')
+    full_transcript = data.get('full_transcript', '')
+    duration_seconds = data.get('duration_seconds', 0)
+    seller_words = data.get('seller_words', 0)
+    buyer_words = data.get('buyer_words', 0)
+    total_words = seller_words + buyer_words
+    seller_pct = round((seller_words / total_words * 100) if total_words > 0 else 50)
+    coaching_language = data.get('coaching_language', 'he')
+    
+    # Build analysis context
+    context = f"""
+## האחרונים 60 שניות של השיחה:
+{recent_text}
+
+## סיכום השיחה עד כה:
+{full_transcript[:3000] if len(full_transcript) > 3000 else full_transcript}
+
+## מדדי השיחה:
+- משך: {duration_seconds} שניות ({duration_seconds // 60} דקות)
+- יחס דיבור מוכר: {seller_pct}%
+- יחס דיבור לקוח: {100 - seller_pct}%
+- סה"כ מילים: {total_words}
+
+## נתח ותן אימון:
+1. האם יש התנגדות שצריך לטפל בה?
+2. האם יש סיגנל קנייה שצריך לקפוץ עליו?
+3. האם המוכר מדבר יותר מדי (מעל 60%)?
+4. האם יש הזדמנות לשאלת discovery?
+5. האם הגיע הזמן לסגור?
+
+תגיב בעברית.
+"""
+    
+    try:
+        response = openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": LIVE_COACH_SYSTEM_PROMPT},
+                {"role": "user", "content": context}
+            ],
+            temperature=0.3,
+            max_completion_tokens=600
+        )
+        
+        result_text = response.choices[0].message.content.strip()
+        
+        # Parse JSON
+        try:
+            if '```json' in result_text:
+                result_text = result_text.split('```json')[1].split('```')[0].strip()
+            elif '```' in result_text:
+                result_text = result_text.split('```')[1].split('```')[0].strip()
+            
+            insight = json.loads(result_text)
+            
+            if insight.get('insight_type') == 'none':
+                return jsonify({'insight': None, 'has_insight': False})
+            
+            # Save to database
+            saved = save_live_insight(
+                session_id=session_id,
+                insight_type=insight.get('insight_type', 'discovery_prompt'),
+                coaching_message=insight.get('coaching_message', ''),
+                timestamp_ms=duration_seconds * 1000,
+                priority=insight.get('priority', 'medium'),
+                trigger_text=recent_text[:500],
+                suggested_response=insight.get('suggested_response'),
+                technique=insight.get('technique'),
+                delivery_method='audio' if insight.get('priority') in ['urgent', 'high'] else 'visual'
+            )
+            
+            return jsonify({
+                'insight': insight,
+                'has_insight': True,
+                'saved_id': saved.get('id') if saved else None
+            })
+            
+        except json.JSONDecodeError:
+            return jsonify({'insight': None, 'has_insight': False, 'raw': result_text})
+            
+    except Exception as e:
+        print(f"[process_live_transcript] Error: {e}")
+        return jsonify({'error': str(e)}), 500
 
 
 if __name__ == '__main__':
