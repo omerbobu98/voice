@@ -8,6 +8,8 @@ import TalkPatternChart from '../charts/TalkPatternChart'
 import AISummaryCard from './AISummaryCard'
 import StoryLibrary from './StoryLibrary'
 import DeepInsightsTab from './DeepInsightsTab'
+import TopicDetailModal from './TopicDetailModal'
+import SkillDetailModal from './SkillDetailModal'
 
 // Prevention Story Card Component
 function PreventionStoryCard({ story, TTSButton }) {
@@ -130,11 +132,38 @@ export default function AnalysisInsights({
   const [ttsDuration, setTtsDuration] = useState(0)
   const ttsAudioRef = useRef(null)
   
+  // Topic Detail Modal state
+  const [topicModalOpen, setTopicModalOpen] = useState(false)
+  const [selectedTopic, setSelectedTopic] = useState(null)
+  
+  // Skill Detail Modal state
+  const [skillModalOpen, setSkillModalOpen] = useState(false)
+  const [selectedSkill, setSelectedSkill] = useState(null)
+  const [selectedSkillScore, setSelectedSkillScore] = useState(0)
+  
   const stories = analysisResult?.analysis?.storytelling_analysis || []
   const hasStories = stories.length > 0
   const hasObjections = (analysisResult?.analysis?.objections?.length || 0) > 0
   const hasBetterResponses = (analysisResult?.analysis?.better_responses?.length || 0) > 0
   const hasDeepInsights = hasObjections || hasBetterResponses
+  
+  // Handle topic click from chart
+  const handleTopicClick = (topicName) => {
+    setSelectedTopic(topicName)
+    setTopicModalOpen(true)
+  }
+  
+  // Navigate to Deep Insights tab
+  const navigateToInsights = () => {
+    setActiveTab('insights')
+  }
+  
+  // Handle skill click from radar chart
+  const handleSkillClick = (skillName, skillScore) => {
+    setSelectedSkill(skillName)
+    setSelectedSkillScore(skillScore)
+    setSkillModalOpen(true)
+  }
 
   // TTS Functions
   const generateAndPlayTTS = async (text) => {
@@ -343,12 +372,18 @@ export default function AnalysisInsights({
             {/* Top Row - Summary & Skill */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <AISummaryCard analysisResult={analysisResult} result={result} />
-              <SkillRadarChart analysisResult={analysisResult} />
+              <SkillRadarChart 
+                analysisResult={analysisResult} 
+                onSkillClick={handleSkillClick}
+              />
             </div>
 
             {/* Middle Row - Charts */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <TopicFrequencyChart analysisResult={analysisResult} />
+              <TopicFrequencyChart 
+                analysisResult={analysisResult} 
+                onTopicClick={handleTopicClick}
+              />
               <TalkPatternChart 
                 utterances={result?.utterances || []}
                 speakerRoles={result?.speaker_roles || {}}
@@ -483,6 +518,25 @@ export default function AnalysisInsights({
           </div>
         )}
       </div>
+      
+      {/* Topic Detail Modal */}
+      <TopicDetailModal
+        isOpen={topicModalOpen}
+        onClose={() => setTopicModalOpen(false)}
+        topicName={selectedTopic}
+        analysisResult={analysisResult}
+        onSeek={onSeek}
+        onNavigateToInsights={navigateToInsights}
+      />
+      
+      {/* Skill Detail Modal */}
+      <SkillDetailModal
+        isOpen={skillModalOpen}
+        onClose={() => setSkillModalOpen(false)}
+        skillName={selectedSkill}
+        skillScore={selectedSkillScore}
+        analysisResult={analysisResult}
+      />
     </div>
   )
 }

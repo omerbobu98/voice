@@ -1,4 +1,5 @@
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer, Tooltip } from 'recharts'
+import { ChevronRight } from 'lucide-react'
 
 const CustomTooltip = ({ active, payload }) => {
   if (active && payload && payload.length) {
@@ -10,13 +11,14 @@ const CustomTooltip = ({ active, payload }) => {
         {data.feedback && (
           <p className="text-slate-400 text-xs mt-1 max-w-[200px]">{data.feedback}</p>
         )}
+        <p className="text-xs text-slate-500 mt-1">Click for details & tips</p>
       </div>
     )
   }
   return null
 }
 
-export default function SkillRadarChart({ analysisResult }) {
+export default function SkillRadarChart({ analysisResult, onSkillClick }) {
   // Extract skill data from analysis
   const sellerPerformance = analysisResult?.analysis?.seller_performance || {}
   const meddicScore = analysisResult?.analysis?.meddic_score || {}
@@ -155,22 +157,27 @@ export default function SkillRadarChart({ analysisResult }) {
         </ResponsiveContainer>
       </div>
 
-      {/* Legend with scores */}
+      {/* Legend with scores - Clickable */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-4 pt-4 border-t border-slate-700/50">
         {data.map((item, i) => (
-          <div key={i} className="flex items-center gap-2">
+          <button 
+            key={i} 
+            onClick={() => onSkillClick && onSkillClick(item.skill, item.score)}
+            className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-slate-700/30 transition-all group text-left"
+          >
             <div className={`w-2 h-2 rounded-full ${
               item.score >= 70 ? 'bg-emerald-400' : 
               item.score >= 50 ? 'bg-amber-400' : 
               'bg-red-400'
             }`} />
-            <span className="text-xs text-slate-400 truncate">{item.skill}</span>
+            <span className="text-xs text-slate-400 truncate group-hover:text-slate-300">{item.skill}</span>
             <span className={`text-xs font-bold ml-auto ${
               item.score >= 70 ? 'text-emerald-400' : 
               item.score >= 50 ? 'text-amber-400' : 
               'text-red-400'
             }`}>{item.score}</span>
-          </div>
+            <ChevronRight className="w-3 h-3 text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+          </button>
         ))}
       </div>
     </div>

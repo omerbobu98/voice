@@ -1,4 +1,5 @@
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, Cell } from 'recharts'
+import { ChevronRight } from 'lucide-react'
 
 const CustomTooltip = ({ active, payload }) => {
   if (active && payload && payload.length) {
@@ -7,6 +8,7 @@ const CustomTooltip = ({ active, payload }) => {
       <div className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 shadow-xl">
         <p className="text-slate-200 font-medium text-sm">{data.name}</p>
         <p className="text-indigo-400 font-bold">{data.count} mentions</p>
+        <p className="text-xs text-slate-500 mt-1">Click to view details</p>
       </div>
     )
   }
@@ -27,7 +29,7 @@ const TOPIC_COLORS = {
   'Rapport': '#ec4899',        // pink
 }
 
-export default function TopicFrequencyChart({ analysisResult }) {
+export default function TopicFrequencyChart({ analysisResult, onTopicClick }) {
   // Extract topic data from timeline events and analysis
   const timelineEvents = analysisResult?.analysis?.timeline_events || []
   const objections = analysisResult?.analysis?.objections || []
@@ -117,6 +119,13 @@ export default function TopicFrequencyChart({ analysisResult }) {
             data={data} 
             layout="vertical"
             margin={{ top: 5, right: 10, left: 0, bottom: 5 }}
+            onClick={(e) => {
+              if (e && e.activePayload && e.activePayload[0]) {
+                const topicName = e.activePayload[0].payload.name
+                onTopicClick && onTopicClick(topicName)
+              }
+            }}
+            style={{ cursor: 'pointer' }}
           >
             <XAxis 
               type="number" 
@@ -132,33 +141,40 @@ export default function TopicFrequencyChart({ analysisResult }) {
               tickLine={false}
               width={80}
             />
-            <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(99, 102, 241, 0.1)' }} />
+            <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(99, 102, 241, 0.15)' }} />
             <Bar 
               dataKey="count" 
               radius={[0, 4, 4, 0]}
               maxBarSize={24}
+              className="cursor-pointer"
             >
               {data.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.color} />
+                <Cell 
+                  key={`cell-${index}`} 
+                  fill={entry.color} 
+                  className="hover:opacity-80 transition-opacity cursor-pointer"
+                />
               ))}
             </Bar>
           </BarChart>
         </ResponsiveContainer>
       </div>
 
-      {/* Topic Pills */}
+      {/* Topic Pills - Clickable */}
       <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-slate-700/50">
         {data.slice(0, 6).map((topic, i) => (
-          <span 
+          <button 
             key={i} 
-            className="px-2 py-1 rounded-full text-xs font-medium"
+            onClick={() => onTopicClick && onTopicClick(topic.name)}
+            className="px-2.5 py-1.5 rounded-full text-xs font-medium flex items-center gap-1.5 hover:scale-105 transition-all group"
             style={{ 
               backgroundColor: `${topic.color}20`,
               color: topic.color
             }}
           >
             {topic.name} ({topic.count})
-          </span>
+            <ChevronRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+          </button>
         ))}
       </div>
     </div>
