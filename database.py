@@ -257,20 +257,28 @@ def get_call_with_analysis(call_id: str, user_id: str = None) -> dict:
     if not client:
         return None
     
-    query = client.table('calls').select('*').eq('id', call_id)
-    if user_id:
-        query = query.eq('user_id', user_id)
-    
-    call = query.single().execute()
-    if not call.data:
+    try:
+        query = client.table('calls').select('*').eq('id', call_id)
+        if user_id:
+            query = query.eq('user_id', user_id)
+        
+        call = query.maybe_single().execute()
+        if not call.data:
+            return None
+        
+        try:
+            analysis = client.table('analyses').select('*').eq('call_id', call_id).maybe_single().execute()
+            analysis_data = analysis.data if analysis.data else None
+        except:
+            analysis_data = None
+        
+        return {
+            'call': call.data,
+            'analysis': analysis_data
+        }
+    except Exception as e:
+        print(f"[get_call_with_analysis] Error: {e}")
         return None
-    
-    analysis = client.table('analyses').select('*').eq('call_id', call_id).single().execute()
-    
-    return {
-        'call': call.data,
-        'analysis': analysis.data if analysis.data else None
-    }
 
 
 # ============ Admin Functions ============

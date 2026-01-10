@@ -187,17 +187,21 @@ def analyze_call(job_id):
         speaker_roles = job['result']['speaker_roles']
     else:
         # Try to load from database (saved call)
-        call_data = get_call_with_analysis(job_id)
-        if not call_data or not call_data.get('call'):
-            return jsonify({'error': 'Call not found'}), 404
-        
-        call = call_data['call']
-        call_id = call['id']
-        utterances = call.get('utterances', [])
-        speaker_roles = call.get('speaker_roles', {})
-        
-        if not utterances:
-            return jsonify({'error': 'No transcription data found'}), 400
+        try:
+            call_data = get_call_with_analysis(job_id)
+            if not call_data or not call_data.get('call'):
+                return jsonify({'error': 'Call not found'}), 404
+            
+            call = call_data['call']
+            call_id = call['id']
+            utterances = call.get('utterances', [])
+            speaker_roles = call.get('speaker_roles', {})
+            
+            if not utterances:
+                return jsonify({'error': 'No transcription data found'}), 400
+        except Exception as db_err:
+            print(f"[analyze_call] Database error: {db_err}")
+            return jsonify({'error': f'Database error: {str(db_err)}'}), 500
     
     # Start analysis in background
     analysis_id = f"{job_id}_analysis"
