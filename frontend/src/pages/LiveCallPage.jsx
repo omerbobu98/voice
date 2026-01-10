@@ -211,9 +211,9 @@ export default function LiveCallPage() {
         const source = audioContextRef.current.createMediaStreamSource(stream)
         const processor = audioContextRef.current.createScriptProcessor(4096, 1, 1)
         
-        // Connect to AssemblyAI WebSocket
+        // Connect to AssemblyAI Universal Streaming WebSocket (new API)
         setConnectionStatus('connecting')
-        const socket = new WebSocket(`wss://api.assemblyai.com/v2/realtime/ws?sample_rate=16000&token=${token}`)
+        const socket = new WebSocket(`wss://streaming.assemblyai.com?token=${token}`)
         socketRef.current = socket
         
         socket.onopen = () => {
@@ -224,14 +224,30 @@ export default function LiveCallPage() {
         socket.onmessage = (event) => {
           try {
             const data = JSON.parse(event.data)
-            console.log('AssemblyAI message:', data.message_type, data.text?.substring(0, 50))
+            console.log('AssemblyAI message:', data.type || data.message_type, data)
             
-            if (data.message_type === 'FinalTranscript' && data.text) {
+            // Handle Universal Streaming API format
+            if (data.type === 'turn' && data.transcript?.text) {
+              // Turn event with transcript
+              const newChunk = {
+                text: data.transcript.text,
+                speaker: 'דובר',
+                timestamp: duration,
+                confidence: 1.0
+              }
+              setTranscript(prev => [...prev, newChunk])
+              setLiveText('')
+              setTotalWords(prev => prev + data.transcript.text.split(' ').length)
+            } else if (data.type === 'partial' && data.transcript?.text) {
+              // Partial transcript - show live
+              setLiveText(data.transcript.text)
+            } else if (data.message_type === 'FinalTranscript' && data.text) {
+              // Old API format fallback
               const newChunk = {
                 text: data.text,
                 speaker: 'דובר',
                 timestamp: duration,
-                confidence: data.confidence
+                confidence: data.confidence || 1.0
               }
               setTranscript(prev => [...prev, newChunk])
               setLiveText('')
@@ -241,6 +257,11 @@ export default function LiveCallPage() {
             } else if (data.error) {
               console.error('AssemblyAI error:', data.error)
               setConnectionStatus('error')
+            } else if (data.type === 'begin') {
+              console.log('Session started:', data.id)
+            } else if (data.type === 'termination') {
+              console.log('Session terminated')
+              setConnectionStatus('disconnected')
             }
           } catch (parseErr) {
             console.error('Error parsing message:', parseErr)

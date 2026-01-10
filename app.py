@@ -1187,31 +1187,36 @@ def get_active_live_session():
 
 @app.route('/api/live/assemblyai-token', methods=['GET'])
 def get_assemblyai_token():
-    """Get a temporary token for AssemblyAI real-time transcription"""
+    """Get a temporary token for AssemblyAI Universal Streaming"""
     user_id = get_user_id_from_token()
     if not user_id:
         return jsonify({'error': 'Authentication required'}), 401
     
     if not ASSEMBLYAI_API_KEY:
-        print("[get_assemblyai_token] ASSEMBLYAI_API_KEY not configured")
         return jsonify({'error': 'AssemblyAI not configured'}), 500
     
     try:
-        import requests
-        print(f"[get_assemblyai_token] Requesting token with key: {ASSEMBLYAI_API_KEY[:10]}...")
-        response = requests.post(
-            'https://api.assemblyai.com/v2/realtime/token',
-            headers={'authorization': ASSEMBLYAI_API_KEY},
-            json={'expires_in': 3600}
+        # Use AssemblyAI SDK for Universal Streaming token
+        from assemblyai.streaming.v3 import StreamingClient, StreamingClientOptions
+        
+        client = StreamingClient(
+            StreamingClientOptions(
+                api_key=ASSEMBLYAI_API_KEY,
+                api_host="streaming.assemblyai.com",
+            )
         )
         
-        print(f"[get_assemblyai_token] Response status: {response.status_code}")
-        print(f"[get_assemblyai_token] Response body: {response.text[:200]}")
+        token = client.create_temporary_token(
+            expires_in_seconds=3600,
+            max_session_duration_seconds=7200,
+        )
         
-        if response.status_code == 200:
-            return jsonify(response.json())
-        else:
-            return jsonify({'error': 'Failed to get token', 'status': response.status_code, 'details': response.text}), 500
+        print(f"[get_assemblyai_token] Token created successfully")
+        return jsonify({
+            'token': token,
+            'api_host': 'streaming.assemblyai.com'
+        })
+        
     except Exception as e:
         print(f"[get_assemblyai_token] Error: {e}")
         import traceback
@@ -1221,32 +1226,34 @@ def get_assemblyai_token():
 
 @app.route('/api/live/test-assemblyai', methods=['GET'])
 def test_assemblyai():
-    """Test AssemblyAI connection - no auth required for debugging"""
+    """Test AssemblyAI Universal Streaming connection"""
     if not ASSEMBLYAI_API_KEY:
         return jsonify({'error': 'ASSEMBLYAI_API_KEY not set', 'configured': False})
     
     try:
-        import requests
-        response = requests.post(
-            'https://api.assemblyai.com/v2/realtime/token',
-            headers={'authorization': ASSEMBLYAI_API_KEY},
-            json={'expires_in': 60}
+        from assemblyai.streaming.v3 import StreamingClient, StreamingClientOptions
+        
+        client = StreamingClient(
+            StreamingClientOptions(
+                api_key=ASSEMBLYAI_API_KEY,
+                api_host="streaming.assemblyai.com",
+            )
         )
         
-        if response.status_code == 200:
-            data = response.json()
-            return jsonify({
-                'success': True,
-                'has_token': 'token' in data,
-                'token_preview': data.get('token', '')[:20] + '...' if data.get('token') else None
-            })
-        else:
-            return jsonify({
-                'success': False,
-                'status': response.status_code,
-                'error': response.text
-            })
+        token = client.create_temporary_token(
+            expires_in_seconds=60,
+            max_session_duration_seconds=60,
+        )
+        
+        return jsonify({
+            'success': True,
+            'has_token': bool(token),
+            'token_preview': token[:20] + '...' if token else None,
+            'api_host': 'streaming.assemblyai.com'
+        })
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)})
 
 
