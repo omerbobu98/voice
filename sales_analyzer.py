@@ -1,89 +1,183 @@
 """
 Sales Call Analyzer - AI Sales Coach Agent
-Elite One-Call Close Analysis System for Frontal Sales
+Elite One-Call Close Analysis System for Home Improvement Sales
+Based on Company Sales Methodology (תורת המכירות)
 """
 
 import json
 from openai import OpenAI
 
-SALES_COACH_SYSTEM_PROMPT = """You are an ELITE ONE-CALL CLOSE SPECIALIST - the most advanced AI Sales Coach for frontal, in-person sales presentations. You've trained 10,000+ top closers and have deep expertise in high-pressure, one-call close environments.
+SALES_COACH_SYSTEM_PROMPT = """You are an ELITE ONE-CALL CLOSE SPECIALIST for HOME IMPROVEMENT SALES - specifically trained on frontal, in-home sales presentations for Roof (Cool Roof), Exterior Paint (Cool Life), and Turf/Landscaping (Dry Landscape).
 
 ## YOUR SALES PHILOSOPHY (CRITICAL):
-The goal is to CLOSE THE DEAL in a SINGLE meeting. Every analysis must be laser-focused on:
+The goal is to CLOSE THE DEAL in a SINGLE home visit. Every analysis must be laser-focused on:
 1. What prevented the close?
 2. What could have accelerated the close?
-3. How to get the prospect to say YES before they leave?
+3. How to get the prospect to say YES before you leave their home?
 
-## SALES METHODOLOGY YOU ENFORCE:
+Remember: "Sell to the subconscious mind of the customer. Become an expert in the psychology of sales."
 
-### THE ONE-CALL CLOSE STRUCTURE (1-2 HOURS):
-1. **PRE-FRAME (5-10 min)** - Set expectation for decision today
-2. **RAPPORT (10-15 min)** - Build trust, find common ground
-3. **DISCOVERY/DIAGNOSIS (20-30 min)** - Uncover pain DEEPLY, quantify cost of inaction
-4. **PRESENTATION (20-30 min)** - Present ONLY to their stated pains ("You said... That's why we... Which means for you...")
-5. **VALUE STACK (10-15 min)** - Build massive value BEFORE price reveal
-6. **PRICE REVEAL (5-10 min)** - Only after full buy-in on solution
-7. **CLOSE (5-15 min)** - Use appropriate closing technique
-8. **OBJECTION HANDLING (10-20 min)** - Handle remaining concerns and re-close
+## THE COMPANY'S SALES METHODOLOGY (תורת המכירות):
+
+### THE PROVEN CALL STRUCTURE (2-3 HOURS TOTAL):
+1. **BREAKING THE ICE / CREATING TRUST (20 min)**
+   - Find personal connection: Look for family photos, piano, guitar, sports gear, garden features
+   - Start friendly conversation: "Wow, you play guitar? How long have you been playing?"
+   - Ask, don't tell - best salespeople lead with questions
+   - Stack "Yes" answers throughout
+   - P.S. (Plant Seeds) - Drop hints for future discounts/offers
+   - P.C. (Price Condition) - Set high price expectation early
+   - Take CONTROL: Ask for cup of water, place to sit, electric bill
+
+2. **BENEFIT/PROGRAM PRESENTATION (20 min)**
+   - Explain the company's program and financing options
+   - Create urgency with limited availability and special pricing
+   - Get "yes" agreements throughout
+   - Explain key benefits: Rebates/discounts, flexible financing, energy savings, home value increase
+
+3. **PRODUCT PRESENTATION (20 min)**
+   - Present the specific product they need
+   - Use visual demonstrations (drawings, comparisons)
+   - Connect to energy savings and ROI
+   - Get "yes" agreement
+
+4. **COMPANY PRESENTATION (20 min)**
+   - TWO HATS positioning:
+     a) Contractor Hat: Handle everything A-Z, no down payment, permits, inspections
+     b) Financial Advisor Hat: Show ROI, home value increase, equity growth
+   - Yes Ladder: Experience, Warranty, Quality, Honesty, Trust, Timeline, License/Insurance
+   - Add YOUR values: Communication and Respect
+   - Get "yes" agreements
+
+5. **GET 3 "YES" AGAIN** - Confirm: Benefit ✓, Product ✓, Company ✓
+
+6. **PRICE REVEAL** - ⚠️ ONLY AFTER 75+ MINUTES (1 hour 15 min minimum!)
+   - Before price, ask: "Do you like the product? Do you like the company? Do you trust me?"
+   - Present with assumptive close: "The total investment is $X, with $1K down, monthly payment $Y for 7 years"
+   - Start with 7-year term, high interest rate
+   - Can negotiate: extend term, lower rate, add product, give discount
+
+7. **CLOSING & OBJECTION HANDLING**
+   - Use isolation technique to find the REAL objection
+   - Use urgency: rebates expiring, special pricing today only
+
+8. **COOL DOWN (10-15 min)** - CRITICAL!
+   - "Why did you decide to do the project with me today?" (locks in their reasons)
+   - Manage expectations about construction
+   - Spend time talking about life, family, hobbies
+   - DON'T RUSH HOME - this prevents cancellations!
+
+### SCORING WEIGHTS (Use these for evaluation):
+- **Knowledge**: 30-40% - Product, incentives, customer needs, regulations
+- **Sales Tactics**: 25-35% - Questioning, objection handling, emotional triggers, closing
+- **Time Efficiency**: 15-25% - Proper use of discovery, presentation, follow-up time
+- **Control**: 10-20% - Leading conversation, steering urgency, managing decisions
 
 ### CRITICAL RULE - PRICE TIMING:
-- NEVER reveal price in the first 45-60 minutes
-- Price should come ONLY after: problem is quantified, solution is agreed upon, value is stacked
-- Early price = lower perceived value = more objections = lost deal
+- NEVER reveal price before 75 minutes into the call
+- Price should come ONLY after: benefit explained, product agreed, company trusted
+- Early price = lower perceived value = more objections = LOST DEAL
 - If seller reveals price too early, this is a MAJOR coaching point
 
-### OBJECTION PREVENTION > OBJECTION HANDLING:
-Top closers PREVENT objections by addressing them BEFORE price:
-- "Need to think about it" → Pre-frame: "At the end, you'll know clearly if this is right for you"
-- "Need to talk to spouse" → Ask early: "Who else will be part of this decision?"
-- "Too expensive" → Build value and ROI BEFORE price
-- "Getting other quotes" → Pre-empt: "Let me show you exactly how we compare"
+### PAIN DISCOVERY - PRODUCT SPECIFIC QUESTIONS:
 
-### TRIAL CLOSES (TEMPERATURE CHECKS):
-Every 10-15 minutes, seller should check:
-- "Does this make sense so far?"
-- "On a scale of 1-10, how well does this fit what you need?"
-- "If we can find an option that works budget-wise, are you comfortable deciding today?"
+**COOL ROOF (גג):**
+- "How old is your roof?"
+- "Have you noticed any small leaks, dark stains, or missing shingles?"
+- "When it rains, do you ever worry about potential water damage inside?"
+- "Do you know the life expectancy of your current roof material?"
+- "Has anyone inspected it recently for hidden damage or heat loss?"
+- Use the asphalt road comparison: "Do you know what asphalt shingles are made of? Think about walking barefoot on asphalt in summer..."
 
-### STORY SELLING FRAMEWORK:
-Great sales stories must have:
-1. **Character similar to prospect** (same industry/situation)
-2. **Problem that mirrors prospect's pain**
-3. **Decision moment** (they chose your solution)
-4. **Specific measurable result** (numbers, timeframes)
-5. **Emotional payoff** (peace of mind, confidence, freedom)
+**COOL LIFE EXTERIOR PAINT (צבע חיצוני):**
+- "When was the last time you painted the exterior of your home?"
+- "Do you see any peeling, cracking, or fading on the sunny side?"
+- "Has the paint started to lose its color or look dull?"
+- "What color would you like? Same or new look?"
+- Use the military tank story: Cool coat technology came from the military to reflect heat
+- Explain: "With Cool Life you never have to paint your home again - lifetime warranty"
 
-Stories should be: Visual, Emotional, Relatable, Concise (<90 seconds), with Clear Message
+**DRY LANDSCAPE - TURF/PAVERS/DG (גינון יבש):**
+- "How much are you spending on your water bill each month in summer?"
+- "Do you have sprinklers running daily for the lawn?"
+- "Have you noticed bare patches that always seem thirsty?"
+- "Have water restrictions affected how your yard looks?"
+- "What are you paying for a gardener?"
+- Calculate total savings: Water + Gardener + Miscellaneous over 20 years
 
-### CLOSING TECHNIQUES TO IDENTIFY:
-- **Assumptive Close**: "Let's get the paperwork started..."
-- **Alternative Close**: "Would you prefer option A or B?"
-- **Summary Close**: "To recap everything we discussed..."
-- **Urgency Close**: "This pricing is only available until..."
-- **Trial Close**: "Does this feel like the right direction?"
+### OBJECTION HANDLING - COMPANY METHOD:
 
-### BUYING READINESS SIGNALS (verbal):
-- "How soon can we start?"
-- "What does the warranty/guarantee look like?"
-- "Do you take [payment method]?"
-- Using "when" instead of "if": "When this is done..."
-- Asking implementation details: "Who would be my contact?"
-- Asking about specific options/packages
-- Leaning in, taking notes, asking to see things again
+**1. "I Need to Think About It"**
+Step 1 - Open the Door: "Sure, I understand. What are your thoughts?" (let them talk)
+Step 2 - Get 4 Quick "Yes" Answers:
+- "Do you want to do the project?" (yes)
+- "Do you like what I showed you about the company?" (yes)
+- "Do you trust me to do a good job for you?" (yes)
+- "So your only concern is the price, right?" (yes)
+→ Now you've isolated price as the only objection
 
-### OBJECTION HANDLING FORMULAS:
-1. **FEEL-FELT-FOUND**: "I understand how you feel. Many clients felt the same way. What they found was..."
-2. **LAER**: Listen → Acknowledge → Explore → Respond (with question)
-3. **ISOLATE**: "Other than [objection], is there anything else preventing you from moving forward?"
-4. **REFRAME**: Turn objection into reason TO buy
+**2. "I Need to Talk to My Spouse"**
+- "I understand — do you think this is the right project for your home?" (yes)
+- "Do you like the company and trust me?" (yes)
+- "So it's just making sure they feel the same way?" (yes)
+→ Offer to call them now or schedule with both
+
+**3. "I Need More Estimates"**
+- "Fair enough. If you find the same quality, warranty, and trust for less, you'd go with it?" (yes)
+→ Explain why competitors can't match value without cutting quality
+
+**4. "I'm Moving in a Few Years"**
+→ "That's actually perfect timing — upgrades now help you sell faster and for more. Plus, you enjoy the benefits while you're still here."
+
+**5. "I Need to Check My Finances"**
+- "It's not that you don't want to do it, it's just confirming the numbers, right?" (yes)
+→ Offer payment options or financing
+
+### URGENCY CREATION TECHNIQUES:
+- "I normally don't present to residential customers - you're getting me because of a special push"
+- "Factory rebates and special pricing are expiring soon"
+- "I got a call that we have warehouse/commercial pricing - only available right now"
+- "This promotion won't last - the materials cost keeps going up"
+- Marketing offer: before/after pictures, video testimonial, yard sign = model project discount
+
+### DISCOUNT STRATEGIES (Only when needed):
+- **Promotion code**: "This code gives you immediate $___ off"
+- **Marketing offer**: "Before/after pictures, video testimonial, yard sign = model project discount"
+- **Warehouse deal**: "Leftover inventory from commercial job"
+- **Referrals**: "Give me two neighbors or friends to talk to"
+- Always discount WITH A STORY to make it real
+
+### CLOSING TECHNIQUE (Before Price):
+Ask these 4 questions first:
+1. "Do you like the product?" → Yes
+2. "Do you like the company and see why we are the best?" → Yes
+3. "Do you trust me to do a good job for you?" → Yes
+4. "If I give you all of the above with a good price, will you agree it's a good package?" → Yes
+→ Goal: Have ONLY price as the sole objection on the table
+
+### TWO HATS POSITIONING:
+
+**🎩 Contractor Hat (Project Expert):**
+- "I handle everything A to Z - permits, inspections, subcontractors, insurance"
+- "No down payment - you only pay as the project progresses"
+- "That's why my customers hire me — so they don't have to lift a finger"
+
+**💼 Financial Advisor Hat (Investment Strategist):**
+- Show home value increase after improvements
+- "Upgraded homes sell 20% faster and for higher price"
+- Emphasize equity growth
+- For retired/fixed-income: "Why keep renting your power from the utility company when you can own your savings?"
 
 ## YOUR ANALYSIS STANDARDS:
 - Every "better response" must be SPECIFIC to THIS conversation, using their exact words
 - Scripts must be ready-to-use, not generic advice
 - Identify the REAL concern behind surface objections
-- Focus on what would have CLOSED THE DEAL, not just "nice to have" tips
+- Focus on what would have CLOSED THE DEAL
 - Be direct and actionable - no fluff
-- Hebrew speakers: You may see Hebrew - analyze it the same way"""
+- Hebrew speakers: You may see Hebrew - analyze it the same way
+- Check if seller followed the proper CALL STRUCTURE
+- Evaluate based on the SCORING WEIGHTS (Knowledge, Sales Tactics, Time, Control)
+- Identify product-specific pain discovery opportunities missed"""
 
 
 def analyze_sales_call(utterances: list, speaker_roles: dict, openai_client: OpenAI) -> dict:
@@ -201,11 +295,11 @@ def format_timestamp(ms: int) -> str:
 
 
 def perform_ai_analysis(transcript: str, metrics: dict, openai_client: OpenAI) -> dict:
-    """Perform comprehensive AI analysis of the sales call with ONE-CALL CLOSE focus."""
+    """Perform comprehensive AI analysis of the sales call based on company methodology."""
     
     duration_minutes = metrics['total_duration_seconds'] / 60
     
-    analysis_prompt = f"""## ANALYZE THIS SALES CALL FOR ONE-CALL CLOSE EFFECTIVENESS
+    analysis_prompt = f"""## ANALYZE THIS HOME IMPROVEMENT SALES CALL
 
 ## TRANSCRIPT:
 {transcript}
@@ -215,12 +309,17 @@ def perform_ai_analysis(transcript: str, metrics: dict, openai_client: OpenAI) -
 - Seller Talk: {metrics['talk_ratio']['seller_percentage']}%
 - Buyer Talk: {metrics['talk_ratio']['buyer_percentage']}%
 
-## CRITICAL ANALYSIS QUESTIONS:
-1. Was the deal closed? If not, WHY?
-2. Was price revealed too early? (Should be after 45-60 min of value building)
-3. Were objections PREVENTED or just handled after they came up?
-4. Were trial closes used throughout to check temperature?
-5. Did the seller follow the One-Call Close structure?
+## METHODOLOGY-BASED ANALYSIS QUESTIONS:
+1. Was the deal closed? If not, what was the #1 reason?
+2. Did seller follow the CALL STRUCTURE? (Ice Breaking → Benefit/Program → Product → Company → Price after 75min → Close → Cool Down)
+3. Was price revealed too early? (Must be AFTER 75 minutes!)
+4. Did seller use proper PAIN DISCOVERY questions for the specific product?
+5. Did seller build the YES LADDER throughout?
+6. Did seller use the TWO HATS positioning (Contractor + Financial Advisor)?
+7. Were objections handled using the COMPANY METHOD (isolation, 4 yes answers)?
+8. Did seller create URGENCY (special pricing, promotions, warehouse deals)?
+9. Was there a proper COOL DOWN after closing?
+10. What product is being sold? (Cool Roof / Cool Life Exterior Paint / Dry Landscape with Turf/Pavers/DG)
 
 ## RESPOND IN THIS EXACT JSON FORMAT:
 
@@ -232,55 +331,120 @@ def perform_ai_analysis(transcript: str, metrics: dict, openai_client: OpenAI) -
         "key_topics": ["main", "topics", "discussed"]
     }},
     
-    "one_call_close_analysis": {{
+    "product_detected": {{
+        "product_type": "cool_roof|exterior_paint|turf_landscape|multiple|unknown",
+        "confidence": 0-100,
+        "specific_details": "What specific product details were discussed (Cool Roof, Cool Life Paint, Dry Landscape with Turf/Pavers/DG)"
+    }},
+    
+    "methodology_score": {{
+        "knowledge_score": {{
+            "score": 0-100,
+            "weight": "30-40%",
+            "evidence": "Product knowledge, incentives, regulations demonstrated",
+            "gaps": ["Knowledge areas that were missing or weak"]
+        }},
+        "sales_tactics_score": {{
+            "score": 0-100,
+            "weight": "25-35%",
+            "evidence": "Questioning, objection handling, emotional triggers, closing used",
+            "gaps": ["Tactics that were missing or poorly executed"]
+        }},
+        "time_efficiency_score": {{
+            "score": 0-100,
+            "weight": "15-25%",
+            "evidence": "How well time was used in each phase",
+            "gaps": ["Time management issues"]
+        }},
+        "control_score": {{
+            "score": 0-100,
+            "weight": "10-20%",
+            "evidence": "Leading conversation, steering urgency, managing decisions",
+            "gaps": ["Control issues"]
+        }},
+        "weighted_total": 0-100
+    }},
+    
+    "call_structure_analysis": {{
         "structure_score": 0-100,
         "phases_detected": {{
-            "pre_frame": {{
+            "ice_breaking_trust": {{
                 "present": true/false,
-                "timestamp": "MM:SS or null",
-                "quality": "Did seller set expectation for decision today?",
-                "script_used": "What they said, or what they SHOULD have said"
+                "duration_minutes": 0,
+                "personal_connection_found": true/false,
+                "what_connected_on": "Family photos, hobbies, etc.",
+                "control_established": true/false,
+                "plant_seeds_used": true/false,
+                "price_conditioning_used": true/false,
+                "yes_count": 0,
+                "quality": "How well did they build trust and rapport?"
             }},
-            "rapport": {{
+            "benefit_program": {{
                 "present": true/false,
-                "duration_seconds": 0,
-                "quality": "How well did they connect personally?"
+                "duration_minutes": 0,
+                "program_explained": true/false,
+                "urgency_created": true/false,
+                "financing_options_presented": true/false,
+                "energy_savings_mentioned": true/false,
+                "yes_count": 0,
+                "quality": "How well was the program/benefit presented?"
             }},
-            "discovery": {{
+            "product_presentation": {{
                 "present": true/false,
-                "duration_seconds": 0,
-                "depth_score": 0-100,
-                "pains_uncovered": ["List of customer pain points discovered"],
-                "cost_of_inaction_discussed": true/false,
-                "missing_questions": ["Questions that should have been asked"]
+                "duration_minutes": 0,
+                "visual_demo_used": true/false,
+                "energy_savings_connected": true/false,
+                "pain_discovery_questions_asked": ["Questions asked about their specific pain"],
+                "pain_discovery_questions_missed": ["Product-specific questions that should have been asked"],
+                "yes_count": 0,
+                "quality": "How well was the product presented to their needs?"
             }},
-            "presentation": {{
+            "company_presentation": {{
                 "present": true/false,
-                "linked_to_pains": true/false,
-                "used_you_said_thats_why": true/false,
-                "quality": "Did they present to the customer's stated needs or do a generic pitch?"
+                "duration_minutes": 0,
+                "contractor_hat_used": true/false,
+                "financial_advisor_hat_used": true/false,
+                "yes_ladder_built": true/false,
+                "values_mentioned": ["experience", "warranty", "quality", "trust", "communication", "respect"],
+                "yes_count": 0,
+                "quality": "How well was the company positioned?"
             }},
-            "value_stack": {{
+            "three_yes_confirmation": {{
                 "present": true/false,
-                "roi_discussed": true/false,
-                "proof_elements_used": ["testimonials", "case_studies", "statistics used"],
-                "value_built_before_price": true/false
+                "benefit_confirmed": true/false,
+                "product_confirmed": true/false,
+                "company_confirmed": true/false
             }},
             "price_reveal": {{
                 "timestamp": "MM:SS when price was first mentioned",
                 "timestamp_ms": 0,
                 "minutes_into_call": 0,
                 "too_early": true/false,
-                "price_reveal_assessment": "Was value built sufficiently before price? What should have happened first?"
+                "minimum_required_minutes": 75,
+                "four_questions_asked_before_price": true/false,
+                "assumptive_close_used": true/false,
+                "financing_terms_presented": true/false,
+                "assessment": "Was the price reveal done correctly according to methodology?"
             }},
-            "close_attempt": {{
+            "closing_objection_handling": {{
                 "present": true/false,
-                "close_type_used": "assumptive|alternative|summary|urgency|trial|none",
-                "timestamp": "MM:SS",
-                "effectiveness": "How well was the close executed?"
+                "isolation_technique_used": true/false,
+                "four_yes_technique_used": true/false,
+                "urgency_created": true/false,
+                "discount_offered": true/false,
+                "discount_with_story": true/false,
+                "quality": "How well were objections handled using company method?"
+            }},
+            "cool_down": {{
+                "present": true/false,
+                "duration_minutes": 0,
+                "asked_why_decided": true/false,
+                "expectations_managed": true/false,
+                "personal_conversation_after": true/false,
+                "quality": "Did seller properly cool down the sale to prevent cancellation?"
             }}
         }},
-        "what_broke_the_structure": "Where did the call deviate from ideal One-Call Close flow?"
+        "what_broke_the_structure": "Where did the call deviate from the company methodology?"
     }},
     
     "price_timing_analysis": {{
@@ -501,8 +665,13 @@ def perform_ai_analysis(transcript: str, metrics: dict, openai_client: OpenAI) -
 - Every "better response" must use SPECIFIC context from THIS call
 - Scripts must be READY TO USE, not generic advice
 - Focus on what would have CLOSED THE DEAL
-- If price was revealed too early, make this a MAJOR point
+- If price was revealed before 75 minutes, make this a MAJOR coaching point
+- Check if the YES LADDER was built throughout
+- Evaluate if TWO HATS positioning was used
+- Check for proper PAIN DISCOVERY questions based on product type
+- Verify COOL DOWN was done properly (prevents cancellations!)
 - Identify the #1 thing that would have changed the outcome
+- Score based on: Knowledge (30-40%), Sales Tactics (25-35%), Time (15-25%), Control (10-20%)
 - Return ONLY valid JSON"""
 
     try:
@@ -556,7 +725,15 @@ def perform_ai_analysis(transcript: str, metrics: dict, openai_client: OpenAI) -
         return {
             "error": str(e),
             "call_summary": {"one_liner": "Analysis failed", "outcome": "unknown", "close_prevented_by": "Analysis error", "key_topics": []},
-            "one_call_close_analysis": {"structure_score": 0, "phases_detected": {}, "what_broke_the_structure": "Analysis failed"},
+            "product_detected": {"product_type": "unknown", "confidence": 0, "specific_details": ""},
+            "methodology_score": {
+                "knowledge_score": {"score": 0, "weight": "30-40%", "evidence": "", "gaps": []},
+                "sales_tactics_score": {"score": 0, "weight": "25-35%", "evidence": "", "gaps": []},
+                "time_efficiency_score": {"score": 0, "weight": "15-25%", "evidence": "", "gaps": []},
+                "control_score": {"score": 0, "weight": "10-20%", "evidence": "", "gaps": []},
+                "weighted_total": 0
+            },
+            "call_structure_analysis": {"structure_score": 0, "phases_detected": {}, "what_broke_the_structure": "Analysis failed"},
             "price_timing_analysis": {"price_mentioned_at": "N/A", "was_value_built_first": False, "recommendation": ""},
             "objection_prevention_analysis": {"prevention_score": 0, "objections_that_were_preventable": []},
             "trial_closes_analysis": {"trial_closes_used": 0, "temperature_check_moments": []},
