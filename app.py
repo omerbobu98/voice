@@ -1193,23 +1193,61 @@ def get_assemblyai_token():
         return jsonify({'error': 'Authentication required'}), 401
     
     if not ASSEMBLYAI_API_KEY:
+        print("[get_assemblyai_token] ASSEMBLYAI_API_KEY not configured")
         return jsonify({'error': 'AssemblyAI not configured'}), 500
+    
+    try:
+        import requests
+        print(f"[get_assemblyai_token] Requesting token with key: {ASSEMBLYAI_API_KEY[:10]}...")
+        response = requests.post(
+            'https://api.assemblyai.com/v2/realtime/token',
+            headers={'authorization': ASSEMBLYAI_API_KEY},
+            json={'expires_in': 3600}
+        )
+        
+        print(f"[get_assemblyai_token] Response status: {response.status_code}")
+        print(f"[get_assemblyai_token] Response body: {response.text[:200]}")
+        
+        if response.status_code == 200:
+            return jsonify(response.json())
+        else:
+            return jsonify({'error': 'Failed to get token', 'status': response.status_code, 'details': response.text}), 500
+    except Exception as e:
+        print(f"[get_assemblyai_token] Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/live/test-assemblyai', methods=['GET'])
+def test_assemblyai():
+    """Test AssemblyAI connection - no auth required for debugging"""
+    if not ASSEMBLYAI_API_KEY:
+        return jsonify({'error': 'ASSEMBLYAI_API_KEY not set', 'configured': False})
     
     try:
         import requests
         response = requests.post(
             'https://api.assemblyai.com/v2/realtime/token',
             headers={'authorization': ASSEMBLYAI_API_KEY},
-            json={'expires_in': 3600}  # 1 hour token
+            json={'expires_in': 60}
         )
         
         if response.status_code == 200:
-            return jsonify(response.json())
+            data = response.json()
+            return jsonify({
+                'success': True,
+                'has_token': 'token' in data,
+                'token_preview': data.get('token', '')[:20] + '...' if data.get('token') else None
+            })
         else:
-            return jsonify({'error': 'Failed to get token', 'status': response.status_code}), 500
+            return jsonify({
+                'success': False,
+                'status': response.status_code,
+                'error': response.text
+            })
     except Exception as e:
-        print(f"[get_assemblyai_token] Error: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'success': False, 'error': str(e)})
 
 
 @app.route('/api/live/sessions/<session_id>/process-transcript', methods=['POST'])
