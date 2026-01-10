@@ -215,32 +215,20 @@ def analyze_call(job_id):
     return jsonify({'analysis_id': analysis_id})
 
 def run_deep_analysis(analysis_id, utterances, speaker_roles, call_id=None):
-    """Run comprehensive sales analysis with parallel processing"""
+    """Run comprehensive sales analysis"""
     try:
-        jobs[analysis_id]['progress'] = 5
-        jobs[analysis_id]['stage'] = 'Starting parallel analysis (6 AI calls)...'
+        jobs[analysis_id]['progress'] = 10
+        jobs[analysis_id]['stage'] = 'Analyzing conversation patterns...'
         
-        # Progress callback for parallel analysis
-        def update_progress(progress):
-            jobs[analysis_id]['progress'] = min(progress, 88)
-            completed = max(1, (progress - 10) // 13)
-            jobs[analysis_id]['stage'] = f'Analyzing... ({completed}/6 complete)'
-        
-        # Perform comprehensive parallel analysis
+        # Perform comprehensive analysis
         sales_analysis = analyze_sales_call(utterances, speaker_roles, openai_client)
         
         jobs[analysis_id]['progress'] = 90
-        jobs[analysis_id]['stage'] = 'Finalizing analysis...'
+        jobs[analysis_id]['stage'] = 'Saving results...'
         
         # Save to database
         if call_id:
-            jobs[analysis_id]['stage'] = 'Saving to database...'
             save_analysis(call_id, sales_analysis.get('metrics', {}), sales_analysis)
-        
-        # Check for partial errors
-        if sales_analysis.get('_parallel_errors'):
-            error_count = len(sales_analysis['_parallel_errors'])
-            print(f"[run_deep_analysis] Completed with {error_count} partial errors")
         
         jobs[analysis_id]['progress'] = 100
         jobs[analysis_id]['stage'] = 'Analysis complete!'

@@ -332,178 +332,59 @@ export default function AnalysisInsights({
               />
             </div>
 
-            {/* Objections Analysis - Professional View */}
-            {hasObjections && (
-              <div className="bg-slate-800/60 rounded-xl border border-slate-700/50 overflow-hidden">
-                {/* Header */}
-                <div className="p-4 sm:p-5 border-b border-slate-700/50 bg-slate-800/80">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            {/* Timeline Events */}
+            {analysisResult?.analysis?.timeline_events?.length > 0 && (
+              <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 overflow-hidden">
+                <div className="p-4 border-b border-slate-700/50 bg-slate-800/80">
+                  <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 sm:w-11 sm:h-11 bg-slate-700/50 rounded-lg flex items-center justify-center border border-slate-600/50">
-                        <Target className="w-5 h-5 text-slate-300" />
+                      <div className="w-10 h-10 bg-cyan-500/20 rounded-xl flex items-center justify-center">
+                        <Activity className="w-5 h-5 text-cyan-400" />
                       </div>
                       <div>
-                        <h3 className="text-lg sm:text-xl font-semibold text-slate-100">Objections Analysis</h3>
-                        <p className="text-xs sm:text-sm text-slate-400">{analysisResult.analysis.objections.length} objection{analysisResult.analysis.objections.length > 1 ? 's' : ''} identified</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="text-center px-3 py-1.5 bg-slate-700/50 rounded-lg border border-slate-600/30">
-                        <span className="text-lg font-bold text-slate-200">
-                          {Math.round(analysisResult.analysis.objections.reduce((sum, o) => sum + (o.handling_score || 0), 0) / analysisResult.analysis.objections.length)}
-                        </span>
-                        <span className="text-sm text-slate-400">/10</span>
-                        <p className="text-xs text-slate-500">Avg Score</p>
+                        <h3 className="text-lg font-semibold text-slate-200">Call Timeline</h3>
+                        <p className="text-sm text-slate-500">{analysisResult.analysis.timeline_events.length} key moments</p>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {/* All Objections */}
-                <div className="divide-y divide-slate-700/30">
-                  {analysisResult.analysis.objections.map((objection, i) => {
-                    const typeLabels = {
-                      price: 'Price Concern',
-                      timing: 'Timing Issue',
-                      authority: 'Authority/Decision',
-                      need: 'Need Uncertainty',
-                      trust: 'Trust Concern',
-                      spouse_decision: 'Partner Consultation',
-                      need_to_think: 'Needs Time',
-                      competition: 'Competition'
-                    }
-                    const typeLabel = typeLabels[objection.type] || (objection.type?.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Objection')
-                    
-                    return (
-                      <div key={i} className="p-4 sm:p-5 hover:bg-slate-800/40 transition-colors">
-                        {/* Objection Header */}
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="px-2.5 py-1 bg-slate-700/60 text-slate-300 text-xs sm:text-sm font-medium rounded border border-slate-600/40">
-                              {typeLabel}
-                            </span>
-                            {objection.timestamp && (
-                              <button 
-                                onClick={() => onSeek && objection.timestamp_ms && onSeek(objection.timestamp_ms)}
-                                className="text-xs font-mono px-2 py-1 bg-indigo-500/15 text-indigo-400 rounded hover:bg-indigo-500/25 transition-colors flex items-center gap-1"
-                              >
-                                <Play className="w-3 h-3" /> {objection.timestamp}
-                              </button>
-                            )}
-                          </div>
-                          <div className={`px-2.5 py-1 rounded text-sm font-semibold ${
-                            objection.handling_score >= 7 ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' : 
-                            objection.handling_score >= 4 ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30' : 
-                            'bg-red-500/15 text-red-400 border border-red-500/30'
-                          }`}>
-                            Handling: {objection.handling_score}/10
-                          </div>
-                        </div>
-                        
-                        {/* Conversation Flow */}
-                        <div className="space-y-3">
-                          {/* Customer Statement */}
-                          <div className="p-3 sm:p-4 bg-slate-900/50 rounded-lg border-l-3 border-l-red-500/60">
-                            <p className="text-xs text-slate-500 uppercase tracking-wide mb-1.5 font-medium">Customer</p>
-                            <p className="text-slate-200 text-sm sm:text-base leading-relaxed">"{objection.buyer_statement}"</p>
-                          </div>
-                          
-                          {/* Seller Response */}
-                          {objection.seller_response && (
-                            <div className="p-3 sm:p-4 bg-slate-900/30 rounded-lg border-l-3 border-l-slate-500/60">
-                              <p className="text-xs text-slate-500 uppercase tracking-wide mb-1.5 font-medium">Your Response</p>
-                              <p className="text-slate-300 text-sm sm:text-base leading-relaxed">"{objection.seller_response}"</p>
-                            </div>
-                          )}
-                          
-                          {/* Better Response */}
-                          <div className="p-3 sm:p-4 bg-emerald-500/8 rounded-lg border border-emerald-500/20">
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
-                              <div className="flex items-center gap-2">
-                                <p className="text-xs text-emerald-400 uppercase tracking-wide font-medium">Recommended Response</p>
-                                {objection.technique_to_use && (
-                                  <span className="text-xs px-2 py-0.5 bg-emerald-500/15 text-emerald-400 rounded">
-                                    {objection.technique_to_use}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                            <p className="text-emerald-100 text-sm sm:text-base leading-relaxed">"{objection.better_response}"</p>
-                            
-                            {TTSButton && objection.better_response && (
-                              <div className="mt-3">
-                                <TTSButton text={objection.better_response} label="Listen" />
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Timeline Events - Professional View */}
-            {analysisResult?.analysis?.timeline_events?.length > 0 && (
-              <div className="bg-slate-800/60 rounded-xl border border-slate-700/50 overflow-hidden">
-                {/* Header */}
-                <div className="p-4 sm:p-5 border-b border-slate-700/50 bg-slate-800/80">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 sm:w-11 sm:h-11 bg-slate-700/50 rounded-lg flex items-center justify-center border border-slate-600/50">
-                      <Activity className="w-5 h-5 text-slate-300" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg sm:text-xl font-semibold text-slate-100">Call Timeline</h3>
-                      <p className="text-xs sm:text-sm text-slate-400">{analysisResult.analysis.timeline_events.length} key moments</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-4 sm:p-5 relative">
-                  {/* Timeline vertical bar */}
-                  <div className="absolute left-7 sm:left-9 top-4 bottom-4 w-0.5 bg-slate-600/50" />
+                <div className="p-4 relative">
+                  {/* Timeline bar */}
+                  <div className="absolute left-8 top-4 bottom-4 w-0.5 bg-gradient-to-b from-cyan-500 via-indigo-500 to-violet-500" />
                   
-                  <div className="space-y-3 max-h-[500px] overflow-y-auto custom-scrollbar">
+                  <div className="space-y-3 max-h-[400px] overflow-y-auto custom-scrollbar">
                     {analysisResult.analysis.timeline_events.map((event, i) => {
-                      const eventTypes = {
-                        discovery_question: { bg: 'bg-cyan-500', text: 'text-cyan-400', label: 'Discovery' },
-                        diagnose: { bg: 'bg-blue-500', text: 'text-blue-400', label: 'Diagnosis' },
-                        closing_attempt: { bg: 'bg-emerald-500', text: 'text-emerald-400', label: 'Closing Attempt' },
-                        rapport_building: { bg: 'bg-pink-500', text: 'text-pink-400', label: 'Rapport' },
-                        value_proposition: { bg: 'bg-amber-500', text: 'text-amber-400', label: 'Value Prop' },
-                        objection: { bg: 'bg-red-500', text: 'text-red-400', label: 'Objection' },
-                        pain_point: { bg: 'bg-orange-500', text: 'text-orange-400', label: 'Pain Point' },
-                        commitment: { bg: 'bg-green-500', text: 'text-green-400', label: 'Commitment' },
-                        next_step: { bg: 'bg-violet-500', text: 'text-violet-400', label: 'Next Step' },
-                        trial_close: { bg: 'bg-teal-500', text: 'text-teal-400', label: 'Trial Close' },
-                        buying_signal: { bg: 'bg-lime-500', text: 'text-lime-400', label: 'Buying Signal' },
+                      const eventColors = {
+                        discovery_question: { bg: 'bg-cyan-500', text: 'text-cyan-400', label: '🔍 Discovery' },
+                        diagnose: { bg: 'bg-blue-500', text: 'text-blue-400', label: '🩺 Diagnose' },
+                        closing_attempt: { bg: 'bg-emerald-500', text: 'text-emerald-400', label: '🎯 Closing' },
+                        rapport_building: { bg: 'bg-pink-500', text: 'text-pink-400', label: '🤝 Rapport' },
+                        value_proposition: { bg: 'bg-amber-500', text: 'text-amber-400', label: '💎 Value' },
+                        objection: { bg: 'bg-red-500', text: 'text-red-400', label: '⚠️ Objection' },
+                        pain_point: { bg: 'bg-orange-500', text: 'text-orange-400', label: '😣 Pain' },
+                        commitment: { bg: 'bg-green-500', text: 'text-green-400', label: '✅ Commitment' },
+                        next_step: { bg: 'bg-violet-500', text: 'text-violet-400', label: '➡️ Next Step' },
                       }
-                      const type = eventTypes[event.type] || { bg: 'bg-slate-500', text: 'text-slate-400', label: event.type }
+                      const colors = eventColors[event.type] || { bg: 'bg-slate-500', text: 'text-slate-400', label: event.type }
                       
                       return (
                         <div 
                           key={i} 
-                          className="relative pl-10 sm:pl-12 cursor-pointer group"
+                          className="relative pl-10 cursor-pointer group"
                           onClick={() => onSeek && event.timestamp_ms && onSeek(event.timestamp_ms)}
                         >
-                          {/* Timeline dot */}
-                          <div className={`absolute left-[18px] sm:left-[26px] w-4 h-4 rounded-full ${type.bg} border-3 border-slate-800 group-hover:scale-110 transition-transform z-10`} />
+                          <div className={`absolute left-[22px] w-3 h-3 rounded-full ${colors.bg} border-2 border-slate-800 group-hover:scale-125 transition-transform`} />
                           
-                          {/* Event card */}
-                          <div className="p-3 sm:p-4 rounded-lg bg-slate-900/50 border border-slate-700/40 group-hover:border-slate-600/50 transition-colors">
-                            <div className="flex flex-wrap items-center gap-2 mb-2">
-                              <span className={`text-xs sm:text-sm font-semibold ${type.text}`}>{type.label}</span>
-                              <span className="text-xs font-mono px-1.5 py-0.5 bg-slate-700/50 text-slate-400 rounded">{event.timestamp}</span>
-                              <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${
-                                event.speaker === 'Seller' 
-                                  ? 'bg-blue-500/15 text-blue-400' 
-                                  : 'bg-emerald-500/15 text-emerald-400'
-                              }`}>
-                                {event.speaker === 'Seller' ? 'You' : 'Customer'}
+                          <div className="p-3 rounded-xl bg-slate-900/50 border border-slate-700/30 group-hover:border-slate-600/50 transition-all">
+                            <div className="flex flex-wrap items-center gap-2 mb-1">
+                              <span className={`text-xs font-semibold ${colors.text}`}>{colors.label}</span>
+                              <span className="text-xs font-mono text-slate-500">{event.timestamp}</span>
+                              <span className={`text-xs px-1.5 py-0.5 rounded ${event.speaker === 'Seller' ? 'bg-blue-500/20 text-blue-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
+                                {event.speaker}
                               </span>
                             </div>
-                            <p className="text-slate-200 text-sm sm:text-base leading-relaxed">"{event.content}"</p>
+                            <p className="text-sm text-slate-300">"{event.content}"</p>
                           </div>
                         </div>
                       )

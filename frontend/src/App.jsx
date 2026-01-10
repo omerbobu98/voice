@@ -603,7 +603,8 @@ function MainApp() {
   }
 
   const handleAnalyze = async () => {
-    if (!jobId) return
+    const analyzeId = result?.call_id || jobId
+    if (!analyzeId) return
     
     setAnalyzing(true)
     setAnalysisResult(null)
@@ -613,7 +614,7 @@ function MainApp() {
 
     try {
       const headers = await getAuthHeaders()
-      const response = await axios.post(`${API_URL}/api/analyze/${jobId}`, {}, { headers })
+      const response = await axios.post(`${API_URL}/api/analyze/${analyzeId}`, {}, { headers })
       const analysisId = response.data.analysis_id
       
       const pollAnalysis = setInterval(async () => {
