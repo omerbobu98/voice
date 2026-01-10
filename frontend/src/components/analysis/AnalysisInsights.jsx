@@ -111,9 +111,9 @@ function PreventionStoryCard({ story, TTSButton }) {
 }
 
 const tabs = [
-  { id: 'overview', label: 'Overview', icon: BarChart3, gradient: 'from-blue-500 to-cyan-500' },
-  { id: 'insights', label: 'Deep Insights', icon: Zap, gradient: 'from-violet-500 to-purple-500' },
-  { id: 'stories', label: 'Stories', icon: BookOpen, gradient: 'from-pink-500 to-rose-500' },
+  { id: 'overview', label: 'Overview', icon: BarChart3 },
+  { id: 'insights', label: 'Deep Insights', icon: Zap },
+  { id: 'stories', label: 'Stories', icon: BookOpen },
 ]
 
 export default function AnalysisInsights({ 
@@ -284,8 +284,8 @@ export default function AnalysisInsights({
         </div>
       )}
 
-      {/* Tab Navigation - Premium Design */}
-      <div className="flex items-center gap-2 p-1.5 bg-slate-900/60 backdrop-blur-sm rounded-2xl border border-slate-700/50 shadow-lg">
+      {/* Tab Navigation */}
+      <div className="flex items-center gap-1 p-1 bg-slate-800/30 rounded-xl border border-slate-700/30">
         {tabs.map(tab => {
           // Hide stories tab if no stories, hide insights if no data
           if (tab.id === 'stories' && !hasStories) return null
@@ -298,14 +298,14 @@ export default function AnalysisInsights({
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex-1 flex items-center justify-center gap-2.5 px-5 py-3 rounded-xl text-sm font-semibold transition-all duration-300 ${
+              className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
                 isActive
-                  ? `bg-gradient-to-r ${tab.gradient} text-white shadow-xl shadow-indigo-500/30 scale-[1.02]`
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                  ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/20'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
               }`}
             >
-              <Icon className={`w-4 h-4 ${isActive ? 'animate-pulse' : ''}`} />
-              <span>{tab.label}</span>
+              <Icon className="w-4 h-4" />
+              <span className="hidden sm:inline">{tab.label}</span>
             </button>
           )
         })}
@@ -314,15 +314,15 @@ export default function AnalysisInsights({
       {/* Tab Content */}
       <div className="min-h-[400px]">
         {activeTab === 'overview' && (
-          <div className="space-y-6">
+          <div className="space-y-4">
             {/* Top Row - Summary & Skill */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <AISummaryCard analysisResult={analysisResult} result={result} />
               <SkillRadarChart analysisResult={analysisResult} />
             </div>
 
             {/* Middle Row - Charts */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <TopicFrequencyChart analysisResult={analysisResult} />
               <TalkPatternChart 
                 utterances={result?.utterances || []}
@@ -332,164 +332,157 @@ export default function AnalysisInsights({
               />
             </div>
 
-            {/* Objections Summary - Show in Overview for visibility */}
-            {analysisResult?.analysis?.objections?.length > 0 && (
-              <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 overflow-hidden">
-                <div className="p-4 border-b border-slate-700/50 bg-gradient-to-r from-red-500/10 to-orange-500/5">
+            {/* Objections Quick View - Shows in Overview for prominence */}
+            {hasObjections && (
+              <div className="bg-gradient-to-br from-red-500/5 via-slate-800/50 to-orange-500/5 rounded-2xl border border-red-500/20 overflow-hidden shadow-lg">
+                <div className="p-5 border-b border-red-500/20 bg-gradient-to-r from-red-500/10 to-transparent">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-red-500/20 rounded-xl flex items-center justify-center">
-                        <MessageSquare className="w-5 h-5 text-red-400" />
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-gradient-to-br from-red-500/30 to-orange-500/20 rounded-xl flex items-center justify-center border border-red-500/30 shadow-lg shadow-red-500/10">
+                        <MessageSquare className="w-6 h-6 text-red-400" />
                       </div>
                       <div>
-                        <h3 className="text-lg font-semibold text-slate-200">Objections Detected</h3>
-                        <p className="text-sm text-slate-500">{analysisResult.analysis.objections.length} objections • Click for details</p>
+                        <h3 className="text-xl font-bold text-slate-100">Objections Detected</h3>
+                        <p className="text-sm text-slate-400">{analysisResult.analysis.objections.length} customer concerns identified</p>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-bold text-slate-200">
-                        {Math.round(analysisResult.analysis.objections.reduce((sum, o) => sum + (o.handling_score || 0), 0) / analysisResult.analysis.objections.length)}/10
-                      </div>
-                      <p className="text-xs text-slate-500">Avg Handling</p>
-                    </div>
+                    <button
+                      onClick={() => setActiveTab('insights')}
+                      className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-300 text-sm font-medium rounded-xl transition-all hover:scale-105 border border-red-500/30"
+                    >
+                      View Full Analysis →
+                    </button>
                   </div>
                 </div>
 
-                <div className="divide-y divide-slate-700/30 max-h-[400px] overflow-y-auto">
-                  {analysisResult.analysis.objections.map((objection, i) => {
-                    const typeColors = {
-                      price: { label: '💰 Price', color: 'bg-red-500/20 text-red-400' },
-                      timing: { label: '⏰ Timing', color: 'bg-amber-500/20 text-amber-400' },
-                      authority: { label: '👥 Authority', color: 'bg-purple-500/20 text-purple-400' },
-                      need: { label: '❓ Need', color: 'bg-blue-500/20 text-blue-400' },
-                      trust: { label: '🤝 Trust', color: 'bg-orange-500/20 text-orange-400' },
-                      spouse_decision: { label: '👫 Spouse', color: 'bg-pink-500/20 text-pink-400' },
-                      need_to_think: { label: '🤔 Think', color: 'bg-cyan-500/20 text-cyan-400' },
+                <div className="p-4 space-y-3 max-h-[400px] overflow-y-auto custom-scrollbar">
+                  {analysisResult.analysis.objections.slice(0, 3).map((objection, i) => {
+                    const typeInfo = {
+                      price: { emoji: '💰', label: 'Price', color: 'from-red-500/20 to-red-600/10 border-red-500/30 text-red-400' },
+                      timing: { emoji: '⏰', label: 'Timing', color: 'from-amber-500/20 to-amber-600/10 border-amber-500/30 text-amber-400' },
+                      authority: { emoji: '👔', label: 'Authority', color: 'from-purple-500/20 to-purple-600/10 border-purple-500/30 text-purple-400' },
+                      need: { emoji: '🤔', label: 'Need', color: 'from-blue-500/20 to-blue-600/10 border-blue-500/30 text-blue-400' },
+                      trust: { emoji: '🛡️', label: 'Trust', color: 'from-orange-500/20 to-orange-600/10 border-orange-500/30 text-orange-400' },
+                      spouse_decision: { emoji: '👫', label: 'Partner', color: 'from-pink-500/20 to-pink-600/10 border-pink-500/30 text-pink-400' },
+                      need_to_think: { emoji: '💭', label: 'Think', color: 'from-cyan-500/20 to-cyan-600/10 border-cyan-500/30 text-cyan-400' },
                     }
-                    const typeInfo = typeColors[objection.type] || { label: objection.type, color: 'bg-slate-500/20 text-slate-400' }
-                    const scoreColor = objection.handling_score >= 7 ? 'text-emerald-400' : objection.handling_score >= 4 ? 'text-amber-400' : 'text-red-400'
+                    const info = typeInfo[objection.type] || { emoji: '❓', label: objection.type, color: 'from-slate-500/20 to-slate-600/10 border-slate-500/30 text-slate-400' }
                     
                     return (
-                      <div key={i} className="p-4 hover:bg-slate-800/30 transition-colors">
-                        {/* Header with type and score */}
-                        <div className="flex items-start justify-between gap-3 mb-3">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${typeInfo.color}`}>
-                              {typeInfo.label}
-                            </span>
+                      <div key={i} className={`p-4 bg-gradient-to-br ${info.color} rounded-xl border`}>
+                        {/* Header */}
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xl">{info.emoji}</span>
+                            <span className={`font-semibold ${info.color.split(' ').pop()}`}>{info.label} Objection</span>
+                          </div>
+                          <div className="flex items-center gap-2">
                             {objection.timestamp && (
                               <button 
-                                className="text-xs font-mono px-2 py-1 bg-indigo-500/20 text-indigo-400 rounded-lg hover:bg-indigo-500/30 transition-colors flex items-center gap-1"
                                 onClick={() => onSeek && objection.timestamp_ms && onSeek(objection.timestamp_ms)}
+                                className="text-xs font-mono px-2 py-1 bg-indigo-500/20 text-indigo-400 rounded-lg hover:bg-indigo-500/30 transition-colors flex items-center gap-1"
                               >
-                                ▶ {objection.timestamp}
+                                <Activity className="w-3 h-3" /> {objection.timestamp}
                               </button>
                             )}
+                            <span className={`px-2 py-1 rounded-lg text-sm font-bold ${
+                              objection.handling_score >= 7 ? 'bg-emerald-500/20 text-emerald-400' : 
+                              objection.handling_score >= 4 ? 'bg-amber-500/20 text-amber-400' : 'bg-red-500/20 text-red-400'
+                            }`}>
+                              {objection.handling_score}/10
+                            </span>
                           </div>
-                          <span className={`text-lg font-bold ${scoreColor}`}>
-                            {objection.handling_score}/10
-                          </span>
                         </div>
-
-                        {/* Customer Objection */}
-                        <div className="mb-3">
-                          <p className="text-xs text-red-400 font-semibold mb-1">🗣️ Customer Said:</p>
+                        
+                        {/* Customer Quote */}
+                        <div className="p-3 bg-slate-900/50 rounded-xl border-l-4 border-red-500/50 mb-3">
+                          <p className="text-xs text-red-400 mb-1 font-semibold">🗣️ Customer:</p>
                           <p className="text-slate-200 font-medium">"{objection.buyer_statement}"</p>
                         </div>
-
-                        {/* Real Concern */}
-                        <div className="mb-3 p-2 bg-slate-900/50 rounded-lg">
-                          <p className="text-xs text-slate-500">Real Concern: <span className="text-slate-300">{objection.real_concern}</span></p>
-                        </div>
-
-                        {/* Our Response */}
-                        <div className="mb-3">
-                          <p className="text-xs text-slate-500 font-semibold mb-1">💬 Your Response:</p>
-                          <p className="text-slate-400 text-sm">"{objection.seller_response}"</p>
-                        </div>
-
-                        {/* Better Response */}
-                        <div className="p-3 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
-                          <div className="flex items-center justify-between mb-2">
-                            <p className="text-xs text-emerald-400 font-bold flex items-center gap-1">
-                              ✨ Better Response {objection.technique_to_use && `(${objection.technique_to_use})`}
-                            </p>
-                            <button
-                              onClick={async () => {
-                                await navigator.clipboard.writeText(objection.better_response)
-                              }}
-                              className="p-1 hover:bg-emerald-500/20 rounded-lg transition-colors"
-                            >
-                              <Copy className="w-3 h-3 text-emerald-400" />
-                            </button>
-                          </div>
-                          <p className="text-emerald-200 text-sm font-medium">"{objection.better_response}"</p>
-                          
-                          {/* TTS Button */}
-                          <div className="mt-2">
-                            <TTSButton text={objection.better_response} label="🔊 Listen" />
-                          </div>
+                        
+                        {/* Better Response Preview */}
+                        <div className="p-3 bg-emerald-500/10 rounded-xl border-l-4 border-emerald-500">
+                          <p className="text-xs text-emerald-400 mb-1 font-semibold">✨ Better Response:</p>
+                          <p className="text-emerald-200 text-sm line-clamp-2">{objection.better_response}</p>
                         </div>
                       </div>
                     )
                   })}
+                  
+                  {analysisResult.analysis.objections.length > 3 && (
+                    <button
+                      onClick={() => setActiveTab('insights')}
+                      className="w-full py-3 text-center text-sm text-red-400 hover:text-red-300 transition-colors bg-red-500/5 hover:bg-red-500/10 rounded-xl border border-red-500/20"
+                    >
+                      + {analysisResult.analysis.objections.length - 3} more objections - Click for detailed analysis
+                    </button>
+                  )}
                 </div>
               </div>
             )}
 
-            {/* Timeline Events - Professional Design */}
+            {/* Timeline Events - Professional Redesign */}
             {analysisResult?.analysis?.timeline_events?.length > 0 && (
-              <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 overflow-hidden">
-                <div className="p-4 border-b border-slate-700/50 bg-gradient-to-r from-cyan-500/10 to-indigo-500/5">
+              <div className="bg-gradient-to-br from-cyan-500/5 via-slate-800/50 to-indigo-500/5 rounded-2xl border border-cyan-500/20 overflow-hidden shadow-lg">
+                <div className="p-5 border-b border-cyan-500/20 bg-gradient-to-r from-cyan-500/10 to-transparent">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-cyan-500/20 rounded-xl flex items-center justify-center">
-                        <Activity className="w-5 h-5 text-cyan-400" />
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-gradient-to-br from-cyan-500/30 to-indigo-500/20 rounded-xl flex items-center justify-center border border-cyan-500/30 shadow-lg shadow-cyan-500/10">
+                        <Activity className="w-6 h-6 text-cyan-400" />
                       </div>
                       <div>
-                        <h3 className="text-lg font-semibold text-slate-200">Call Timeline</h3>
-                        <p className="text-sm text-slate-500">{analysisResult.analysis.timeline_events.length} key moments • Click to jump</p>
+                        <h3 className="text-xl font-bold text-slate-100">Call Timeline</h3>
+                        <p className="text-sm text-slate-400">{analysisResult.analysis.timeline_events.length} key moments in the conversation</p>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="p-4 relative">
-                  {/* Timeline bar */}
-                  <div className="absolute left-8 top-4 bottom-4 w-0.5 bg-gradient-to-b from-cyan-500 via-indigo-500 to-violet-500" />
+                <div className="p-5 relative">
+                  {/* Timeline vertical bar */}
+                  <div className="absolute left-9 top-5 bottom-5 w-1 bg-gradient-to-b from-cyan-500 via-indigo-500 to-violet-500 rounded-full" />
                   
-                  <div className="space-y-3 max-h-[500px] overflow-y-auto custom-scrollbar">
+                  <div className="space-y-4 max-h-[500px] overflow-y-auto custom-scrollbar pr-2">
                     {analysisResult.analysis.timeline_events.map((event, i) => {
-                      const eventColors = {
-                        discovery_question: { bg: 'bg-cyan-500', text: 'text-cyan-400', label: '🔍 Discovery' },
-                        diagnose: { bg: 'bg-blue-500', text: 'text-blue-400', label: '🩺 Diagnose' },
-                        closing_attempt: { bg: 'bg-emerald-500', text: 'text-emerald-400', label: '🎯 Closing' },
-                        rapport_building: { bg: 'bg-pink-500', text: 'text-pink-400', label: '🤝 Rapport' },
-                        value_proposition: { bg: 'bg-amber-500', text: 'text-amber-400', label: '💎 Value' },
-                        objection: { bg: 'bg-red-500', text: 'text-red-400', label: '⚠️ Objection' },
-                        pain_point: { bg: 'bg-orange-500', text: 'text-orange-400', label: '😣 Pain' },
-                        commitment: { bg: 'bg-green-500', text: 'text-green-400', label: '✅ Commitment' },
-                        next_step: { bg: 'bg-violet-500', text: 'text-violet-400', label: '➡️ Next Step' },
+                      const eventTypes = {
+                        discovery_question: { bg: 'bg-cyan-500', glow: 'shadow-cyan-500/50', text: 'text-cyan-400', emoji: '🔍', label: 'Discovery Question' },
+                        diagnose: { bg: 'bg-blue-500', glow: 'shadow-blue-500/50', text: 'text-blue-400', emoji: '🩺', label: 'Diagnosis' },
+                        closing_attempt: { bg: 'bg-emerald-500', glow: 'shadow-emerald-500/50', text: 'text-emerald-400', emoji: '🎯', label: 'Closing Attempt' },
+                        rapport_building: { bg: 'bg-pink-500', glow: 'shadow-pink-500/50', text: 'text-pink-400', emoji: '🤝', label: 'Rapport Building' },
+                        value_proposition: { bg: 'bg-amber-500', glow: 'shadow-amber-500/50', text: 'text-amber-400', emoji: '💎', label: 'Value Proposition' },
+                        objection: { bg: 'bg-red-500', glow: 'shadow-red-500/50', text: 'text-red-400', emoji: '⚠️', label: 'Objection Raised' },
+                        pain_point: { bg: 'bg-orange-500', glow: 'shadow-orange-500/50', text: 'text-orange-400', emoji: '😣', label: 'Pain Point' },
+                        commitment: { bg: 'bg-green-500', glow: 'shadow-green-500/50', text: 'text-green-400', emoji: '✅', label: 'Commitment' },
+                        next_step: { bg: 'bg-violet-500', glow: 'shadow-violet-500/50', text: 'text-violet-400', emoji: '➡️', label: 'Next Step' },
+                        trial_close: { bg: 'bg-teal-500', glow: 'shadow-teal-500/50', text: 'text-teal-400', emoji: '🌡️', label: 'Trial Close' },
+                        buying_signal: { bg: 'bg-lime-500', glow: 'shadow-lime-500/50', text: 'text-lime-400', emoji: '💫', label: 'Buying Signal' },
                       }
-                      const colors = eventColors[event.type] || { bg: 'bg-slate-500', text: 'text-slate-400', label: event.type }
+                      const type = eventTypes[event.type] || { bg: 'bg-slate-500', glow: 'shadow-slate-500/50', text: 'text-slate-400', emoji: '📌', label: event.type }
                       
                       return (
                         <div 
                           key={i} 
-                          className="relative pl-10 cursor-pointer group"
+                          className="relative pl-12 cursor-pointer group"
                           onClick={() => onSeek && event.timestamp_ms && onSeek(event.timestamp_ms)}
                         >
-                          <div className={`absolute left-[22px] w-3 h-3 rounded-full ${colors.bg} border-2 border-slate-800 group-hover:scale-125 transition-transform`} />
+                          {/* Timeline dot */}
+                          <div className={`absolute left-[26px] w-5 h-5 rounded-full ${type.bg} border-4 border-slate-800 group-hover:scale-125 transition-all duration-200 shadow-lg ${type.glow} z-10`} />
                           
-                          <div className="p-3 rounded-xl bg-slate-900/50 border border-slate-700/30 group-hover:border-slate-600/50 transition-all">
-                            <div className="flex flex-wrap items-center gap-2 mb-1">
-                              <span className={`text-xs font-semibold ${colors.text}`}>{colors.label}</span>
-                              <span className="text-xs font-mono text-slate-500">{event.timestamp}</span>
-                              <span className={`text-xs px-1.5 py-0.5 rounded ${event.speaker === 'Seller' ? 'bg-blue-500/20 text-blue-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
-                                {event.speaker}
+                          {/* Event card */}
+                          <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-700/40 group-hover:border-slate-600/60 group-hover:bg-slate-800/60 transition-all duration-200 shadow-md">
+                            <div className="flex flex-wrap items-center gap-2 mb-2">
+                              <span className="text-lg">{type.emoji}</span>
+                              <span className={`text-sm font-bold ${type.text}`}>{type.label}</span>
+                              <span className="text-xs font-mono px-2 py-0.5 bg-slate-700/50 text-slate-400 rounded">{event.timestamp}</span>
+                              <span className={`text-xs px-2 py-0.5 rounded-lg font-medium ${
+                                event.speaker === 'Seller' 
+                                  ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' 
+                                  : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                              }`}>
+                                {event.speaker === 'Seller' ? '👤 You' : '🧑‍💼 Customer'}
                               </span>
                             </div>
-                            <p className="text-sm text-slate-300">"{event.content}"</p>
+                            <p className="text-slate-200 leading-relaxed">"{event.content}"</p>
                           </div>
                         </div>
                       )
@@ -527,22 +520,17 @@ export default function AnalysisInsights({
               </div>
             )}
 
-            {/* Objection Prevention Stories - Premium Design */}
+            {/* Objection Prevention Stories */}
             {analysisResult?.analysis?.objection_prevention_stories?.length > 0 && (
-              <div className="bg-gradient-to-br from-violet-500/15 to-pink-500/10 rounded-2xl border border-violet-500/30 overflow-hidden shadow-xl shadow-violet-500/10">
-                <div className="p-5 border-b border-violet-500/20 bg-gradient-to-r from-violet-500/15 via-purple-500/10 to-transparent">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="w-14 h-14 bg-gradient-to-br from-violet-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-lg shadow-violet-500/30">
-                        <Zap className="w-7 h-7 text-white" />
-                      </div>
-                      <div>
-                        <h3 className="text-xl font-bold text-white">Objection Prevention Stories</h3>
-                        <p className="text-sm text-slate-400">Tell these stories BEFORE objections come up</p>
-                      </div>
+              <div className="bg-gradient-to-br from-violet-500/10 to-pink-500/10 rounded-xl border border-violet-500/20 overflow-hidden">
+                <div className="p-4 border-b border-violet-500/20 bg-violet-500/5">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-violet-500/20 rounded-xl flex items-center justify-center">
+                      <Zap className="w-5 h-5 text-violet-400" />
                     </div>
-                    <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-violet-500/20 rounded-full">
-                      <span className="text-xs text-violet-300 font-medium">🛡️ Prevention</span>
+                    <div>
+                      <h3 className="text-lg font-semibold text-slate-200">Objection Prevention Stories</h3>
+                      <p className="text-sm text-slate-500">Tell these stories BEFORE objections come up</p>
                     </div>
                   </div>
                 </div>
