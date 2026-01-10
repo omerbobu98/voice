@@ -16,6 +16,7 @@ import RegisterPage from './pages/RegisterPage'
 import AdminDashboard from './pages/AdminDashboard'
 import AdminCallsPage from './pages/AdminCallsPage'
 import AdminCallView from './pages/AdminCallView'
+import LiveCallPage from './pages/LiveCallPage'
 import { API_URL } from './lib/config'
 import { AnalysisInsights } from './components/analysis'
 import AIAssistant from './components/AIAssistant'
@@ -31,6 +32,7 @@ const stages = [
 
 const navItems = [
   { id: 'dashboard', label: 'Dashboard', icon: Home },
+  { id: 'live', label: 'Live Call', icon: Phone, highlight: true },
   { id: 'upload', label: 'New Call', icon: Upload },
   { id: 'calls', label: 'Call History', icon: History },
   { id: 'settings', label: 'Settings', icon: Settings },
@@ -928,6 +930,24 @@ function MainApp() {
             {navItems.map((item) => {
               const Icon = item.icon
               const isActive = activeTab === item.id
+              
+              // Special handling for Live Call - navigate to /live
+              if (item.id === 'live') {
+                return (
+                  <li key={item.id}>
+                    <a
+                      href="/live"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all bg-gradient-to-r from-violet-500/20 to-fuchsia-500/20 text-violet-400 border border-violet-500/30 hover:from-violet-500/30 hover:to-fuchsia-500/30"
+                    >
+                      <Icon className="w-5 h-5 flex-shrink-0" />
+                      <span className="font-medium">{item.label}</span>
+                      <span className="ml-auto px-2 py-0.5 bg-violet-500/30 text-violet-300 text-xs rounded-full">NEW</span>
+                    </a>
+                  </li>
+                )
+              }
+              
               return (
                 <li key={item.id}>
                   <button
@@ -1720,6 +1740,12 @@ function App() {
       <Route path="/admin/calls/:callId" element={
         <ProtectedRoute>
           <AdminCallView />
+        </ProtectedRoute>
+      } />
+      {/* Live Call Route */}
+      <Route path="/live" element={
+        <ProtectedRoute>
+          <LiveCallPage />
         </ProtectedRoute>
       } />
       <Route path="*" element={<Navigate to="/" replace />} />

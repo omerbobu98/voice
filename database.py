@@ -4,6 +4,7 @@ Database module for Supabase integration
 
 import os
 import uuid
+from datetime import datetime
 from supabase import create_client, Client
 from dotenv import load_dotenv
 
@@ -317,25 +318,41 @@ def get_user_role(user_id: str) -> str:
 
 
 def get_all_users_with_stats() -> list:
-    """Get all users with their call stats (admin only)"""
+    """Get all users with their call stats (admin only) - returns ALL registered users"""
     client = get_supabase()
     if not client:
         return []
     
     try:
-        # Get all users with their display info
+        # Get ALL users from auth.users via RPC function
         users_info = client.rpc('get_all_users_admin').execute()
+        print(f"[get_all_users_with_stats] RPC returned {len(users_info.data) if users_info.data else 0} users")
         
         if users_info.data:
             users = []
             for user in users_info.data:
-                stats = get_user_stats(user['user_id'])
+                user_id = user.get('user_id')
+                # Get stats for this user (calls, scores, etc.)
+                stats = get_user_stats(user_id)
+                # Merge user info with stats
                 users.append({
-                    **user,
-                    **stats
+                    'user_id': user_id,
+                    'email': user.get('email', ''),
+                    'display_name': user.get('display_name', user.get('email', '').split('@')[0] if user.get('email') else ''),
+                    'full_name': user.get('full_name', ''),
+                    'created_at': user.get('created_at'),
+                    'total_calls': stats.get('total_calls', 0),
+                    'analyzed_calls': stats.get('analyzed_calls', 0),
+                    'avg_score': stats.get('avg_score', 0),
+                    'avg_meddic_score': stats.get('avg_meddic_score', 0),
+                    'avg_bant_score': stats.get('avg_bant_score', 0),
+                    'avg_talk_ratio': stats.get('avg_talk_ratio', 50),
+                    'last_activity': stats.get('last_activity'),
+                    'role': stats.get('role', 'user')
                 })
             return users
         
+        print("[get_all_users_with_stats] RPC returned no data, falling back to calls table")
         # Fallback: get unique user_ids from calls table
         calls_result = client.table('calls').select('user_id').execute()
         user_ids = list(set([c['user_id'] for c in (calls_result.data or []) if c.get('user_id')]))
@@ -343,32 +360,14 @@ def get_all_users_with_stats() -> list:
         users = []
         for uid in user_ids:
             user_stats = get_user_stats(uid)
-            # Try to get email from display info function
-            try:
-                info = client.rpc('get_user_display_info', {'check_user_id': uid}).execute()
-                if info.data and len(info.data) > 0:
-                    user_stats['email'] = info.data[0].get('email', '')
-                    user_stats['display_name'] = info.data[0].get('display_name', '')
-            except:
-                pass
             users.append(user_stats)
         return users
         
     except Exception as e:
         print(f"[get_all_users_with_stats] Error: {e}")
-        # Fallback approach
-        try:
-            calls_result = client.table('calls').select('user_id').execute()
-            user_ids = list(set([c['user_id'] for c in (calls_result.data or []) if c.get('user_id')]))
-            
-            users = []
-            for uid in user_ids:
-                user_stats = get_user_stats(uid)
-                users.append(user_stats)
-            return users
-        except Exception as e2:
-            print(f"[get_all_users_with_stats] Fallback error: {e2}")
-            return []
+        import traceback
+        traceback.print_exc()
+        return []
 
 
 def get_user_stats(user_id: str) -> dict:
@@ -653,3 +652,218 @@ def get_dashboard_stats(user_id: str = None) -> dict:
         'risk_distribution': risk_dist,
         'recent_calls': calls_data[:5]
     }
+
+
+# ============ Live Session Functions ============
+
+def create_live_session(user_id: str, customer_name: str = None, 
+                        customer_phone: str = None, deal_type: str = None,
+                        estimated_value: float = None, coaching_language: str = 'he',
+                        coaching_intensity: str = 'balanced') -> dict:
+    """Create a new live call session"""
+    client = get_supabase()
+    if not client:
+        return None
+    
+    try:
+        data = {
+            'user_id': user_id,
+            'status': 'active',
+            'customer_name': customer_name,
+            'customer_phone': customer_phone,
+            'deal_type': deal_type,
+            'estimated_value': estimated_value,
+            'coaching_language': coaching_language,
+            'coaching_intensity': coaching_intensity,
+            'audio_coaching_enabled': True
+        }
+        
+        result = client.table('live_sessions').insert(data).execute()
+        if result.data:
+            print(f"[create_live_session] Created session {result.data[0]['id']}")
+            return result.data[0]
+        return None
+    except Exception as e:
+        print(f"[create_live_session] Error: {e}")
+        return None
+
+
+def get_live_session(session_id: str, user_id: str = None) -> dict:
+    """Get a live session by ID"""
+    client = get_supabase()
+    if not client:
+        return None
+    
+    try:
+        query = client.table('live_sessions').select('*').eq('id', session_id)
+        if user_id:
+            query = query.eq('user_id', user_id)
+        
+        result = query.single().execute()
+        return result.data if result.data else None
+    except Exception as e:
+        print(f"[get_live_session] Error: {e}")
+        return None
+
+
+def update_live_session(session_id: str, updates: dict) -> dict:
+    """Update a live session"""
+    client = get_supabase()
+    if not client:
+        return None
+    
+    try:
+        updates['updated_at'] = datetime.utcnow().isoformat()
+        result = client.table('live_sessions').update(updates).eq('id', session_id).execute()
+        return result.data[0] if result.data else None
+    except Exception as e:
+        print(f"[update_live_session] Error: {e}")
+        return None
+
+
+def end_live_session(session_id: str, final_data: dict = None) -> dict:
+    """End a live session and save final metrics"""
+    client = get_supabase()
+    if not client:
+        return None
+    
+    try:
+        updates = {
+            'status': 'ended',
+            'ended_at': datetime.utcnow().isoformat(),
+            'updated_at': datetime.utcnow().isoformat()
+        }
+        
+        if final_data:
+            updates.update({
+                'final_transcript': final_data.get('transcript'),
+                'total_words': final_data.get('total_words', 0),
+                'seller_talk_percentage': final_data.get('seller_talk_percentage', 50),
+                'buyer_talk_percentage': final_data.get('buyer_talk_percentage', 50),
+                'objections_count': final_data.get('objections_count', 0),
+                'buying_signals_count': final_data.get('buying_signals_count', 0),
+                'coaching_tips_delivered': final_data.get('coaching_tips_delivered', 0),
+                'duration_seconds': final_data.get('duration_seconds', 0)
+            })
+        
+        result = client.table('live_sessions').update(updates).eq('id', session_id).execute()
+        return result.data[0] if result.data else None
+    except Exception as e:
+        print(f"[end_live_session] Error: {e}")
+        return None
+
+
+def get_user_live_sessions(user_id: str, limit: int = 20) -> list:
+    """Get all live sessions for a user"""
+    client = get_supabase()
+    if not client:
+        return []
+    
+    try:
+        result = client.table('live_sessions').select('*').eq('user_id', user_id).order('created_at', desc=True).limit(limit).execute()
+        return result.data or []
+    except Exception as e:
+        print(f"[get_user_live_sessions] Error: {e}")
+        return []
+
+
+def save_live_insight(session_id: str, insight_type: str, coaching_message: str,
+                      timestamp_ms: int = 0, priority: str = 'medium',
+                      trigger_text: str = None, suggested_response: str = None,
+                      technique: str = None, delivery_method: str = 'audio') -> dict:
+    """Save a coaching insight delivered during live session"""
+    client = get_supabase()
+    if not client:
+        return None
+    
+    try:
+        data = {
+            'session_id': session_id,
+            'timestamp_ms': timestamp_ms,
+            'insight_type': insight_type,
+            'priority': priority,
+            'trigger_text': trigger_text,
+            'coaching_message': coaching_message,
+            'suggested_response': suggested_response,
+            'technique': technique,
+            'delivery_method': delivery_method,
+            'was_delivered': True
+        }
+        
+        result = client.table('live_insights').insert(data).execute()
+        return result.data[0] if result.data else None
+    except Exception as e:
+        print(f"[save_live_insight] Error: {e}")
+        return None
+
+
+def get_session_insights(session_id: str) -> list:
+    """Get all insights for a session"""
+    client = get_supabase()
+    if not client:
+        return []
+    
+    try:
+        result = client.table('live_insights').select('*').eq('session_id', session_id).order('timestamp_ms').execute()
+        return result.data or []
+    except Exception as e:
+        print(f"[get_session_insights] Error: {e}")
+        return []
+
+
+def save_transcript_chunk(session_id: str, start_ms: int, end_ms: int,
+                          speaker: str, text: str, confidence: float = None,
+                          contains_objection: bool = False,
+                          contains_buying_signal: bool = False,
+                          sentiment: str = None) -> dict:
+    """Save a transcript chunk from live session"""
+    client = get_supabase()
+    if not client:
+        return None
+    
+    try:
+        data = {
+            'session_id': session_id,
+            'start_ms': start_ms,
+            'end_ms': end_ms,
+            'speaker': speaker,
+            'text': text,
+            'confidence': confidence,
+            'contains_objection': contains_objection,
+            'contains_buying_signal': contains_buying_signal,
+            'sentiment': sentiment
+        }
+        
+        result = client.table('live_transcript_chunks').insert(data).execute()
+        return result.data[0] if result.data else None
+    except Exception as e:
+        print(f"[save_transcript_chunk] Error: {e}")
+        return None
+
+
+def get_session_transcript(session_id: str) -> list:
+    """Get full transcript for a session"""
+    client = get_supabase()
+    if not client:
+        return []
+    
+    try:
+        result = client.table('live_transcript_chunks').select('*').eq('session_id', session_id).order('start_ms').execute()
+        return result.data or []
+    except Exception as e:
+        print(f"[get_session_transcript] Error: {e}")
+        return []
+
+
+def get_active_session(user_id: str) -> dict:
+    """Get the user's active live session if any"""
+    client = get_supabase()
+    if not client:
+        return None
+    
+    try:
+        result = client.table('live_sessions').select('*').eq('user_id', user_id).eq('status', 'active').order('created_at', desc=True).limit(1).execute()
+        return result.data[0] if result.data else None
+    except Exception as e:
+        print(f"[get_active_session] Error: {e}")
+        return None

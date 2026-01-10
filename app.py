@@ -15,7 +15,11 @@ from database import (
     save_call, save_analysis, get_all_calls, get_call_with_analysis, 
     get_dashboard_stats, test_connection, upload_audio_file,
     is_user_admin, get_user_role, get_all_users_with_stats, get_user_stats,
-    get_user_calls, get_admin_dashboard_stats, update_user_role
+    get_user_calls, get_admin_dashboard_stats, update_user_role,
+    # Live session functions
+    create_live_session, get_live_session, update_live_session, end_live_session,
+    get_user_live_sessions, save_live_insight, get_session_insights,
+    save_transcript_chunk, get_session_transcript, get_active_session
 )
 from functools import wraps
 
@@ -841,6 +845,322 @@ def generate_pdf_report():
         import traceback
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
+
+
+# ============ Live Call Session Endpoints ============
+
+LIVE_COACH_SYSTEM_PROMPT = """You are an ELITE REAL-TIME Sales Coach providing INSTANT coaching during a live sales call.
+
+## YOUR ROLE:
+You analyze transcript chunks in real-time and provide IMMEDIATE, ACTIONABLE coaching.
+
+## RESPONSE RULES:
+1. Be BRIEF but COMPLETE - the rep needs to understand quickly
+2. Provide EXACT SCRIPTS they can say immediately
+3. Focus on ONE thing at a time - don't overwhelm
+4. Always relate to closing the deal
+
+## COACHING TYPES:
+
+### OBJECTION_DETECTED (URGENT)
+When customer raises concern:
+- Acknowledge the objection type
+- Provide immediate response script (30-60 words max)
+- Include closing bridge question
+
+### BUYING_SIGNAL (URGENT)
+When customer shows interest:
+- Alert that this is a closing opportunity
+- Provide specific closing script
+- Be assumptive
+
+### TALK_BALANCE_ALERT (HIGH)
+When seller talks too much:
+- Brief reminder to ask a question
+- Suggest specific discovery question
+
+### DISCOVERY_PROMPT (MEDIUM)
+When more discovery needed:
+- Suggest specific question to ask
+- Explain what info to uncover
+
+### CLOSING_OPPORTUNITY (HIGH)
+When it's time to close:
+- Provide specific closing technique
+- Give exact script
+
+## OUTPUT FORMAT (JSON):
+{
+  "insight_type": "objection_detected|buying_signal|talk_balance_alert|discovery_prompt|closing_opportunity|value_building_cue",
+  "priority": "urgent|high|medium|low",
+  "coaching_message": "Brief explanation for the rep",
+  "suggested_response": "Exact script to say (in Hebrew or English based on call language)",
+  "technique": "Name of sales technique",
+  "audio_script": "Short version for TTS (15-25 words max)"
+}
+
+Return ONLY valid JSON. If nothing actionable, return: {"insight_type": "none"}
+"""
+
+
+@app.route('/api/live/sessions', methods=['GET'])
+def get_live_sessions():
+    """Get all live sessions for the current user"""
+    user_id = get_user_id_from_token()
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    sessions = get_user_live_sessions(user_id)
+    return jsonify(sessions)
+
+
+@app.route('/api/live/sessions', methods=['POST'])
+def start_live_session():
+    """Start a new live call session"""
+    user_id = get_user_id_from_token()
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    # Check for existing active session
+    active = get_active_session(user_id)
+    if active:
+        return jsonify({'error': 'Already have an active session', 'session': active}), 400
+    
+    data = request.json or {}
+    session = create_live_session(
+        user_id=user_id,
+        customer_name=data.get('customer_name'),
+        customer_phone=data.get('customer_phone'),
+        deal_type=data.get('deal_type'),
+        estimated_value=data.get('estimated_value'),
+        coaching_language=data.get('coaching_language', 'he'),
+        coaching_intensity=data.get('coaching_intensity', 'balanced')
+    )
+    
+    if session:
+        return jsonify(session)
+    return jsonify({'error': 'Failed to create session'}), 500
+
+
+@app.route('/api/live/sessions/<session_id>', methods=['GET'])
+def get_session_detail(session_id):
+    """Get details of a specific live session"""
+    user_id = get_user_id_from_token()
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    session = get_live_session(session_id, user_id)
+    if not session:
+        return jsonify({'error': 'Session not found'}), 404
+    
+    # Include insights and transcript
+    insights = get_session_insights(session_id)
+    transcript = get_session_transcript(session_id)
+    
+    return jsonify({
+        'session': session,
+        'insights': insights,
+        'transcript': transcript
+    })
+
+
+@app.route('/api/live/sessions/<session_id>/end', methods=['POST'])
+def end_session(session_id):
+    """End a live session"""
+    user_id = get_user_id_from_token()
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    # Verify ownership
+    session = get_live_session(session_id, user_id)
+    if not session:
+        return jsonify({'error': 'Session not found'}), 404
+    
+    data = request.json or {}
+    result = end_live_session(session_id, data)
+    
+    if result:
+        return jsonify(result)
+    return jsonify({'error': 'Failed to end session'}), 500
+
+
+@app.route('/api/live/sessions/<session_id>/transcript', methods=['POST'])
+def add_transcript_chunk(session_id):
+    """Add a transcript chunk to the session"""
+    user_id = get_user_id_from_token()
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    data = request.json
+    if not data or not data.get('text'):
+        return jsonify({'error': 'Text is required'}), 400
+    
+    chunk = save_transcript_chunk(
+        session_id=session_id,
+        start_ms=data.get('start_ms', 0),
+        end_ms=data.get('end_ms', 0),
+        speaker=data.get('speaker', 'unknown'),
+        text=data.get('text'),
+        confidence=data.get('confidence'),
+        contains_objection=data.get('contains_objection', False),
+        contains_buying_signal=data.get('contains_buying_signal', False),
+        sentiment=data.get('sentiment')
+    )
+    
+    if chunk:
+        return jsonify(chunk)
+    return jsonify({'error': 'Failed to save chunk'}), 500
+
+
+@app.route('/api/live/sessions/<session_id>/analyze', methods=['POST'])
+def analyze_live_chunk(session_id):
+    """Analyze a transcript chunk and return real-time coaching"""
+    if not openai_client:
+        return jsonify({'error': 'OpenAI not configured'}), 500
+    
+    user_id = get_user_id_from_token()
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    data = request.json
+    if not data:
+        return jsonify({'error': 'Data required'}), 400
+    
+    transcript_chunk = data.get('transcript_chunk', '')
+    full_context = data.get('full_context', '')
+    call_duration_seconds = data.get('duration_seconds', 0)
+    seller_talk_pct = data.get('seller_talk_percentage', 50)
+    coaching_language = data.get('coaching_language', 'he')
+    
+    # Build context for AI
+    context = f"""
+## CURRENT TRANSCRIPT CHUNK (last 30 seconds):
+{transcript_chunk}
+
+## FULL CALL CONTEXT (summary):
+{full_context[:2000] if full_context else 'Beginning of call'}
+
+## CALL METRICS:
+- Duration: {call_duration_seconds} seconds
+- Seller Talk: {seller_talk_pct}%
+- Language: {'Hebrew' if coaching_language == 'he' else 'English'}
+
+## ANALYZE AND PROVIDE COACHING:
+Look for:
+1. Customer objections or hesitations
+2. Buying signals (interest, questions about next steps, pricing)
+3. If seller is talking too much (>60%)
+4. Opportunities to close or build value
+
+Respond in {'Hebrew' if coaching_language == 'he' else 'English'}.
+"""
+    
+    try:
+        response = openai_client.chat.completions.create(
+            model="gpt-4o-mini",  # Fast model for real-time
+            messages=[
+                {"role": "system", "content": LIVE_COACH_SYSTEM_PROMPT},
+                {"role": "user", "content": context}
+            ],
+            temperature=0.3,
+            max_completion_tokens=500
+        )
+        
+        result_text = response.choices[0].message.content.strip()
+        
+        # Parse JSON response
+        try:
+            # Handle markdown code blocks
+            if '```json' in result_text:
+                result_text = result_text.split('```json')[1].split('```')[0].strip()
+            elif '```' in result_text:
+                result_text = result_text.split('```')[1].split('```')[0].strip()
+            
+            insight = json.loads(result_text)
+            
+            # If no actionable insight, return empty
+            if insight.get('insight_type') == 'none':
+                return jsonify({'insight': None, 'has_insight': False})
+            
+            # Save insight to database
+            saved = save_live_insight(
+                session_id=session_id,
+                insight_type=insight.get('insight_type', 'discovery_prompt'),
+                coaching_message=insight.get('coaching_message', ''),
+                timestamp_ms=data.get('timestamp_ms', 0),
+                priority=insight.get('priority', 'medium'),
+                trigger_text=transcript_chunk[:500],
+                suggested_response=insight.get('suggested_response'),
+                technique=insight.get('technique'),
+                delivery_method='audio' if insight.get('priority') in ['urgent', 'high'] else 'visual'
+            )
+            
+            return jsonify({
+                'insight': insight,
+                'has_insight': True,
+                'saved_id': saved.get('id') if saved else None
+            })
+            
+        except json.JSONDecodeError:
+            print(f"[analyze_live_chunk] JSON parse error: {result_text}")
+            return jsonify({'insight': None, 'has_insight': False, 'raw': result_text})
+            
+    except Exception as e:
+        print(f"[analyze_live_chunk] Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/live/sessions/<session_id>/tts', methods=['POST'])
+def live_session_tts(session_id):
+    """Generate TTS audio for live coaching insight"""
+    if not openai_client:
+        return jsonify({'error': 'OpenAI not configured'}), 500
+    
+    user_id = get_user_id_from_token()
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    data = request.json
+    text = data.get('text', '')
+    
+    if not text:
+        return jsonify({'error': 'Text required'}), 400
+    
+    # Keep it short for real-time
+    if len(text) > 200:
+        text = text[:200]
+    
+    try:
+        response = openai_client.audio.speech.create(
+            model="tts-1",  # Faster model
+            voice="nova",
+            input=text,
+            speed=1.1  # Slightly faster for urgency
+        )
+        
+        audio_filename = f"live_tts_{uuid.uuid4().hex[:8]}.mp3"
+        audio_path = os.path.join(UPLOAD_FOLDER, audio_filename)
+        response.stream_to_file(audio_path)
+        
+        return jsonify({
+            'audio_url': f'/api/audio/{audio_filename}',
+            'text': text
+        })
+        
+    except Exception as e:
+        print(f"[live_session_tts] Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/live/active', methods=['GET'])
+def get_active_live_session():
+    """Get the user's currently active session if any"""
+    user_id = get_user_id_from_token()
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    session = get_active_session(user_id)
+    return jsonify({'session': session, 'has_active': session is not None})
 
 
 if __name__ == '__main__':
