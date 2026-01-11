@@ -1237,7 +1237,7 @@ def get_active_live_session():
 
 @app.route('/api/live/assemblyai-token', methods=['GET'])
 def get_assemblyai_token():
-    """Get API key for AssemblyAI Universal Streaming"""
+    """Get temporary token for AssemblyAI Universal Streaming"""
     user_id = get_user_id_from_token()
     if not user_id:
         return jsonify({'error': 'Authentication required'}), 401
@@ -1246,10 +1246,30 @@ def get_assemblyai_token():
         return jsonify({'error': 'AssemblyAI not configured'}), 500
     
     try:
-        print(f"[get_assemblyai_token] Returning API key for user {user_id}")
+        import requests
+        
+        # Request a temporary token from AssemblyAI
+        response = requests.post(
+            'https://api.assemblyai.com/v2/realtime/token',
+            headers={
+                'Authorization': ASSEMBLYAI_API_KEY,
+                'Content-Type': 'application/json'
+            },
+            json={
+                'expires_in': 3600  # 1 hour
+            }
+        )
+        
+        if response.status_code != 200:
+            print(f"[get_assemblyai_token] AssemblyAI error: {response.status_code} - {response.text}")
+            return jsonify({'error': f'AssemblyAI token error: {response.text}'}), 500
+        
+        token_data = response.json()
+        token = token_data.get('token')
+        
+        print(f"[get_assemblyai_token] Got temporary token for user {user_id}")
         return jsonify({
-            'api_key': ASSEMBLYAI_API_KEY,
-            'api_host': 'streaming.assemblyai.com'
+            'token': token
         })
         
     except Exception as e:
@@ -1261,16 +1281,40 @@ def get_assemblyai_token():
 
 @app.route('/api/live/test-assemblyai', methods=['GET'])
 def test_assemblyai():
-    """Test AssemblyAI configuration"""
+    """Test AssemblyAI token generation"""
     if not ASSEMBLYAI_API_KEY:
         return jsonify({'error': 'ASSEMBLYAI_API_KEY not set', 'configured': False})
     
     try:
+        import requests
+        
+        # Test token generation
+        response = requests.post(
+            'https://api.assemblyai.com/v2/realtime/token',
+            headers={
+                'Authorization': ASSEMBLYAI_API_KEY,
+                'Content-Type': 'application/json'
+            },
+            json={
+                'expires_in': 60  # Short expiry for test
+            }
+        )
+        
+        if response.status_code != 200:
+            return jsonify({
+                'success': False,
+                'configured': True,
+                'token_generation': False,
+                'error': f'Token error: {response.status_code} - {response.text}'
+            })
+        
+        token_data = response.json()
         return jsonify({
             'success': True,
             'configured': True,
-            'api_key_preview': ASSEMBLYAI_API_KEY[:10] + '...' if ASSEMBLYAI_API_KEY else None,
-            'api_host': 'streaming.assemblyai.com'
+            'token_generation': True,
+            'has_token': bool(token_data.get('token')),
+            'api_key_preview': ASSEMBLYAI_API_KEY[:10] + '...' if ASSEMBLYAI_API_KEY else None
         })
     except Exception as e:
         import traceback

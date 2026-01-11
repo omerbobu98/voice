@@ -235,61 +235,61 @@ export default function LiveCallPageMobile() {
       })
       streamRef.current = stream
       
-      let apiKey = null
+      let token = null
       try {
         const headers = await getAuthHeaders()
         const tokenRes = await axios.get(`${API_URL}/api/live/assemblyai-token`, { headers })
-        apiKey = tokenRes.data?.api_key
-        console.log('Got AssemblyAI API key:', apiKey ? 'yes' : 'no')
+        token = tokenRes.data?.token
+        console.log('Got AssemblyAI token:', token ? 'yes' : 'no')
       } catch (tokenErr) {
-        console.error('Failed to get AssemblyAI API key:', tokenErr)
+        console.error('Failed to get AssemblyAI token:', tokenErr)
         setConnectionStatus('error')
       }
       
-      if (apiKey) {
+      if (token) {
         audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 })
         const source = audioContextRef.current.createMediaStreamSource(stream)
         const processor = audioContextRef.current.createScriptProcessor(4096, 1, 1)
         
         setConnectionStatus('connecting')
-        const socket = new WebSocket(`wss://streaming.assemblyai.com?api_key=${apiKey}`)
+        // Correct AssemblyAI Universal Streaming URL format
+        const socket = new WebSocket(`wss://api.assemblyai.com/v2/realtime/ws?sample_rate=16000&token=${token}`)
         socketRef.current = socket
         
         socket.onopen = () => {
           console.log('AssemblyAI WebSocket connected!')
-          const beginMessage = {
-            type: 'begin',
-            audio_format: {
-              encoding: 'pcm_s16le',
-              sample_rate: 16000
-            }
-          }
-          socket.send(JSON.stringify(beginMessage))
           setConnectionStatus('connected')
         }
         
         socket.onmessage = (event) => {
           try {
             const data = JSON.parse(event.data)
+            console.log('AssemblyAI message:', data.message_type, data)
             
-            if (data.type === 'turn' && data.transcript?.text) {
+            // Handle AssemblyAI real-time API format
+            if (data.message_type === 'FinalTranscript' && data.text) {
               const newChunk = {
-                text: data.transcript.text,
+                text: data.text,
                 speaker: 'דובר',
                 timestamp: duration,
-                confidence: data.transcript.confidence || 1.0
+                confidence: data.confidence || 1.0
               }
               setTranscript(prev => [...prev, newChunk])
               setLiveText('')
-              setTotalWords(prev => prev + data.transcript.text.split(' ').length)
-            } else if (data.type === 'partial' && data.transcript?.text) {
-              setLiveText(data.transcript.text)
-            } else if (data.type === 'error') {
+              setTotalWords(prev => prev + data.text.split(' ').length)
+            } else if (data.message_type === 'PartialTranscript' && data.text) {
+              setLiveText(data.text)
+            } else if (data.error) {
               console.error('AssemblyAI error:', data.error)
               setConnectionStatus('error')
+            } else if (data.message_type === 'SessionBegins') {
+              console.log('Session started:', data.session_id)
+            } else if (data.message_type === 'SessionTerminated') {
+              console.log('Session terminated')
+              setConnectionStatus('disconnected')
             }
           } catch (parseErr) {
-            console.error('Error parsing message:', parseErr)
+            console.error('Error parsing message:', parseErr, event.data)
           }
         }
         
@@ -319,10 +319,8 @@ export default function LiveCallPageMobile() {
             }
             const base64 = btoa(binary)
             
-            socket.send(JSON.stringify({ 
-              type: 'audio',
-              audio_data: base64 
-            }))
+            // AssemblyAI real-time API expects audio_data field
+            socket.send(JSON.stringify({ audio_data: base64 }))
           }
         }
         
