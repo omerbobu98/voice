@@ -16,7 +16,7 @@ import RegisterPage from './pages/RegisterPage'
 import AdminDashboard from './pages/AdminDashboard'
 import AdminCallsPage from './pages/AdminCallsPage'
 import AdminCallView from './pages/AdminCallView'
-import LiveCallPage from './pages/LiveCallPage'
+import LiveCallPageMobile from './pages/LiveCallPageMobile'
 import { API_URL } from './lib/config'
 import { AnalysisInsights } from './components/analysis'
 import AIAssistant from './components/AIAssistant'
@@ -1745,7 +1745,7 @@ function App() {
       {/* Live Call Route */}
       <Route path="/live" element={
         <ProtectedRoute>
-          <LiveCallPage />
+          <LiveCallPageMobile />
         </ProtectedRoute>
       } />
       <Route path="*" element={<Navigate to="/" replace />} />

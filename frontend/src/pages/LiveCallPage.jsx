@@ -189,82 +189,89 @@ export default function LiveCallPage() {
     startTimer()
     
     try {
-      // Get microphone access first
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      // Get microphone access first with specific constraints for 16kHz
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          sampleRate: 16000,
+          channelCount: 1,
+          echoCancellation: true,
+          noiseSuppression: true
+        }
+      })
       streamRef.current = stream
       
-      // Try to get AssemblyAI real-time token
-      let token = null
+      // Try to get AssemblyAI API key
+      let apiKey = null
       try {
         const headers = await getAuthHeaders()
         const tokenRes = await axios.get(`${API_URL}/api/live/assemblyai-token`, { headers })
-        token = tokenRes.data?.token
-        console.log('Got AssemblyAI token:', token ? 'yes' : 'no')
+        apiKey = tokenRes.data?.api_key
+        console.log('Got AssemblyAI API key:', apiKey ? 'yes' : 'no')
       } catch (tokenErr) {
-        console.error('Failed to get AssemblyAI token:', tokenErr)
+        console.error('Failed to get AssemblyAI API key:', tokenErr)
         setConnectionStatus('error')
       }
       
-      if (token) {
-        // Create audio context for processing
-        audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)()
+      if (apiKey) {
+        // Create audio context for processing at 16kHz (AssemblyAI requirement)
+        audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 })
         const source = audioContextRef.current.createMediaStreamSource(stream)
+        
+        // Use ScriptProcessor for audio processing (4096 samples at 16kHz = ~256ms chunks)
         const processor = audioContextRef.current.createScriptProcessor(4096, 1, 1)
         
-        // Connect to AssemblyAI Universal Streaming WebSocket (new API)
+        // Connect to AssemblyAI Universal Streaming WebSocket
         setConnectionStatus('connecting')
-        const socket = new WebSocket(`wss://streaming.assemblyai.com?token=${token}`)
+        const socket = new WebSocket(`wss://streaming.assemblyai.com?api_key=${apiKey}`)
         socketRef.current = socket
         
         socket.onopen = () => {
           console.log('AssemblyAI WebSocket connected!')
+          
+          // Send begin message to start session
+          const beginMessage = {
+            type: 'begin',
+            audio_format: {
+              encoding: 'pcm_s16le',
+              sample_rate: 16000
+            }
+          }
+          socket.send(JSON.stringify(beginMessage))
+          console.log('Sent begin message:', beginMessage)
           setConnectionStatus('connected')
         }
         
         socket.onmessage = (event) => {
           try {
             const data = JSON.parse(event.data)
-            console.log('AssemblyAI message:', data.type || data.message_type, data)
+            console.log('AssemblyAI message:', data.type, data)
             
             // Handle Universal Streaming API format
             if (data.type === 'turn' && data.transcript?.text) {
-              // Turn event with transcript
+              // Turn event - final transcript for this turn
               const newChunk = {
                 text: data.transcript.text,
                 speaker: 'דובר',
                 timestamp: duration,
-                confidence: 1.0
+                confidence: data.transcript.confidence || 1.0
               }
               setTranscript(prev => [...prev, newChunk])
               setLiveText('')
               setTotalWords(prev => prev + data.transcript.text.split(' ').length)
             } else if (data.type === 'partial' && data.transcript?.text) {
-              // Partial transcript - show live
+              // Partial transcript - show live as user speaks
               setLiveText(data.transcript.text)
-            } else if (data.message_type === 'FinalTranscript' && data.text) {
-              // Old API format fallback
-              const newChunk = {
-                text: data.text,
-                speaker: 'דובר',
-                timestamp: duration,
-                confidence: data.confidence || 1.0
-              }
-              setTranscript(prev => [...prev, newChunk])
-              setLiveText('')
-              setTotalWords(prev => prev + data.text.split(' ').length)
-            } else if (data.message_type === 'PartialTranscript' && data.text) {
-              setLiveText(data.text)
-            } else if (data.error) {
+            } else if (data.type === 'error') {
               console.error('AssemblyAI error:', data.error)
               setConnectionStatus('error')
             } else if (data.type === 'begin') {
               console.log('Session started:', data.id)
             } else if (data.type === 'termination') {
-              console.log('Session terminated')
+              console.log('Session terminated:', data.reason)
               setConnectionStatus('disconnected')
             }
           } catch (parseErr) {
-            console.error('Error parsing message:', parseErr)
+            console.error('Error parsing message:', parseErr, event.data)
           }
         }
         
@@ -282,27 +289,34 @@ export default function LiveCallPage() {
         processor.onaudioprocess = (e) => {
           if (socket.readyState === WebSocket.OPEN && !isPaused) {
             const inputData = e.inputBuffer.getChannelData(0)
-            // Convert float32 to int16
+            
+            // Convert float32 [-1, 1] to PCM16 int16 [-32768, 32767]
             const pcmData = new Int16Array(inputData.length)
             for (let i = 0; i < inputData.length; i++) {
               const s = Math.max(-1, Math.min(1, inputData[i]))
               pcmData[i] = s < 0 ? s * 0x8000 : s * 0x7FFF
             }
-            // Send as base64
+            
+            // Convert to base64 for WebSocket transmission
             const uint8 = new Uint8Array(pcmData.buffer)
             let binary = ''
             for (let i = 0; i < uint8.length; i++) {
               binary += String.fromCharCode(uint8[i])
             }
             const base64 = btoa(binary)
-            socket.send(JSON.stringify({ audio_data: base64 }))
+            
+            // Send audio data message
+            socket.send(JSON.stringify({ 
+              type: 'audio',
+              audio_data: base64 
+            }))
           }
         }
         
         source.connect(processor)
         processor.connect(audioContextRef.current.destination)
       } else {
-        // No token - manual mode only
+        // No API key - manual mode only
         console.log('Running in manual mode - no real-time transcription')
         setConnectionStatus('manual')
       }

@@ -1,55 +1,89 @@
-# פרומפט לשיחה הבאה - עבודה על Live Call Feature
+# Live Call Feature - מצב עדכני (10 בינואר 2026, 6:30pm)
 
-## הקשר
-ביום 10 בינואר 2026 עבדנו על שיפור ה-AI Coach והניתוח של שיחות מוקלטות. 
-**עכשיו אנחנו רוצים לעבוד על Live Call Feature** - המערכת שמאפשרת ניתוח בזמן אמת במהלך שיחת מכירה.
+## ✅ תוקן היום - WebSocket ותמלול בזמן אמת
+
+### שינויים שבוצעו:
+
+#### 1. **Backend - AssemblyAI API Integration** (`app.py`)
+- ✅ **תוקן endpoint `/api/live/assemblyai-token`** - מחזיר API key ישירות במקום לנסות ליצור temporary token
+- ✅ **תוקן test endpoint** - פשוט בודק אם יש API key
+- ✅ **עדכון LIVE_COACH_SYSTEM_PROMPT** - עכשיו כולל:
+  - 3 Program Benefits המדויקים (Incentives, NMOOP, Made in USA)
+  - המוצרים הנכונים (Cool Life Paint, Turf, Pavers, etc.)
+  - Storytelling Framework (6 elements)
+  - הסיפורים המרכזיים (Military Tank, David's Wait, Maria's Spouse, Johnson's Contractor)
+
+#### 2. **Frontend - WebSocket Protocol** (`LiveCallPage.jsx`)
+- ✅ **תוקן WebSocket connection** - שימוש ב-`api_key` במקום `token` ב-URL
+- ✅ **הוספת begin message** - שליחת הודעת התחלה עם audio format
+- ✅ **תוקן audio processing**:
+  - Sample rate: 16kHz (דרישת AssemblyAI)
+  - Audio format: PCM16 (pcm_s16le)
+  - שליחת הודעות עם `type: 'audio'`
+- ✅ **תוקן message handling** - תמיכה ב-`turn`, `partial`, `error`, `begin`, `termination`
+
+### AssemblyAI Universal Streaming - פרוטוקול נכון:
+```javascript
+// WebSocket URL
+wss://streaming.assemblyai.com?api_key=YOUR_API_KEY
+
+// Begin message (שולחים מיד אחרי connection)
+{
+  "type": "begin",
+  "audio_format": {
+    "encoding": "pcm_s16le",
+    "sample_rate": 16000
+  }
+}
+
+// Audio messages (שולחים כל ~256ms)
+{
+  "type": "audio",
+  "audio_data": "base64_encoded_pcm16_data"
+}
+
+// Response messages
+- type: "begin" - session started
+- type: "partial" - live transcript (מתעדכן כל הזמן)
+- type: "turn" - final transcript (כשהדובר מפסיק)
+- type: "error" - שגיאה
+- type: "termination" - session ended
+```
 
 ---
 
 ## מצב נוכחי של Live Call
 
-### מה כבר בנוי:
-1. **Live Call Page** (`/live` route) - עמוד עם ממשק למעקב בזמן אמת
-2. **AssemblyAI Universal Streaming** - אינטגרציה לתמלול בזמן אמת
-3. **AI Coaching Engine** - GPT-4o-mini למשוב מיידי במהלך שיחות
-4. **Database Tables**:
-   - `live_sessions` - מטא-דאטה של סשנים
-   - `live_insights` - תובנות אימון שנוצרו
-   - `live_transcript_chunks` - קטעי תמלול
+### מה עובד:
+1. ✅ **Live Call Page** - ממשק מלא עם setup modal
+2. ✅ **WebSocket Protocol** - נכון לפי AssemblyAI Universal Streaming
+3. ✅ **Audio Processing** - PCM16 @ 16kHz
+4. ✅ **AI Coaching Engine** - GPT-4o-mini עם המתודולוגיה המדויקת
+5. ✅ **Database Tables** - live_sessions, live_insights, live_transcript_chunks
 
-### קבצים רלוונטיים:
-- `frontend/src/pages/LiveCallPage.jsx` - ממשק Live Call
-- `app.py` שורות 852-925 - `LIVE_COACH_SYSTEM_PROMPT`
-- `app.py` שורות 1188-1257 - AssemblyAI token endpoints
-- `app.py` שורות 1260+ - `/api/live/sessions/<id>/process-transcript`
-
-### בעיות ידועות שצריך לטפל בהן:
-1. **Real-time transcription** - WebSocket connection מראה "מנותק" בממשק
-2. **Audio processing** - PCM encoding ו-base64 conversion ל-WebSocket
-3. **AI coaching delivery** - TTS audio playback לאוזנייה
-
-### AssemblyAI Integration:
-- **API ישן (לא עובד)**: `wss://api.assemblyai.com/v2/realtime/ws`
-- **API חדש**: `wss://streaming.assemblyai.com?token=<token>` (Universal Streaming)
-- Token endpoint משתמש ב-AssemblyAI SDK v3: `from assemblyai.streaming.v3 import StreamingClient`
-- Test endpoint: `/api/live/test-assemblyai` (ללא auth לצורך debug)
+### מה צריך לבדוק:
+1. ⏳ **Real-time transcription** - לבדוק שה-WebSocket באמת מתחבר ומתמלל
+2. ⏳ **AI coaching generation** - לבדוק שהתובנות נוצרות כל 20 שניות
+3. ⏳ **TTS playback** - לבדוק שהאודיו מתנגן דרך האוזנייה
+4. ⏳ **End-to-end flow** - מסלול מלא מהתחלה ועד סוף
 
 ---
 
-## מה צריך לעשות בשיחה הבאה
+## איך לבדוק שזה עובד
 
-### מטרות:
-1. **לתקן את ה-WebSocket connection** - לוודא שהתמלול בזמן אמת עובד
-2. **לבדוק את עיבוד האודיו** - PCM encoding נכון
-3. **לבדוק AI coaching** - תובנות כל 20 שניות
-4. **לבדוק TTS playback** - השמעת טיפים לאוזנייה
-5. **End-to-end test** - מסלול מלא של live coaching
+### צעדים לבדיקה:
+1. **Deploy לשרת** - push השינויים ל-Railway
+2. **פתח את האפליקציה** - https://vloce.netlify.app
+3. **התחל Live Call** - לחץ על "התחל שיחה"
+4. **בדוק connection status** - צריך להראות "🎤 מחובר - מתמלל בזמן אמת"
+5. **דבר למיקרופון** - בדוק שהטקסט מופיע בזמן אמת
+6. **חכה 20 שניות** - בדוק שמגיעות תובנות AI בפאנל הימני
 
-### שאלות לבירור מהמשתמש:
-- איך בדיוק רוצים שה-live coaching יעבוד? (כל כמה זמן תובנות?)
-- מה התובנות שצריך לתת בזמן אמת? (רק התנגדויות? גם הצעות?)
-- איך להציג את התובנות? (התראות? פאנל צד?)
-- האם צריך TTS או רק טקסט?
+### Debug אם לא עובד:
+- פתח Console (F12) ותראה logs
+- בדוק שיש "AssemblyAI WebSocket connected!"
+- בדוק שיש "Sent begin message"
+- בדוק שמגיעות הודעות מסוג "turn" או "partial"
 
 ---
 
