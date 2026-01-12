@@ -17,8 +17,8 @@ import { API_URL } from '../lib/config'
 // Uses WebSocket proxy server for AssemblyAI v3 API
 // ============================================
 
-// WebSocket is now integrated into main app.py server on port 5001
-const WS_PROXY_URL = import.meta.env.VITE_WS_PROXY_URL || 'http://localhost:5001'
+// WebSocket uses the same server as API (Railway backend in production)
+const WS_PROXY_URL = API_URL
 
 const getAuthHeaders = async () => {
   const { data: { session } } = await supabase.auth.getSession()
@@ -865,7 +865,7 @@ export default function AIAgentPage() {
                   </div>
                   <button
                     onClick={testTranscription}
-                    disabled={stepStatus.recording !== 'success' || stepStatus.transcription === 'testing'}
+                    disabled={stepStatus.transcription === 'testing'}
                     className="px-4 py-2 bg-violet-500/20 text-violet-400 rounded-lg hover:bg-violet-500/30 transition-colors disabled:opacity-50"
                   >
                     בדוק
