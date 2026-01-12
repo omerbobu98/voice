@@ -1745,13 +1745,13 @@ function App() {
           <AdminCallView />
         </ProtectedRoute>
       } />
-      {/* Live Call Route (old) */}
+      {/* Live Call Route - Now uses AIAgentPage with new UI */}
       <Route path="/live" element={
         <ProtectedRoute>
-          <LiveCallPageMobile />
+          <AIAgentPage />
         </ProtectedRoute>
       } />
-      {/* AI Agent Route (new) */}
+      {/* AI Agent Route (alias) */}
       <Route path="/ai-agent" element={
         <ProtectedRoute>
           <AIAgentPage />
