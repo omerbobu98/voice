@@ -934,11 +934,10 @@ export default function AIAgentPage() {
               </div>
             </div>
             
-            {/* Start Button */}
+            {/* Start Button - Always enabled, startSession will handle setup */}
             <button
               onClick={startSession}
-              disabled={stepStatus.recording !== 'success'}
-              className="w-full py-4 bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-600 hover:to-fuchsia-600 disabled:from-gray-600 disabled:to-gray-600 text-white rounded-2xl font-bold text-lg transition-colors flex items-center justify-center gap-3"
+              className="w-full py-4 bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-600 hover:to-fuchsia-600 text-white rounded-2xl font-bold text-lg transition-colors flex items-center justify-center gap-3"
             >
               <Phone className="w-6 h-6" />
               התחל שיחה
