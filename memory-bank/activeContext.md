@@ -1,3 +1,25 @@
+# Active Context (עודכן 11 בינואר 2026)
+
+## 🎯 עבודה אחרונה - Live Call Feature
+
+### מה הושלם:
+1. ✅ **שדרוג ל-GPT-4o** - מודל חכם יותר לניתוח בזמן אמת
+2. ✅ **LIVE_COACH_SYSTEM_PROMPT מתקדם** - 4 שכבות ניתוח + 8 coaching triggers
+3. ✅ **LiveCallPageMobile.jsx** - ממשק mobile-first עם bottom sheet
+4. ✅ **3 מצבי אודיו** - OFF / SMART / ON
+5. ✅ **תיקון WebSocket** - temporary token + URL נכון
+
+### בעיה שהייתה:
+- WebSocket היה "מנותק" כי השתמשנו ב-URL לא נכון
+- תוקן ב-11/1/2026
+
+### מה צריך לבדוק:
+- האם WebSocket מתחבר עכשיו?
+- האם התמלול עובד?
+- האם התובנות מופיעות?
+
+---
+
 # Active Context: SalesAI
 
 ## Current Work Focus

@@ -36,6 +36,21 @@
 - [x] **SkillDetailModal** - Shows score, analysis, related moments, pro tips
 - [x] **Navigate to Deep Insights** - Link from modal to full objection view
 
+### Live Call Coach - NEW January 10-11, 2026 (Sessions 10-11)
+- [x] **Live Call Page** (`/live` route) with real-time transcription
+- [x] **AssemblyAI WebSocket** - Real-time speech-to-text streaming
+- [x] **LiveCallPageMobile.jsx** - Mobile-first UI with bottom sheet
+- [x] **3 Audio Modes** - OFF / SMART / ON for coaching audio
+- [x] **LIVE_COACH_SYSTEM_PROMPT** - GPT-4o with 4 analysis layers:
+  - Sentiment Analysis (positive/neutral/negative/confused)
+  - Stage Detection (rapport/benefits/presentation/closing)
+  - Benefit Tracking (incentives/nmoop/made_in_usa)
+  - Pattern Recognition (talk ratio, questions, objections)
+- [x] **8 Coaching Triggers** - prioritized (urgent → high → medium → low)
+- [x] **WebSocket Fixed** - Temporary token + correct URL format
+- [x] **Database Tables** - live_sessions, live_insights, live_transcript_chunks
+- [ ] **Needs Testing** - WebSocket connection, transcription, AI insights
+
 ### AI Sales Coach Assistant - NEW January 9, 2026 (Session 7)
 - [x] Floating chat button in bottom-right corner
 - [x] Professional chat window with message history
