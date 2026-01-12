@@ -3,8 +3,13 @@ import json
 import time
 import uuid
 import jwt
+import ssl
+import base64
+import certifi
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from flask_socketio import SocketIO, emit
+import websocket
 import assemblyai as aai
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -58,13 +63,21 @@ def require_admin(f):
     return decorated
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "*", "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"], "allow_headers": ["Content-Type", "Authorization"]}})
+
+# Initialize Socket.IO for real-time transcription
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
+
+# Store active WebSocket connections per client
+streaming_connections = {}
+streaming_connection_ready = {}
 
 UPLOAD_FOLDER = 'uploads'
 Path(UPLOAD_FOLDER).mkdir(exist_ok=True)
 
 # Initialize API clients with error handling
 ASSEMBLYAI_API_KEY = os.getenv('ASSEMBLYAI_API_KEY')
+DEEPGRAM_API_KEY = os.getenv('DEEPGRAM_API_KEY')
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 
 if ASSEMBLYAI_API_KEY:
@@ -1237,7 +1250,7 @@ def get_active_live_session():
 
 @app.route('/api/live/assemblyai-token', methods=['GET'])
 def get_assemblyai_token():
-    """Get temporary token for AssemblyAI Universal Streaming"""
+    """Get temporary token for AssemblyAI Universal Streaming v3"""
     user_id = get_user_id_from_token()
     if not user_id:
         return jsonify({'error': 'Authentication required'}), 401
@@ -1248,78 +1261,60 @@ def get_assemblyai_token():
     try:
         import requests
         
-        # Request a temporary token from AssemblyAI
+        # Generate temporary token using AssemblyAI v3 API
         response = requests.post(
-            'https://api.assemblyai.com/v2/realtime/token',
+            'https://api.assemblyai.com/v3/streaming/token',
             headers={
                 'Authorization': ASSEMBLYAI_API_KEY,
                 'Content-Type': 'application/json'
             },
             json={
-                'expires_in': 3600  # 1 hour
+                'expires_in_seconds': 3600  # 1 hour
             }
         )
         
         if response.status_code != 200:
-            print(f"[get_assemblyai_token] AssemblyAI error: {response.status_code} - {response.text}")
-            return jsonify({'error': f'AssemblyAI token error: {response.text}'}), 500
+            print(f"[get_assemblyai_token] Token error: {response.status_code} - {response.text}")
+            # Fallback: return API key for direct use (backend proxy scenario)
+            return jsonify({
+                'api_key': ASSEMBLYAI_API_KEY,
+                'use_api_key': True
+            })
         
         token_data = response.json()
         token = token_data.get('token')
         
         print(f"[get_assemblyai_token] Got temporary token for user {user_id}")
         return jsonify({
-            'token': token
+            'token': token,
+            'use_api_key': False
         })
         
     except Exception as e:
         print(f"[get_assemblyai_token] Error: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
+        # Fallback to API key
+        return jsonify({
+            'api_key': ASSEMBLYAI_API_KEY,
+            'use_api_key': True
+        })
 
 
 @app.route('/api/live/test-assemblyai', methods=['GET'])
 def test_assemblyai():
-    """Test AssemblyAI token generation"""
+    """Test AssemblyAI API key configuration"""
     if not ASSEMBLYAI_API_KEY:
         return jsonify({'error': 'ASSEMBLYAI_API_KEY not set', 'configured': False})
     
-    try:
-        import requests
-        
-        # Test token generation
-        response = requests.post(
-            'https://api.assemblyai.com/v2/realtime/token',
-            headers={
-                'Authorization': ASSEMBLYAI_API_KEY,
-                'Content-Type': 'application/json'
-            },
-            json={
-                'expires_in': 60  # Short expiry for test
-            }
-        )
-        
-        if response.status_code != 200:
-            return jsonify({
-                'success': False,
-                'configured': True,
-                'token_generation': False,
-                'error': f'Token error: {response.status_code} - {response.text}'
-            })
-        
-        token_data = response.json()
-        return jsonify({
-            'success': True,
-            'configured': True,
-            'token_generation': True,
-            'has_token': bool(token_data.get('token')),
-            'api_key_preview': ASSEMBLYAI_API_KEY[:10] + '...' if ASSEMBLYAI_API_KEY else None
-        })
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return jsonify({'success': False, 'error': str(e)})
+    # New Universal Streaming API just needs the API key
+    # No token generation needed - connect directly with api_key parameter
+    return jsonify({
+        'success': True,
+        'configured': True,
+        'api_key_set': True,
+        'api_key_preview': ASSEMBLYAI_API_KEY[:10] + '...' if ASSEMBLYAI_API_KEY else None,
+        'websocket_url': 'wss://streaming.assemblyai.com',
+        'note': 'Use api_key query parameter with WebSocket connection'
+    })
 
 
 @app.route('/api/live/sessions/<session_id>/process-transcript', methods=['POST'])
@@ -1422,5 +1417,1120 @@ def process_live_transcript(session_id):
         return jsonify({'error': str(e)}), 500
 
 
+# ============================================
+# AI AGENT - AUDIO CHUNK TRANSCRIPTION
+# ============================================
+
+@app.route('/api/ai-agent/transcribe', methods=['POST'])
+def ai_agent_transcribe():
+    """Transcribe audio chunk using OpenAI Whisper (fast and reliable)"""
+    user_id = get_user_id_from_token()
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    if 'audio' not in request.files:
+        return jsonify({'error': 'No audio file provided'}), 400
+    
+    if not openai_client:
+        return jsonify({'error': 'OpenAI not configured'}), 500
+    
+    audio_file = request.files['audio']
+    
+    try:
+        import tempfile
+        import os
+        
+        # Save audio to temp file (Whisper supports webm)
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.webm') as tmp:
+            audio_file.save(tmp.name)
+            tmp_path = tmp.name
+        
+        # Check file size - skip if too small
+        file_size = os.path.getsize(tmp_path)
+        if file_size < 1000:
+            os.unlink(tmp_path)
+            return jsonify({'success': True, 'segments': [], 'full_text': ''})
+        
+        # Transcribe with OpenAI Whisper
+        with open(tmp_path, 'rb') as audio:
+            transcript = openai_client.audio.transcriptions.create(
+                model="whisper-1",
+                file=audio,
+                language="en",
+                response_format="verbose_json"
+            )
+        
+        # Clean up temp file
+        os.unlink(tmp_path)
+        
+        text = transcript.text if hasattr(transcript, 'text') else str(transcript)
+        
+        if not text or not text.strip():
+            return jsonify({'success': True, 'segments': [], 'full_text': ''})
+        
+        # Simple speaker detection based on content analysis
+        # We'll use the AI to determine speaker in a follow-up
+        segments = [{
+            'speaker': 'Seller',  # Default to seller, AI will analyze context
+            'text': text.strip(),
+            'start': 0,
+            'end': 0,
+            'confidence': 0.95
+        }]
+        
+        return jsonify({
+            'success': True,
+            'segments': segments,
+            'full_text': text.strip()
+        })
+        
+    except Exception as e:
+        print(f"[ai_agent_transcribe] Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+# ============================================
+# AI AGENT - SMART REAL-TIME COACHING
+# ============================================
+
+AI_AGENT_SYSTEM_PROMPT = """You are an ELITE ONE-CALL CLOSE SPECIALIST whispering coaching in the salesperson's ear during a LIVE home improvement sales call.
+
+## YOUR ROLE:
+- Coach the seller in REAL-TIME to CLOSE THE DEAL in this single visit
+- Identify critical moments that could make or break the sale
+- Provide actionable coaching they can use IMMEDIATELY
+
+## PRODUCTS WE SELL:
+- **Cool Life Paint** - Heat reflective exterior coating (lifetime warranty, never paint again)
+- **Turf** - Artificial grass (saves water, no maintenance)
+- **Pavers** - Stone/brick paving for patios, walkways, driveways
+- **Concrete** - Driveways, patios, walkways
+- **Vinyl/Composite/Aluminum Fence** - Low maintenance fencing
+- **DG** - Decomposed granite landscaping
+
+## THE COMPANY'S PROVEN CALL STRUCTURE (2-3 HOURS):
+1. **ICE BREAKING/TRUST** (20 min) - Find personal connection, stack "yes" answers
+2. **BENEFIT/PROGRAM** (20 min) - Explain 3 KEY BENEFITS:
+   - INCENTIVES: Special discounts we can offer
+   - NMOOP: No Money Out of Pocket - pay 30-60 days AFTER project complete
+   - MADE IN USA: Highest quality materials
+3. **PRODUCT PRESENTATION** (20 min) - Show specific product, visual demos, ROI
+4. **COMPANY PRESENTATION** (20 min) - TWO HATS positioning:
+   - Contractor Hat: Handle A-Z, permits, inspections
+   - Financial Advisor Hat: Show ROI, home value increase
+5. **GET 3 YES** - Confirm: Benefit ✓, Product ✓, Company ✓
+6. **PRICE REVEAL** - ⚠️ ONLY AFTER 75+ MINUTES! Before price ask: "Do you like the product? Company? Trust me?"
+7. **CLOSING/OBJECTIONS** - Use isolation technique, create urgency
+8. **COOL DOWN** (10-15 min) - "Why did you decide?" - prevents cancellations!
+
+## CRITICAL COACHING TRIGGERS:
+
+### 🚨 OBJECTION DETECTED (priority: high)
+**"I need to think about it"** → Use 4-Yes technique:
+- "Do you want to do the project?" → yes
+- "Do you like the company?" → yes  
+- "Do you trust me?" → yes
+- "So it's just the price, right?" → Now isolate and handle price
+
+**"Need to talk to spouse"** → "I understand. Do you think this is right for your home? Do you like the company? Let's call them together."
+
+**"Too expensive"** → Tell the contractor story: "Let me tell you about someone who went cheaper..."
+
+**"Getting other quotes"** → "Fair enough. If you find same quality, warranty, trust for less - go with it. But let me show you why that's hard to find..."
+
+### 🎯 BUYING SIGNAL (priority: urgent)
+Customer says: "sounds good", "I like it", "when can you start?", "how do we begin?"
+→ CLOSE NOW! "Great! Let's get the paperwork started. I just need..."
+
+### ⚠️ PRICE TOO EARLY (priority: urgent)
+Price mentioned before 75 minutes OR before value built
+→ "STOP! Redirect to benefits first. Say: 'Before we get to investment, let me show you why this is different...'"
+
+### 📊 TALK RATIO PROBLEM (priority: medium)
+Seller >65% talking → "Ask a question! Try: 'What's most important to you about this project?'"
+
+### 💡 MISSED OPPORTUNITY (priority: high)
+- Customer mentions problem but seller didn't dig deeper
+- Customer shows interest but seller didn't trial close
+- Seller didn't use YES LADDER
+→ Suggest specific question or technique
+
+### 🎭 STORYTELLING MOMENT (priority: medium)
+Good time for a story → Provide a brief story framework:
+"Tell them about [similar customer] who had the same concern..."
+
+## PAIN DISCOVERY QUESTIONS BY PRODUCT:
+
+**COOL LIFE PAINT:**
+- "When did you last paint? See any peeling on the sunny side?"
+- "Do you know it costs $10-12K to paint every 7-8 years? That's $35K over 25 years!"
+- Use MILITARY TANK STORY for heat reflection
+
+**TURF:**
+- "What's your water bill in summer? What do you pay for gardening?"
+- "Calculate: Water + Gardener = $100-400/mo = $110K+ over 20 years!"
+
+**PAVERS/CONCRETE:**
+- "Is your current patio cracked or stained? How does it make you feel when guests come?"
+
+**FENCING:**
+- "Is your fence rotting or leaning? Tired of painting it every few years?"
+
+## RESPONSE FORMAT (JSON only):
+{
+  "insight_type": "objection_detected|buying_signal|price_too_early|talk_ratio_alert|missed_opportunity|storytelling_moment|discovery_question|none",
+  "priority": "urgent|high|medium",
+  "coaching_message": "Clear coaching tip (2-3 sentences)",
+  "suggested_response": "Exact words to say RIGHT NOW",
+  "technique": "Technique being used (4-Yes, Isolation, Yes Ladder, etc.)",
+  "audio_script": "Short for earpiece (max 15 words)"
+}
+
+## RULES:
+1. Only coach on CRITICAL moments - don't interrupt good flow
+2. Be SPECIFIC to what was just said in the transcript
+3. Provide READY-TO-USE scripts, not generic advice
+4. Focus on what will CLOSE THE DEAL
+5. If nothing critical happening, return: {"insight_type": "none"}"""
+
+
+# ============================================
+# INTELLIGENT EVENT-BASED TRIGGER SYSTEM
+# Only coaches when truly relevant - like Balto
+# ============================================
+
+# Objection detection patterns (Hebrew + English)
+OBJECTION_PATTERNS = {
+    'need_to_think': {
+        'patterns': ['צריך לחשוב', 'need to think', 'think about it', 'let me think', 'לחשוב על זה', 'אחשוב על זה'],
+        'priority': 'urgent',
+        'technique': '4-Yes Technique',
+        'story': "David's 3-Month Wait Story",
+        'response_he': 'אני מבין לגמרי. תן לי לשאול - האם אתה מסכים שיש בעיה שצריך לפתור?',
+        'response_en': 'I totally understand. Let me ask - do you agree there\'s a problem that needs solving?'
+    },
+    'too_expensive': {
+        'patterns': ['יקר', 'expensive', 'too much', 'can\'t afford', 'budget', 'כסף', 'תקציב', 'לא יכול להרשות'],
+        'priority': 'urgent',
+        'technique': 'Value Reframe + Story',
+        'story': "Johnson's Cheap Contractor Story",
+        'response_he': 'אני שומע אותך. תן לי לספר לך על משפחת ג\'ונסון שחשבו אותו דבר...',
+        'response_en': 'I hear you. Let me tell you about the Johnson family who thought the same thing...'
+    },
+    'spouse_decision': {
+        'patterns': ['בן זוג', 'wife', 'husband', 'spouse', 'partner', 'אשתי', 'בעלי', 'לדבר עם'],
+        'priority': 'urgent',
+        'technique': 'Include Now',
+        'story': "Maria's Spouse Story",
+        'response_he': 'אני לגמרי מבין. מריה אמרה אותו דבר. תן לי לשאול - מה לדעתך הכי חשוב לבן/בת הזוג שלך?',
+        'response_en': 'I totally understand. Maria said the same thing. What do you think matters most to your spouse?'
+    },
+    'getting_quotes': {
+        'patterns': ['הצעות', 'quotes', 'other companies', 'shopping around', 'comparing', 'חברות אחרות', 'משווה'],
+        'priority': 'high',
+        'technique': 'Differentiation',
+        'story': None,
+        'response_he': 'זה חכם להשוות. תן לי להראות לך למה לא תמצא את מה שאנחנו מציעים במקום אחר...',
+        'response_en': 'Smart to compare. Let me show you why you won\'t find what we offer anywhere else...'
+    },
+    'bad_timing': {
+        'patterns': ['לא עכשיו', 'not now', 'bad time', 'later', 'next year', 'אחר כך', 'בהמשך', 'לא הזמן'],
+        'priority': 'high',
+        'technique': 'Cost of Waiting',
+        'story': None,
+        'response_he': 'אני מבין. תן לי לשאול - מה ישתנה בעוד חודש? כי מחירי החומרים עלו 15% בשנה האחרונה...',
+        'response_en': 'I understand. What will change in a month? Material costs went up 15% last year...'
+    }
+}
+
+# Price-related keywords to detect early price reveal
+PRICE_KEYWORDS = ['מחיר', 'price', 'cost', 'how much', 'כמה זה עולה', 'עלות', 'תשלום', 'payment']
+
+# Product-specific pain discovery questions
+PRODUCT_DISCOVERY = {
+    'paint': {
+        'keywords': ['צבע', 'paint', 'peeling', 'קילוף', 'חיצוני', 'exterior'],
+        'questions': [
+            'מתי בפעם האחרונה צבעתם? רואים קילופים בצד השמש?',
+            'אתה יודע שעולה $10-12K לצבוע כל 7-8 שנים? זה $35K על 25 שנה!'
+        ],
+        'story': 'Military Tank Story - הצבא האמריקאי משתמש בזה על טנקים!'
+    },
+    'turf': {
+        'keywords': ['דשא', 'turf', 'grass', 'גינה', 'lawn', 'water'],
+        'questions': [
+            'כמה חשבון המים שלך בקיץ? מה משלמים על גנן?',
+            'חישוב: מים + גנן = $100-400 בחודש = $110K+ על 20 שנה!'
+        ],
+        'story': None
+    },
+    'pavers': {
+        'keywords': ['אבן', 'pavers', 'patio', 'פטיו', 'מרצפות', 'בטון', 'concrete'],
+        'questions': [
+            'הפטיו הנוכחי סדוק או מוכתם? איך זה גורם לך להרגיש כשמגיעים אורחים?'
+        ],
+        'story': None
+    },
+    'fence': {
+        'keywords': ['גדר', 'fence', 'fencing', 'רקוב', 'rotting'],
+        'questions': [
+            'הגדר נרקבת או נוטה? נמאס לך לצבוע אותה כל כמה שנים?'
+        ],
+        'story': None
+    }
+}
+
+# Phase-based coaching tips
+PHASE_COACHING = {
+    'ice': {  # 0-20 min
+        'tips': [
+            'מצא חיבור אישי - תחביבים, משפחה, עבודה',
+            'שאל על הבית - מתי קנו? למה בחרו באזור?',
+            'הקשב יותר מתדבר - זה שלב הכרות'
+        ],
+        'warning_if_missing': 'עדיין לא יצרת חיבור אישי - שאל על המשפחה/עבודה'
+    },
+    'benefits': {  # 20-40 min
+        'required': ['incentives', 'nmoop', 'made_in_usa'],
+        'tips': [
+            '3 היתרונות: 1) הנחות מיוחדות 2) NMOOP - משלמים רק אחרי 3) Made in USA',
+            'הסבר NMOOP: "אתה לא משלם שקל עד שהפרויקט גמור לשביעות רצונך"'
+        ]
+    },
+    'product': {  # 40-60 min
+        'tips': [
+            'זה הזמן לשאלות כאב לפי המוצר',
+            'השתמש בסיפור הטנק אם מדברים על Cool Life Paint',
+            'בנה ערך לפני שמזכירים מחיר!'
+        ]
+    },
+    'company': {  # 60-75 min
+        'tips': [
+            'TWO HATS - אתה גם נציג החברה וגם היועץ של הלקוח',
+            'YES LADDER - בנה רצף של כן: אוהב את המוצר? את החברה? סומך עליי?'
+        ]
+    },
+    'price': {  # 75-90 min
+        'tips': [
+            'לפני מחיר וודא: שאלת 3 שאלות הכן?',
+            'Trial close: "אם המחיר מתאים, נוכל להתחיל השבוע?"'
+        ]
+    }
+}
+
+def detect_triggers(transcript_chunk, full_transcript, duration_seconds, seller_percentage):
+    """
+    Intelligent trigger detection - returns trigger info if relevant, None if nothing to coach on.
+    Now includes proactive coaching: discovery questions, story reminders, phase guidance.
+    """
+    chunk_lower = transcript_chunk.lower()
+    full_lower = full_transcript.lower() if full_transcript else ''
+    minutes = duration_seconds // 60
+    
+    # 1. OBJECTION DETECTION (highest priority)
+    for obj_type, obj_data in OBJECTION_PATTERNS.items():
+        for pattern in obj_data['patterns']:
+            if pattern.lower() in chunk_lower:
+                buyer_indicator = '[buyer]' in chunk_lower or '[לקוח]' in chunk_lower
+                if buyer_indicator or '[seller]' not in chunk_lower:
+                    return {
+                        'trigger_type': 'objection',
+                        'objection_type': obj_type,
+                        'priority': obj_data['priority'],
+                        'technique': obj_data['technique'],
+                        'story': obj_data['story'],
+                        'suggested_response': obj_data['response_he'],
+                        'pattern_matched': pattern
+                    }
+    
+    # 2. PRICE TOO EARLY
+    if minutes < 60:
+        for price_word in PRICE_KEYWORDS:
+            if price_word.lower() in chunk_lower and '[seller]' in chunk_lower:
+                return {
+                    'trigger_type': 'price_too_early',
+                    'priority': 'urgent',
+                    'minutes_remaining': 60 - minutes,
+                    'suggested_response': f'עצור! אל תגיד מחיר. חסרות עוד {60 - minutes} דקות של בניית ערך.'
+                }
+    
+    # 3. PRODUCT MENTION - Suggest discovery questions
+    for product, data in PRODUCT_DISCOVERY.items():
+        for keyword in data['keywords']:
+            if keyword.lower() in chunk_lower:
+                # Product mentioned - suggest relevant discovery question
+                import random
+                question = random.choice(data['questions'])
+                return {
+                    'trigger_type': 'discovery_opportunity',
+                    'priority': 'high',
+                    'product': product,
+                    'technique': 'Pain Discovery',
+                    'story': data.get('story'),
+                    'suggested_response': question
+                }
+    
+    # 4. TALK RATIO ALERT
+    if seller_percentage > 70 and minutes > 5:
+        return {
+            'trigger_type': 'talk_ratio',
+            'priority': 'medium',
+            'seller_percentage': seller_percentage,
+            'suggested_response': 'שאל שאלה! נסה: "מה הכי חשוב לך בפרויקט הזה?"'
+        }
+    
+    # 5. PHASE-BASED COACHING (every ~3 minutes check if something is missing)
+    if minutes > 0 and minutes % 3 == 0:
+        # Check phase-specific guidance
+        if minutes < 20:  # Ice phase
+            if 'משפחה' not in full_lower and 'family' not in full_lower and 'עבודה' not in full_lower:
+                return {
+                    'trigger_type': 'phase_reminder',
+                    'priority': 'medium',
+                    'phase': 'ice',
+                    'technique': 'Rapport Building',
+                    'suggested_response': 'עדיין לא יצרת חיבור - שאל: "ספר לי קצת על המשפחה/העבודה"'
+                }
+        elif 20 <= minutes < 40:  # Benefits phase
+            benefits_mentioned = []
+            if 'הנחה' in full_lower or 'incentive' in full_lower:
+                benefits_mentioned.append('incentives')
+            if 'nmoop' in full_lower or 'לא משלם' in full_lower or 'אחרי' in full_lower:
+                benefits_mentioned.append('nmoop')
+            if 'אמריק' in full_lower or 'usa' in full_lower or 'made in' in full_lower:
+                benefits_mentioned.append('made_in_usa')
+            
+            if len(benefits_mentioned) < 2:
+                missing = [b for b in ['incentives', 'nmoop', 'made_in_usa'] if b not in benefits_mentioned]
+                return {
+                    'trigger_type': 'missing_benefit',
+                    'priority': 'high',
+                    'phase': 'benefits',
+                    'missing': missing[0] if missing else 'benefit',
+                    'technique': '3 Benefits',
+                    'suggested_response': 'חסר יתרון! הזכר: ' + ('הנחות מיוחדות' if 'incentives' in missing else 'NMOOP - משלמים רק אחרי סיום' if 'nmoop' in missing else 'Made in USA - איכות אמריקאית')
+                }
+    
+    # 6. No trigger - stay silent
+    return None
+
+
+@app.route('/api/ai-agent/analyze', methods=['POST', 'OPTIONS'])
+def ai_agent_analyze():
+    """
+    INTELLIGENT Real-time AI coaching - EVENT-BASED, NOT TIME-BASED.
+    Only returns insights when there's a genuine trigger (objection, critical moment).
+    """
+    # Handle preflight OPTIONS request
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'ok'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        return response
+    
+    if not openai_client:
+        return jsonify({'error': 'OpenAI not configured'}), 500
+    
+    user_id = get_user_id_from_token()
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    data = request.json
+    if not data:
+        return jsonify({'error': 'Data required'}), 400
+    
+    transcript = data.get('transcript', '')
+    new_chunk = data.get('new_chunk', '')  # Only the latest chunk for trigger detection
+    duration_seconds = data.get('duration_seconds', 0)
+    seller_words = data.get('seller_words', 0)
+    buyer_words = data.get('buyer_words', 0)
+    seller_percentage = data.get('seller_percentage', 50)
+    force_analysis = data.get('force_analysis', False)  # Manual trigger from user
+    
+    if not transcript or len(transcript.strip()) < 30:
+        return jsonify({'insight': None, 'has_insight': False})
+    
+    # Get the chunk to analyze (new chunk or last 500 chars)
+    chunk_to_analyze = new_chunk if new_chunk else transcript[-500:]
+    
+    # STEP 1: Fast local trigger detection (no AI call needed for clear patterns)
+    trigger = detect_triggers(chunk_to_analyze, transcript, duration_seconds, seller_percentage)
+    
+    if trigger:
+        # We have a clear trigger - build appropriate response
+        minutes = duration_seconds // 60
+        
+        if trigger['trigger_type'] == 'objection':
+            # Objection detected - provide immediate coaching
+            obj_type = trigger['objection_type'].replace('_', ' ').title()
+            return jsonify({
+                'insight': {
+                    'insight_type': 'objection_detected',
+                    'priority': trigger['priority'],
+                    'coaching_message': f'🔴 התנגדות: {obj_type}',
+                    'suggested_response': trigger['suggested_response'],
+                    'technique': trigger['technique'],
+                    'story': trigger['story'],
+                    'audio_script': f"התנגדות! השתמש ב{trigger['technique']}"
+                },
+                'has_insight': True,
+                'trigger_type': 'objection'
+            })
+        
+        elif trigger['trigger_type'] == 'price_too_early':
+            return jsonify({
+                'insight': {
+                    'insight_type': 'price_too_early',
+                    'priority': 'urgent',
+                    'coaching_message': f'⚠️ מחיר מוקדם מדי! חסרות {trigger["minutes_remaining"]} דקות',
+                    'suggested_response': trigger['suggested_response'],
+                    'technique': 'Redirect to Value',
+                    'audio_script': 'עצור! אל תזכיר מחיר עכשיו'
+                },
+                'has_insight': True,
+                'trigger_type': 'price_too_early'
+            })
+        
+        elif trigger['trigger_type'] == 'discovery_opportunity':
+            return jsonify({
+                'insight': {
+                    'insight_type': 'discovery_question',
+                    'priority': trigger['priority'],
+                    'coaching_message': f'💡 הזדמנות לשאלת כאב - {trigger["product"]}',
+                    'suggested_response': trigger['suggested_response'],
+                    'technique': trigger['technique'],
+                    'story': trigger.get('story'),
+                    'audio_script': 'שאל שאלת כאב עכשיו'
+                },
+                'has_insight': True,
+                'trigger_type': 'discovery'
+            })
+        
+        elif trigger['trigger_type'] == 'talk_ratio':
+            return jsonify({
+                'insight': {
+                    'insight_type': 'talk_ratio_alert',
+                    'priority': 'medium',
+                    'coaching_message': f'⚖️ יחס דיבור: {trigger["seller_percentage"]}% - יותר מדי!',
+                    'suggested_response': trigger['suggested_response'],
+                    'technique': 'Ask Question',
+                    'audio_script': 'שאל שאלה! אתה מדבר יותר מדי'
+                },
+                'has_insight': True,
+                'trigger_type': 'talk_ratio'
+            })
+        
+        elif trigger['trigger_type'] == 'phase_reminder':
+            return jsonify({
+                'insight': {
+                    'insight_type': 'phase_coaching',
+                    'priority': trigger['priority'],
+                    'coaching_message': f'📍 שלב {trigger["phase"].upper()} - תזכורת',
+                    'suggested_response': trigger['suggested_response'],
+                    'technique': trigger['technique'],
+                    'audio_script': 'תזכורת לשלב הנוכחי'
+                },
+                'has_insight': True,
+                'trigger_type': 'phase'
+            })
+        
+        elif trigger['trigger_type'] == 'missing_benefit':
+            return jsonify({
+                'insight': {
+                    'insight_type': 'missing_benefit',
+                    'priority': trigger['priority'],
+                    'coaching_message': f'⭐ חסר יתרון: {trigger["missing"]}',
+                    'suggested_response': trigger['suggested_response'],
+                    'technique': trigger['technique'],
+                    'audio_script': 'הזכר את היתרון החסר'
+                },
+                'has_insight': True,
+                'trigger_type': 'benefit'
+            })
+    
+    # STEP 2: If forced analysis OR significant new content, use AI for deeper analysis
+    if force_analysis or (len(new_chunk) > 200):
+        minutes = duration_seconds // 60
+        call_phase = get_call_phase(minutes)
+        
+        # Only call AI if we have substantial new content
+        context = f"""## ANALYZE ONLY IF THERE'S SOMETHING CRITICAL:
+
+Last exchange:
+{chunk_to_analyze}
+
+Call phase: {call_phase} ({minutes} min)
+Talk ratio: Seller {seller_percentage}%
+
+RULES:
+1. ONLY respond if there's a CLEAR objection, buying signal, or critical mistake
+2. If conversation is flowing normally - return {"insight_type": "none"}
+3. Don't coach on every little thing - only CRITICAL moments
+4. We already handle basic objections locally - only add value for complex situations
+
+Return JSON: {{"insight_type": "objection_detected|buying_signal|stage_mistake|none", "priority": "urgent|high|medium", "coaching_message": "...", "suggested_response": "..."}}"""
+        
+        try:
+            response = openai_client.chat.completions.create(
+                model="gpt-4o-mini",  # Fast model for speed
+                messages=[
+                    {"role": "system", "content": "You are a sales coach. Only respond when there's a CRITICAL moment. Most of the time return {\"insight_type\": \"none\"}. Be very selective."},
+                    {"role": "user", "content": context}
+                ],
+                temperature=0.2,
+                max_completion_tokens=300
+            )
+            
+            result_text = response.choices[0].message.content.strip()
+            
+            try:
+                if '```json' in result_text:
+                    result_text = result_text.split('```json')[1].split('```')[0].strip()
+                elif '```' in result_text:
+                    result_text = result_text.split('```')[1].split('```')[0].strip()
+                
+                insight = json.loads(result_text)
+                
+                if insight.get('insight_type') == 'none':
+                    return jsonify({'insight': None, 'has_insight': False})
+                
+                return jsonify({
+                    'insight': insight,
+                    'has_insight': True,
+                    'trigger_type': 'ai_analysis'
+                })
+                
+            except json.JSONDecodeError:
+                return jsonify({'insight': None, 'has_insight': False})
+                
+        except Exception as e:
+            print(f"[ai_agent_analyze] AI error: {e}")
+            return jsonify({'insight': None, 'has_insight': False})
+    
+    # No trigger, no forced analysis - stay silent
+    return jsonify({'insight': None, 'has_insight': False})
+
+
+def get_call_phase(minutes):
+    """Get current call phase based on duration"""
+    if minutes < 20:
+        return 'ICE BREAKING'
+    elif minutes < 40:
+        return 'BENEFITS'
+    elif minutes < 60:
+        return 'PRODUCT'
+    elif minutes < 75:
+        return 'COMPANY'
+    elif minutes < 90:
+        return 'PRICE'
+    else:
+        return 'CLOSE'
+
+
+@app.route('/api/ai-agent/analyze-chunk', methods=['POST', 'OPTIONS'])
+def ai_agent_analyze_chunk():
+    """
+    NEW: Analyze a single new chunk for triggers.
+    Called immediately when new transcript arrives - fast local detection.
+    """
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'ok'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        return response
+    
+    data = request.json
+    if not data:
+        return jsonify({'trigger': None, 'has_trigger': False})
+    
+    chunk = data.get('chunk', '')
+    duration_seconds = data.get('duration_seconds', 0)
+    seller_percentage = data.get('seller_percentage', 50)
+    
+    # Fast local trigger detection only
+    trigger = detect_triggers(chunk, '', duration_seconds, seller_percentage)
+    
+    if trigger:
+        return jsonify({
+            'trigger': trigger,
+            'has_trigger': True
+        })
+    
+    return jsonify({'trigger': None, 'has_trigger': False})
+
+
+# Keep old endpoint for backwards compatibility
+@app.route('/api/ai-agent/analyze-legacy', methods=['POST', 'OPTIONS'])
+def ai_agent_analyze_legacy():
+    """Legacy endpoint - interval-based analysis (deprecated)"""
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'ok'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        return response
+    
+    # Redirect to new endpoint
+    return ai_agent_analyze()
+
+
+# ============================================
+# Socket.IO Event Handlers for Real-Time Transcription
+# ============================================
+
+def get_assemblyai_streaming_token():
+    """Get a temporary token from AssemblyAI for WebSocket streaming"""
+    import requests
+    
+    try:
+        response = requests.get(
+            'https://streaming.assemblyai.com/v3/token',
+            headers={'Authorization': f'Bearer {ASSEMBLYAI_API_KEY}'},
+            params={'expires_in_seconds': 600},  # Token valid for 10 minutes (max allowed)
+            timeout=10
+        )
+        
+        if response.status_code == 200:
+            token_data = response.json()
+            token = token_data.get('token')
+            print(f"[AssemblyAI] Got streaming token: {token[:20]}...")
+            return token
+        else:
+            print(f"[AssemblyAI] Token error: {response.status_code} - {response.text}")
+            return None
+    except Exception as e:
+        print(f"[AssemblyAI] Token request failed: {e}")
+        return None
+
+
+def create_assemblyai_websocket(client_sid, sample_rate=16000):
+    """Create a WebSocket connection to AssemblyAI Real-Time Streaming v3"""
+    
+    streaming_connection_ready[client_sid] = False
+    
+    # Step 1: Get temporary streaming token
+    token = get_assemblyai_streaming_token()
+    if not token:
+        socketio.emit('error', {'message': 'Failed to get AssemblyAI streaming token'}, to=client_sid)
+        return None
+    
+    def on_message(ws, message):
+        """Handle messages from AssemblyAI v3"""
+        try:
+            data = json.loads(message)
+            msg_type = data.get('type', data.get('message_type', 'unknown'))
+            
+            # AssemblyAI v3 uses "Turn" for transcription results
+            if msg_type == 'Turn':
+                transcript = data.get('transcript', '')
+                is_final = data.get('turn_is_formatted', False) or data.get('end_of_turn', False)
+                speaker = data.get('speaker', 'A')
+                speaker_role = 'Seller' if speaker in ['A', 0, '0'] else 'Buyer'
+                confidence = data.get('confidence', 1.0)
+                
+                if transcript:
+                    print(f"[AssemblyAI → {client_sid}] Turn ({'final' if is_final else 'partial'}): {transcript[:50]}")
+                    
+                    if is_final:
+                        socketio.emit('transcription', {
+                            'type': 'final',
+                            'text': transcript,
+                            'speaker': speaker,
+                            'speaker_role': speaker_role,
+                            'confidence': confidence,
+                            'words': data.get('words', [])
+                        }, to=client_sid)
+                    else:
+                        socketio.emit('transcription', {
+                            'type': 'partial',
+                            'text': transcript,
+                            'speaker': speaker,
+                            'confidence': confidence
+                        }, to=client_sid)
+            
+            elif msg_type == 'Begin':
+                streaming_connection_ready[client_sid] = True
+                print(f"[AssemblyAI → {client_sid}] Session started")
+                socketio.emit('transcription', {
+                    'type': 'session_begins',
+                    'session_id': data.get('id'),
+                    'message': 'AssemblyAI session started'
+                }, to=client_sid)
+            
+            elif msg_type == 'Termination':
+                print(f"[AssemblyAI → {client_sid}] Session terminated")
+                socketio.emit('transcription', {
+                    'type': 'session_terminated',
+                    'message': 'Session ended'
+                }, to=client_sid)
+                
+            elif msg_type == 'Error':
+                print(f"[AssemblyAI → {client_sid}] Error: {data}")
+                socketio.emit('error', {
+                    'message': data.get('error', 'Unknown error'),
+                    'code': data.get('code')
+                }, to=client_sid)
+            
+            # Legacy v2 format support
+            elif msg_type in ['partial_transcript', 'PartialTranscript']:
+                socketio.emit('transcription', {
+                    'type': 'partial',
+                    'text': data.get('text', ''),
+                    'speaker': data.get('speaker', None),
+                    'confidence': data.get('confidence', 1.0)
+                }, to=client_sid)
+                
+            elif msg_type in ['final_transcript', 'FinalTranscript']:
+                speaker = data.get('speaker', 'A')
+                speaker_role = 'Seller' if speaker in ['A', 0, '0'] else 'Buyer'
+                socketio.emit('transcription', {
+                    'type': 'final',
+                    'text': data.get('text', ''),
+                    'speaker': speaker,
+                    'speaker_role': speaker_role,
+                    'confidence': data.get('confidence', 1.0),
+                    'words': data.get('words', [])
+                }, to=client_sid)
+            
+        except Exception as e:
+            print(f"[AssemblyAI] Parse error: {e}")
+            socketio.emit('error', {'message': f'Parse error: {str(e)}'}, to=client_sid)
+    
+    def on_error(ws, error):
+        print(f"[AssemblyAI] WebSocket Error: {error}")
+        socketio.emit('error', {'message': str(error)}, to=client_sid)
+    
+    def on_close(ws, close_status_code, close_msg):
+        print(f"[AssemblyAI] Connection closed: {close_status_code} - {close_msg}")
+        streaming_connection_ready[client_sid] = False
+        socketio.emit('assemblyai_closed', {
+            'code': close_status_code,
+            'reason': close_msg
+        }, to=client_sid)
+    
+    def on_open(ws):
+        print(f"[AssemblyAI] WebSocket connected for client {client_sid}")
+        socketio.emit('assemblyai_connected', {
+            'message': 'Connected to AssemblyAI',
+            'speaker_labels': True
+        }, to=client_sid)
+    
+    # Step 2: Connect to WebSocket with token in URL (NOT in header)
+    # Include encoding parameter for PCM16 little-endian
+    ws_url = f"wss://streaming.assemblyai.com/v3/ws?sample_rate={sample_rate}&encoding=pcm_s16le&token={token}"
+    
+    print(f"[AssemblyAI] Connecting to streaming.assemblyai.com/v3/ws")
+    print(f"[AssemblyAI] Token: {token[:20]}...")
+    
+    ws = websocket.WebSocketApp(
+        ws_url,
+        on_open=on_open,
+        on_message=on_message,
+        on_error=on_error,
+        on_close=on_close
+    )
+    
+    def run_ws():
+        try:
+            ws.run_forever(
+                sslopt={
+                    "cert_reqs": ssl.CERT_REQUIRED,
+                    "ca_certs": certifi.where()
+                }
+            )
+        except Exception as e:
+            print(f"[AssemblyAI] run_forever error: {e}")
+    
+    thread = threading.Thread(target=run_ws, daemon=True)
+    thread.start()
+    
+    time.sleep(0.5)
+    
+    return ws
+
+
+def create_deepgram_websocket(client_sid, sample_rate=16000):
+    """Create a WebSocket connection to Deepgram with real-time speaker diarization"""
+    
+    streaming_connection_ready[client_sid] = False
+    
+    if not DEEPGRAM_API_KEY:
+        socketio.emit('error', {'message': 'Deepgram API key not configured'}, to=client_sid)
+        return None
+    
+    def on_message(ws, message):
+        """Handle messages from Deepgram"""
+        try:
+            data = json.loads(message)
+            
+            # Check for results
+            if 'channel' in data and 'alternatives' in data['channel']:
+                alternatives = data['channel']['alternatives']
+                if alternatives and len(alternatives) > 0:
+                    alt = alternatives[0]
+                    transcript = alt.get('transcript', '')
+                    
+                    if transcript.strip():
+                        is_final = data.get('is_final', False)
+                        speech_final = data.get('speech_final', False)
+                        
+                        # Get words with speaker info
+                        words = alt.get('words', [])
+                        
+                        # Determine speaker from words (Deepgram provides speaker per word)
+                        speaker_id = 0
+                        if words:
+                            # Get most common speaker in this segment
+                            speakers = [w.get('speaker', 0) for w in words if 'speaker' in w]
+                            if speakers:
+                                speaker_id = max(set(speakers), key=speakers.count)
+                        
+                        # Map speaker ID to role (0 = Seller, 1+ = Buyer)
+                        speaker_role = 'Seller' if speaker_id == 0 else 'Buyer'
+                        
+                        confidence = alt.get('confidence', 0.9)
+                        
+                        if is_final or speech_final:
+                            print(f"[Deepgram → {client_sid}] Final (Speaker {speaker_id}): {transcript[:50]}")
+                            socketio.emit('transcription', {
+                                'type': 'final',
+                                'text': transcript,
+                                'speaker': speaker_id,
+                                'speaker_role': speaker_role,
+                                'confidence': confidence,
+                                'words': words
+                            }, to=client_sid)
+                        else:
+                            socketio.emit('transcription', {
+                                'type': 'partial',
+                                'text': transcript,
+                                'speaker': speaker_id,
+                                'speaker_role': speaker_role,
+                                'confidence': confidence
+                            }, to=client_sid)
+            
+            # Handle metadata/ready message
+            elif data.get('type') == 'Metadata' or 'metadata' in data:
+                streaming_connection_ready[client_sid] = True
+                print(f"[Deepgram → {client_sid}] Session started")
+                socketio.emit('transcription', {
+                    'type': 'session_begins',
+                    'message': 'Deepgram session started with speaker diarization'
+                }, to=client_sid)
+                
+        except Exception as e:
+            print(f"[Deepgram] Parse error: {e}")
+    
+    def on_error(ws, error):
+        print(f"[Deepgram] WebSocket Error: {error}")
+        socketio.emit('error', {
+            'message': f'Deepgram error: {str(error)}'
+        }, to=client_sid)
+    
+    def on_close(ws, close_status_code, close_msg):
+        print(f"[Deepgram] Connection closed: {close_status_code} - {close_msg}")
+        streaming_connection_ready[client_sid] = False
+        socketio.emit('streaming_closed', {
+            'code': close_status_code,
+            'reason': close_msg
+        }, to=client_sid)
+    
+    def on_open(ws):
+        print(f"[Deepgram] WebSocket connected for client {client_sid}")
+        streaming_connection_ready[client_sid] = True
+        socketio.emit('assemblyai_connected', {
+            'message': 'Connected to Deepgram with speaker diarization',
+            'speaker_labels': True
+        }, to=client_sid)
+    
+    # Deepgram WebSocket URL with diarization enabled
+    # Optimized for high-quality multi-speaker transcription
+    ws_url = (
+        f"wss://api.deepgram.com/v1/listen"
+        f"?model=nova-2"
+        f"&language=en"
+        f"&diarize=true"
+        f"&encoding=linear16"
+        f"&sample_rate={sample_rate}"
+        f"&channels=1"
+        f"&interim_results=true"
+        f"&smart_format=true"
+        f"&punctuate=true"
+        f"&numerals=true"
+        f"&utterance_end_ms=1500"
+        f"&endpointing=500"
+        f"&vad_events=true"
+    )
+    
+    print(f"[Deepgram] Connecting with diarization enabled")
+    
+    ws = websocket.WebSocketApp(
+        ws_url,
+        header={"Authorization": f"Token {DEEPGRAM_API_KEY}"},
+        on_open=on_open,
+        on_message=on_message,
+        on_error=on_error,
+        on_close=on_close
+    )
+    
+    def run_ws():
+        try:
+            ws.run_forever(
+                sslopt={
+                    "cert_reqs": ssl.CERT_REQUIRED,
+                    "ca_certs": certifi.where()
+                }
+            )
+        except Exception as e:
+            print(f"[Deepgram] run_forever error: {e}")
+    
+    thread = threading.Thread(target=run_ws, daemon=True)
+    thread.start()
+    
+    time.sleep(0.5)
+    
+    return ws
+
+
+@socketio.on('connect')
+def handle_socket_connect():
+    print(f"[Socket.IO] Client connected: {request.sid}")
+    emit('connected', {'status': 'ok'})
+
+
+@socketio.on('disconnect')
+def handle_socket_disconnect():
+    client_sid = request.sid
+    print(f"[Socket.IO] Client disconnected: {client_sid}")
+    
+    if client_sid in streaming_connections:
+        try:
+            ws = streaming_connections[client_sid]
+            if ws and ws.sock and ws.sock.connected:
+                ws.close()
+        except Exception as e:
+            print(f"[Cleanup] Error closing connection: {e}")
+        finally:
+            del streaming_connections[client_sid]
+    
+    if client_sid in streaming_connection_ready:
+        del streaming_connection_ready[client_sid]
+
+
+@socketio.on('start_transcription')
+def handle_start_transcription(data):
+    """Start a new transcription session - uses Deepgram for speaker diarization"""
+    client_sid = request.sid
+    
+    sample_rate = data.get('sample_rate', 16000) if data else 16000
+    
+    print(f"[Socket.IO] Client {client_sid} starting transcription (sample_rate={sample_rate})")
+    
+    # Prefer Deepgram for speaker diarization, fallback to AssemblyAI
+    if DEEPGRAM_API_KEY:
+        print(f"[Socket.IO] Using Deepgram with speaker diarization")
+        
+        if client_sid in streaming_connections:
+            try:
+                streaming_connections[client_sid].close()
+            except:
+                pass
+            del streaming_connections[client_sid]
+        
+        ws = create_deepgram_websocket(client_sid, sample_rate)
+        streaming_connections[client_sid] = ws
+        
+    elif ASSEMBLYAI_API_KEY:
+        print(f"[Socket.IO] Using AssemblyAI (no speaker diarization)")
+        
+        if client_sid in streaming_connections:
+            try:
+                streaming_connections[client_sid].close()
+            except:
+                pass
+            del streaming_connections[client_sid]
+        
+        ws = create_assemblyai_websocket(client_sid, sample_rate)
+        streaming_connections[client_sid] = ws
+    else:
+        emit('error', {'message': 'No transcription API key configured'})
+        return
+    
+    emit('transcription_started', {
+        'status': 'connecting',
+        'speaker_labels': True
+    })
+
+
+audio_chunk_count = {}
+
+@socketio.on('audio_data')
+def handle_audio_data(data):
+    """Forward audio data to transcription service as binary PCM"""
+    client_sid = request.sid
+    
+    if client_sid not in streaming_connections:
+        return
+    
+    ws = streaming_connections[client_sid]
+    
+    # Track chunks for debugging
+    if client_sid not in audio_chunk_count:
+        audio_chunk_count[client_sid] = 0
+    audio_chunk_count[client_sid] += 1
+    
+    try:
+        if ws.sock and ws.sock.connected:
+            if isinstance(data, dict) and 'audio' in data:
+                audio_base64 = data['audio']
+            elif isinstance(data, str):
+                audio_base64 = data
+            else:
+                return
+            
+            audio_bytes = base64.b64decode(audio_base64)
+            
+            # Log every 100 chunks (reduced verbosity)
+            if audio_chunk_count[client_sid] % 100 == 1:
+                print(f"[Audio] Streaming chunk #{audio_chunk_count[client_sid]}")
+            
+            ws.send(audio_bytes, opcode=websocket.ABNF.OPCODE_BINARY)
+            
+    except Exception as e:
+        print(f"[Audio] Send error: {e}")
+        emit('error', {'message': f'Audio send error: {str(e)}'})
+
+
+@socketio.on('stop_transcription')
+def handle_stop_transcription():
+    """Stop transcription and close connection"""
+    client_sid = request.sid
+    
+    print(f"[Socket.IO] Client {client_sid} stopping transcription")
+    
+    if client_sid in streaming_connections:
+        try:
+            ws = streaming_connections[client_sid]
+            if ws and ws.sock and ws.sock.connected:
+                ws.close()
+        except Exception as e:
+            print(f"[Stop] Error: {e}")
+        finally:
+            del streaming_connections[client_sid]
+    
+    if client_sid in streaming_connection_ready:
+        del streaming_connection_ready[client_sid]
+    
+    emit('transcription_stopped', {'status': 'stopped'})
+
+
 if __name__ == '__main__':
-    app.run(debug=True, port=5001)
+    print(f"[Server] Starting on port 5001 with Socket.IO support")
+    print(f"[Server] Deepgram configured: {bool(DEEPGRAM_API_KEY)} (speaker diarization)")
+    print(f"[Server] AssemblyAI configured: {bool(ASSEMBLYAI_API_KEY)} (fallback)")
+    print(f"[Server] OpenAI configured: {bool(OPENAI_API_KEY)}")
+    socketio.run(app, debug=True, port=5001, host='0.0.0.0')

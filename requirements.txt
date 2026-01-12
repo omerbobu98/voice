@@ -1,5 +1,6 @@
 flask
 flask-cors
+flask-socketio
 assemblyai
 openai>=1.40.0
 python-dotenv
@@ -8,3 +9,5 @@ supabase
 PyJWT
 reportlab
 requests
+websocket-client
+certifi

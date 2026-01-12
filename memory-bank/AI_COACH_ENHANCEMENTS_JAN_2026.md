@@ -1,4 +1,223 @@
-# AI Coach Enhancements - January 10, 2026
+# AI Live Coach - מחקר ושיפורים מקיפים
+## January 11, 2026
+
+---
+
+# 🔬 מחקר חברות מתחרות - Real-Time Sales Coaching
+
+## חברות מובילות בתחום:
+
+### 1. **Gong** (Revenue Intelligence)
+- **טכנולוגיה**: Streaming ASR + ML classifiers
+- **תמלול**: AI מותאם לשיחות מכירות, מבטאים, רעשים
+- **Coaching בזמן אמת**: Live transcript + AI trackers לביטויים ספציפיים
+- **Speaker Diarization**: מעקב talk-time ratio והפרעות
+- **זיהוי התנגדויות**: Custom trackers (מחיר, מתחרים, פיצ'רים)
+- **סנטימנט**: Keyword + sentiment tracking
+
+### 2. **Balto** (Pure Real-Time Coaching) ⭐ הכי רלוונטי לנו
+- **הגישה**: Live prompts על מסך הנציג בזמן שיחה
+- **Core Features**:
+  - Real-time playbooks - כשמזהים intent/התנגדות, מציגים כרטיס עם תגובות
+  - Dynamic prompts - עדכון לפי התקדמות השיחה
+  - Manager Assist - מנהלים יכולים לשלוח הודעות בזמן אמת
+- **טכנולוגיה**: Streaming ASR → Intent classifiers → Rule engine → UI cards
+- **Latency**: < 1-2 שניות!
+- **סנטימנט**: Customer engagement indicators visible to rep
+
+### 3. **Cogito** (Emotion AI)
+- **התמקדות**: Audio behavior analysis (טון, קצב, הפרעות)
+- **Live Nudges**: להאט, להראות יותר אמפתיה, להפחית dead-air
+- **Real-time dashboards** למנהלים
+
+### 4. **Salesloft**
+- **תמלול**: Real-time call recording and transcription
+- **Live Coaching**: מנהלים יכולים להאזין, לתייג רגעים, לשלוח chat
+- **AI insights**: Talk time, question ratios, topics
+
+### 5. **Cirrus Insight - Live Meeting Coach**
+- **Prompts**: מציע "next-best questions" בזמן שיחה
+- **CRM Integration**: הפרומפטים מושפעים מסטייג' ההזדמנות
+
+---
+
+## 📊 טבלת השוואה טכנולוגית
+
+| Capability | Technology Stack |
+|-----------|------------------|
+| **Real-time Transcription** | Streaming ASR (Google/AWS/Deepgram) + domain-adapted language models |
+| **Live Coaching** | Rule engine + ML: streaming chunks → intent classifiers → decision logic → UI cards |
+| **Speaker Diarization** | Neural diarization (x-vectors + clustering) + role mapping |
+| **Objection Detection** | Supervised NLP classifiers + configurable keyword trackers |
+| **Sentiment** | Text-based (transformers) + Audio-based (pitch, energy, tempo) |
+
+---
+
+# 🚀 רשימת שיפורים מומלצים
+
+## קטגוריה 1: שיפור איכות התמלול (Priority: CRITICAL)
+
+### 1.1 בעיות נוכחיות:
+- [ ] מילים/משפטים נפספסים
+- [ ] שני אנשים מדברים בו-זמנית לא נתמל טוב
+- [ ] לפעמים התמלול מאחר
+
+### 1.2 פתרונות מוצעים:
+- [ ] **AudioWorklet במקום ScriptProcessorNode** - יותר יעיל, פחות latency
+- [ ] **Web Audio Compressor** - לנרמל עוצמת קול
+- [ ] **Noise Suppression** - להוריד רעשי רקע
+- [ ] **Dual Microphone Support** - אם יש שני מיקרופונים
+- [ ] **Deepgram Multichannel** - אם יש stereo input
+- [ ] **Echo Cancellation** - למנוע הד
+
+### 1.3 הגדרות Deepgram מתקדמות:
+```
+model=nova-2-conversationalai  # מודל לשיחות
+keywords=["Cool Life", "NMOOP", "incentives"]  # מילים מותאמות
+profanity_filter=false
+redact=false
+replace=false
+search=["price", "expensive", "think about it"]  # חיפוש התנגדויות
+```
+
+---
+
+## קטגוריה 2: שיפור AI Coach (Priority: HIGH)
+
+### 2.1 מה חסר לנו (לעומת Balto/Gong):
+
+| Feature | Balto | אנחנו | Gap |
+|---------|-------|-------|-----|
+| Real-time playbooks | ✅ | ❌ | צריך להוסיף |
+| Dynamic prompts | ✅ | חלקי | לשפר |
+| Manager Assist | ✅ | ❌ | צריך להוסיף |
+| Objection library | ✅ | חלקי | להרחיב |
+| Customer sentiment | ✅ | ❌ | צריך להוסיף |
+| Talk ratio alerts | ✅ | ✅ | יש! |
+| CRM integration | ✅ | ❌ | עתידי |
+
+### 2.2 שיפורים ב-AI Coach:
+
+#### א. **Visual Playbooks**
+- [ ] כרטיסי טיפים ויזואליים במקום טקסט
+- [ ] קטגוריות צבעוניות (התנגדות=אדום, הזדמנות=ירוק)
+- [ ] כפתור "הצג דוגמה" לכל טיפ
+
+#### ב. **Objection Detection Library**
+- [ ] זיהוי התנגדויות ספציפיות:
+  - "צריך לחשוב" → 4-Yes technique
+  - "יקר מדי" → סיפור הקבלן הזול
+  - "צריך לדבר עם בן/ת זוג" → הציעו להתקשר יחד
+  - "מקבל הצעות אחרות" → הסבירו למה לא ימצאו טוב יותר
+  - "לא עכשיו / תזמון לא טוב" → הראו ROI ודחיפות
+
+#### ג. **Buying Signal Detection**
+- [ ] זיהוי סימני קנייה:
+  - "מתי אתם יכולים להתחיל?"
+  - "איך מתחילים?"
+  - "נשמע טוב"
+  - "אני אוהב את זה"
+  - שאלות על תשלומים/מימון
+
+#### ד. **Call Phase Awareness** (יש לנו!)
+- [x] זיהוי שלב השיחה
+- [ ] המלצות לפי שלב (מה לעשות עכשיו)
+- [ ] התראה אם מדלגים על שלב
+
+#### ה. **Story Suggestions**
+- [ ] הצעת סיפורים ספציפיים לפי מצב
+- [ ] סיפור מוכן לכל סוג התנגדות
+
+---
+
+## קטגוריה 3: UI/UX (Priority: HIGH)
+
+### 3.1 בעיות נוכחיות:
+- [ ] העמוד גולל למטה כשהשיחה ארוכה
+- [ ] קשה לראות תמלול + טיפים בו-זמנית
+- [ ] אין אינדיקטור לשלב השיחה
+
+### 3.2 שיפורים מוצעים:
+
+#### א. **Split Screen Layout קבוע**
+```
+┌─────────────────────────────────────────────────────────┐
+│  Header: Timer | Phase: ICE BREAKING | Talk Ratio Bar   │
+├──────────────────────┬──────────────────────────────────┤
+│                      │                                  │
+│    TRANSCRIPT        │        AI COACH                  │
+│    (scrollable)      │        (fixed)                   │
+│                      │                                  │
+│    [Live text...]    │   🚨 OBJECTION DETECTED          │
+│                      │   "Use 4-Yes technique..."       │
+│                      │   [Show Script] [Dismiss]        │
+│                      │                                  │
+├──────────────────────┴──────────────────────────────────┤
+│  Footer: End Call | Mute | Volume                       │
+└─────────────────────────────────────────────────────────┘
+```
+
+#### ב. **Call Phase Progress Bar**
+```
+[ICE BREAKING] → [BENEFITS] → [PRODUCT] → [COMPANY] → [PRICE] → [CLOSE]
+     ████████      ████░░       ░░░░░░      ░░░░░░      ░░░░      ░░░░
+     20 min        12/20        
+```
+
+#### ג. **Talk Ratio Visual**
+```
+Seller: ████████████░░░░░░░░ 62% ⚠️ Too high!
+Buyer:  ████████░░░░░░░░░░░░ 38%
+```
+
+#### ד. **Coaching Cards Design**
+- Priority colors: 🔴 Urgent, 🟠 High, 🟡 Medium
+- Swipe to dismiss
+- "Play Audio" button for TTS
+- "Copy Script" button
+
+---
+
+## קטגוריה 4: תשתית (Priority: MEDIUM)
+
+### 4.1 שמירה ל-Supabase
+- [x] שמירת תמלול בסיום שיחה
+- [ ] שמירת כל התובנות שנוצרו
+- [ ] שמירת מטריקות (talk ratio, duration, objections)
+- [ ] קישור לניתוח מלא אחרי שיחה
+
+### 4.2 Analytics Dashboard
+- [ ] כמה התנגדויות בממוצע לשיחה
+- [ ] אילו התנגדויות הכי נפוצות
+- [ ] מהו ה-talk ratio הממוצע
+- [ ] כמה טיפים נתנו לכל שיחה
+- [ ] Correlation: טיפים → סגירה
+
+### 4.3 Manager Features
+- [ ] צפייה בשיחות בזמן אמת
+- [ ] שליחת הודעות לנציג
+- [ ] Alert כשיש התנגדות קשה
+
+---
+
+## קטגוריה 5: Advanced AI (Priority: LOW - עתידי)
+
+### 5.1 Sentiment Analysis
+- [ ] זיהוי טון הלקוח (מעוניין/מהסס/עצבני)
+- [ ] התראה כשהסנטימנט יורד
+- [ ] Visual indicator: 😊 → 😐 → 😟
+
+### 5.2 Predictive Coaching
+- [ ] ניבוי איזו התנגדות תבוא
+- [ ] הכנת הנציג מראש
+
+### 5.3 Voice Cloning
+- [ ] TTS בקול המנהל/מאמן האישי
+- [ ] יותר טבעי מקולות גנריים
+
+---
+
+# 📝 סיכום השיפורים שבוצעו עד כה
 
 ## סיכום השיפורים שבוצעו
 

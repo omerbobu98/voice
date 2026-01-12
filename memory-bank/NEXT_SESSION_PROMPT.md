@@ -1,13 +1,98 @@
 # 🚀 SalesAI - Next Session Instructions
+# AI Live Coach Enhancement Session
 
 ## ⚠️ קודם כל: קרא את כל ה-Memory Bank
 לפני שעושים משהו, קרא את הקבצים האלה כדי להבין את הפרויקט:
-1. `memory-bank/progress.md` - מה נבנה
-2. `memory-bank/activeContext.md` - שינויים אחרונים ומצב נוכחי
-3. `memory-bank/productContext.md` - מטרות המוצר
-4. `memory-bank/COMPLETE_SYSTEM_DOCUMENTATION.md` - **תיעוד מלא של המערכת** (1,099 שורות)
+1. `memory-bank/AI_COACH_ENHANCEMENTS_JAN_2026.md` - **מחקר מתחרים + רשימת שיפורים** ⭐
+2. `memory-bank/DEEPGRAM_SPEAKER_DIARIZATION.md` - תיעוד Deepgram
+3. `memory-bank/AI_AGENT_LIVE_COACH_FIX.md` - תיקונים שבוצעו
+4. `memory-bank/COMPLETE_SYSTEM_DOCUMENTATION.md` - תיעוד מלא
 
-**אחרי שקראת - שאל את המשתמש מה הוא רוצה לעשות.**
+---
+
+## 📋 Session 10 Summary (January 11, 2026) - AI LIVE COACH
+
+### מה נעשה היום:
+1. **שיפור איכות תמלול Deepgram**:
+   - הוספת `smart_format`, `punctuate`, `numerals`
+   - הגדלת `endpointing` ל-500ms
+   - הגדלת `utterance_end_ms` ל-1500ms
+
+2. **שיפור איכות אודיו**:
+   - הורדת gain מ-8x ל-4x (למנוע עיוות)
+   - הגדלת buffer מ-2048 ל-4096
+   - הגדלת chunk size מ-50ms ל-100ms
+
+3. **שדרוג AI Coach**:
+   - מודל: `gpt-4o-mini` → `gpt-4o`
+   - פרומפט מקיף עם מתודולוגיית המכירות
+   - זיהוי שלב שיחה (Ice Breaking → Price → Close)
+   - Call Phase Awareness
+
+4. **מחקר מתחרים**:
+   - Gong, Balto, Cogito, Salesloft, Cirrus Insight
+   - זיהינו פערים וכתבנו roadmap שיפורים
+
+---
+
+## 🎯 המשימות לשיפור בסשן הבא
+
+### Priority 1: שיפור איכות תמלול (CRITICAL)
+```
+בעיות:
+- מילים/משפטים נפספסים
+- שני אנשים מדברים בו-זמנית לא עובד טוב
+
+פתרונות לבדוק:
+- [ ] AudioWorklet במקום ScriptProcessorNode
+- [ ] Web Audio Compressor לנרמול עוצמה
+- [ ] Noise Suppression
+- [ ] keywords param ב-Deepgram למילים ספציפיות
+```
+
+### Priority 2: UI/UX (HIGH)
+```
+לבנות:
+- [ ] Call Phase Progress Bar
+- [ ] Talk Ratio Visual Bar
+- [ ] Coaching Cards צבעוניים (🔴 Urgent, 🟠 High, 🟡 Medium)
+- [ ] Fixed Layout שלא גולל
+```
+
+### Priority 3: AI Coach Features (HIGH)
+```
+להוסיף:
+- [ ] Objection Detection Library - זיהוי התנגדויות ספציפיות
+- [ ] Buying Signal Detection - זיהוי סימני קנייה
+- [ ] Story Suggestions - הצעת סיפורים לפי מצב
+```
+
+### Priority 4: תשתית (MEDIUM)
+```
+לבנות:
+- [ ] שמירת כל התובנות ל-Supabase
+- [ ] Analytics Dashboard
+- [ ] Manager Features (צפייה בזמן אמת)
+```
+
+---
+
+## 🏆 מה Balto עושים (הכי רלוונטי לנו)
+
+**Balto = Pure Real-Time Coaching**
+- Live prompts על מסך הנציג בזמן שיחה
+- Real-time playbooks - כשמזהים התנגדות, מציגים כרטיס עם תגובות
+- Dynamic prompts - עדכון לפי התקדמות השיחה
+- Manager Assist - מנהלים יכולים לשלוח הודעות בזמן אמת
+- Latency: < 1-2 שניות!
+
+**מה חסר לנו לעומתם:**
+| Feature | Balto | אנחנו |
+|---------|-------|-------|
+| Real-time playbooks | ✅ | ❌ |
+| Manager Assist | ✅ | ❌ |
+| Customer sentiment | ✅ | ❌ |
+| Objection library | ✅ | חלקי |
 
 ---
 
