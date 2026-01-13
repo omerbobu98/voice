@@ -78,56 +78,86 @@ def test_connection() -> dict:
     return result
 
 
-def upload_audio_file(filepath: str, user_id: str = None) -> str:
-    """Upload audio file to Supabase Storage, returns public URL or None"""
+def upload_audio_file(filepath: str, user_id: str = None, timeout_seconds: int = 30) -> str:
+    """Upload audio file to Supabase Storage, returns public URL or None
+    
+    Note: This is now non-blocking with a timeout. If upload fails or times out,
+    returns None and the call can still be saved without audio URL.
+    """
+    import threading
+    
     client = get_supabase()
     if not client:
         print("[upload_audio] ERROR: No Supabase client")
         return None
     
+    # Check file size - skip upload for very large files (>50MB)
     try:
-        # Generate unique filename with correct extension
-        file_ext = os.path.splitext(filepath)[1].lower()
-        storage_path = f"{user_id or 'anonymous'}/{uuid.uuid4()}{file_ext}"
-        
-        # Determine content type based on extension
-        content_types = {
-            '.mp3': 'audio/mpeg',
-            '.m4a': 'audio/mp4',
-            '.wav': 'audio/wav',
-            '.ogg': 'audio/ogg',
-            '.webm': 'audio/webm',
-            '.flac': 'audio/flac',
-            '.aac': 'audio/aac',
-        }
-        content_type = content_types.get(file_ext, 'audio/mpeg')
-        
-        print(f"[upload_audio] Uploading {filepath} as {content_type} to {storage_path}")
-        
-        with open(filepath, 'rb') as f:
-            file_data = f.read()
-        
-        print(f"[upload_audio] File size: {len(file_data)} bytes")
-        
-        # Upload to 'audio' bucket
-        result = client.storage.from_('audio').upload(
-            path=storage_path,
-            file=file_data,
-            file_options={"content-type": content_type}
-        )
-        
-        print(f"[upload_audio] Upload result: {result}")
-        
-        # Get public URL
-        public_url = client.storage.from_('audio').get_public_url(storage_path)
-        print(f"[upload_audio] SUCCESS: Uploaded to {storage_path}, URL: {public_url}")
-        return public_url
-        
-    except Exception as e:
-        print(f"[upload_audio] ERROR: {e}")
-        import traceback
-        traceback.print_exc()
+        file_size = os.path.getsize(filepath)
+        if file_size > 50 * 1024 * 1024:  # 50MB
+            print(f"[upload_audio] SKIPPING: File too large ({file_size} bytes)")
+            return None
+    except:
+        pass
+    
+    result_holder = {'url': None, 'done': False}
+    
+    def do_upload():
+        try:
+            # Generate unique filename with correct extension
+            file_ext = os.path.splitext(filepath)[1].lower()
+            storage_path = f"{user_id or 'anonymous'}/{uuid.uuid4()}{file_ext}"
+            
+            # Determine content type based on extension
+            content_types = {
+                '.mp3': 'audio/mpeg',
+                '.m4a': 'audio/mp4',
+                '.wav': 'audio/wav',
+                '.ogg': 'audio/ogg',
+                '.webm': 'audio/webm',
+                '.flac': 'audio/flac',
+                '.aac': 'audio/aac',
+            }
+            content_type = content_types.get(file_ext, 'audio/mpeg')
+            
+            print(f"[upload_audio] Uploading {filepath} as {content_type} to {storage_path}")
+            
+            with open(filepath, 'rb') as f:
+                file_data = f.read()
+            
+            print(f"[upload_audio] File size: {len(file_data)} bytes")
+            
+            # Upload to 'audio' bucket
+            upload_result = client.storage.from_('audio').upload(
+                path=storage_path,
+                file=file_data,
+                file_options={"content-type": content_type}
+            )
+            
+            print(f"[upload_audio] Upload result: {upload_result}")
+            
+            # Get public URL
+            public_url = client.storage.from_('audio').get_public_url(storage_path)
+            print(f"[upload_audio] SUCCESS: Uploaded to {storage_path}, URL: {public_url}")
+            result_holder['url'] = public_url
+            
+        except Exception as e:
+            print(f"[upload_audio] ERROR: {e}")
+            import traceback
+            traceback.print_exc()
+        finally:
+            result_holder['done'] = True
+    
+    # Run upload in thread with timeout
+    upload_thread = threading.Thread(target=do_upload)
+    upload_thread.start()
+    upload_thread.join(timeout=timeout_seconds)
+    
+    if not result_holder['done']:
+        print(f"[upload_audio] TIMEOUT: Upload took longer than {timeout_seconds}s, skipping")
         return None
+    
+    return result_holder['url']
 
 
 def save_call(file_name: str, duration_seconds: int, word_count: int, 
