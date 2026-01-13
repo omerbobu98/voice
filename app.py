@@ -162,6 +162,60 @@ def debug_db():
     result = test_connection()
     return jsonify(result)
 
+@app.route('/api/debug/test-transcription', methods=['POST'])
+def test_transcription():
+    """Test AssemblyAI transcription with a small file"""
+    if 'audio' not in request.files:
+        return jsonify({'error': 'No audio file provided'}), 400
+    
+    audio_file = request.files['audio']
+    filepath = os.path.join(UPLOAD_FOLDER, f"test_{uuid.uuid4().hex[:8]}_{audio_file.filename}")
+    audio_file.save(filepath)
+    
+    try:
+        file_size = os.path.getsize(filepath)
+        print(f"[test_transcription] File saved: {filepath}, Size: {file_size} bytes")
+        
+        config = aai.TranscriptionConfig(
+            speaker_labels=True,
+            punctuate=True,
+            format_text=True
+        )
+        
+        transcriber = aai.Transcriber()
+        print(f"[test_transcription] Submitting to AssemblyAI...")
+        
+        # Use synchronous transcribe instead of submit
+        transcript = transcriber.transcribe(filepath, config=config)
+        
+        print(f"[test_transcription] Result status: {transcript.status}")
+        
+        if os.path.exists(filepath):
+            os.remove(filepath)
+        
+        if transcript.status == aai.TranscriptStatus.error:
+            return jsonify({
+                'success': False,
+                'error': transcript.error,
+                'status': str(transcript.status)
+            })
+        
+        return jsonify({
+            'success': True,
+            'status': str(transcript.status),
+            'text_preview': transcript.text[:500] if transcript.text else None,
+            'duration': transcript.audio_duration,
+            'utterances_count': len(transcript.utterances) if transcript.utterances else 0
+        })
+        
+    except Exception as e:
+        import traceback
+        print(f"[test_transcription] ERROR: {e}")
+        print(traceback.format_exc())
+        if os.path.exists(filepath):
+            os.remove(filepath)
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/api/upload', methods=['POST'])
 def upload_audio():
     if 'audio' not in request.files:
