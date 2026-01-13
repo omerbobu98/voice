@@ -288,6 +288,18 @@ def run_deep_analysis(analysis_id, utterances, speaker_roles, call_id=None):
 
 def process_audio_async(job_id, filepath, user_id=None):
     try:
+        print(f"[process_audio] Starting job {job_id} for file: {filepath}")
+        
+        # Verify file exists
+        if not os.path.exists(filepath):
+            print(f"[process_audio] ERROR: File not found: {filepath}")
+            jobs[job_id]['status'] = 'error'
+            jobs[job_id]['error'] = f'File not found: {filepath}'
+            return
+        
+        file_size = os.path.getsize(filepath)
+        print(f"[process_audio] File size: {file_size} bytes")
+        
         jobs[job_id]['status'] = 'processing'
         jobs[job_id]['progress'] = 10
         jobs[job_id]['stage'] = 'Uploading to AssemblyAI...'
@@ -310,10 +322,24 @@ def process_audio_async(job_id, filepath, user_id=None):
         jobs[job_id]['progress'] = 20
         jobs[job_id]['stage'] = 'Queued for transcription...'
         
+        print(f"[process_audio] Submitting to AssemblyAI...")
         transcript = transcriber.submit(filepath, config=config)
+        print(f"[process_audio] Submitted. Transcript ID: {transcript.id}, Status: {transcript.status}")
+        
+        # Add timeout counter (max 10 minutes = 300 iterations * 2 seconds)
+        max_iterations = 300
+        iteration = 0
         
         while transcript.status not in [aai.TranscriptStatus.completed, aai.TranscriptStatus.error]:
+            iteration += 1
+            if iteration > max_iterations:
+                print(f"[process_audio] ERROR: Timeout waiting for transcription")
+                jobs[job_id]['status'] = 'error'
+                jobs[job_id]['error'] = 'Transcription timeout - took longer than 10 minutes'
+                return
+            
             transcript = aai.Transcript.get_by_id(transcript.id)
+            print(f"[process_audio] Poll {iteration}: Status = {transcript.status}")
             
             if transcript.status == aai.TranscriptStatus.queued:
                 jobs[job_id]['progress'] = 25
@@ -411,6 +437,8 @@ def process_audio_async(job_id, filepath, user_id=None):
         jobs[job_id]['status'] = 'completed'
         jobs[job_id]['result'] = result
         jobs[job_id]['call_id'] = call_db_id
+        
+        print(f"[process_audio] SUCCESS! Job {job_id} completed. Call ID: {call_db_id}")
         
         if os.path.exists(filepath):
             os.remove(filepath)
