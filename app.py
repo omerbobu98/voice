@@ -414,12 +414,13 @@ def process_audio_async(job_id, filepath, user_id=None):
         
         utterances = []
         sentiment_map = {}
-        if transcript.sentiment_analysis:
-            for sa in transcript.sentiment_analysis:
-                key = (sa.start, sa.end)
-                sentiment_map[key] = {'sentiment': sa.sentiment.value, 'confidence': sa.confidence}
+        sentiment_list = transcript.sentiment_analysis or []
+        for sa in sentiment_list:
+            key = (sa.start, sa.end)
+            sentiment_map[key] = {'sentiment': sa.sentiment.value, 'confidence': sa.confidence}
         
-        for utterance in transcript.utterances:
+        utterance_list = transcript.utterances or []
+        for utterance in utterance_list:
             sentiment_info = None
             for (start, end), sent_data in sentiment_map.items():
                 if start >= utterance.start and end <= utterance.end:
