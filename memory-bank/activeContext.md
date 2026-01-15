@@ -1,6 +1,53 @@
-# Active Context (עודכן 11 בינואר 2026)
+# Active Context (עודכן 14 בינואר 2026)
 
-## 🎯 עבודה אחרונה - Live Call Feature
+## 🚨 CRITICAL - Supabase Migration
+
+### הפרויקט הישן נמחק!
+```
+OLD (DELETED): nacwvxqimvbfqlyylszt
+NEW (ACTIVE):  ueztvmtwxqszvlzmoezx
+NEW URL: https://ueztvmtwxqszvlzmoezx.supabase.co
+```
+
+### אם יש שגיאות 401 בהעלאת קבצים:
+1. לך ל-Railway → Variables
+2. עדכן `SUPABASE_SERVICE_KEY` מהפרויקט החדש
+3. קח את ה-service_role key מ: https://supabase.com/dashboard/project/ueztvmtwxqszvlzmoezx/settings/api
+
+### פרטים מלאים:
+ראה: `/memory-bank/SUPABASE_MIGRATION_JAN_2026.md`
+
+---
+
+## 🎯 עבודה אחרונה - Google Authentication + Supabase Migration
+
+### מה הושלם (14 בינואר 2026):
+1. ✅ **Supabase Migration** - העברה לפרויקט חדש ueztvmtwxqszvlzmoezx
+2. ✅ **Database Tables** - כל הטבלאות נוצרו מחדש
+3. ✅ **Storage Policies** - הוספת policies להעלאת קבצים
+4. ✅ **Google OAuth** - הגדרה מחדש עם credentials חדשים
+5. ✅ **Netlify Env Vars** - עודכנו לפרויקט החדש
+6. ⚠️ **Railway** - צריך לעדכן SUPABASE_SERVICE_KEY
+
+### הגדרות חשובות:
+- **Site URL**: `https://vloce.netlify.app`
+- **Redirect URLs**: `https://vloce.netlify.app/**`, `http://localhost:3000/**`
+- **Google Client ID (NEW)**: `629718960436-crgi79ibepaohu2i9hlfs8vvgqs7a04a.apps.googleusercontent.com`
+- **Supabase Callback**: `https://ueztvmtwxqszvlzmoezx.supabase.co/auth/v1/callback`
+
+### קבצים שעודכנו:
+- `frontend/src/contexts/AuthContext.jsx` - signInWithGoogle function
+- `frontend/src/pages/LoginPage.jsx` - Google login button
+- `frontend/src/pages/RegisterPage.jsx` - Google login button
+
+---
+
+## 🔜 משימה הבאה - Mobile UX Optimization
+ראה `NEXT_SESSION_MOBILE_UX.md` לפרטים מלאים
+
+---
+
+## 📝 היסטוריה - Live Call Feature
 
 ### מה הושלם:
 1. ✅ **שדרוג ל-GPT-4o** - מודל חכם יותר לניתוח בזמן אמת

@@ -1,5 +1,23 @@
 # Progress: SalesAI
 
+## Latest Update - January 14, 2026
+
+### Supabase Migration
+- ❌ Old project `nacwvxqimvbfqlyylszt` was deleted
+- ✅ Migrated to existing project `ueztvmtwxqszvlzmoezx` (train data)
+- ✅ All database tables recreated
+- ✅ Storage buckets configured with policies
+- ✅ Google OAuth configured
+- ✅ Netlify env vars updated
+- ⚠️ Railway env vars need `SUPABASE_SERVICE_KEY` from new project
+
+### Current Deployment
+- **Frontend**: https://vloce.netlify.app ✅
+- **Backend**: https://web-production-3215.up.railway.app ⚠️ (needs service key update)
+- **Database**: https://ueztvmtwxqszvlzmoezx.supabase.co ✅
+
+---
+
 ## What Works ✅
 
 ### Core Features

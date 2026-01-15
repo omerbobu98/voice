@@ -265,6 +265,9 @@ def get_status(job_id):
 def analyze_call(job_id):
     """Run deep AI analysis on a completed transcription or saved call"""
     
+    # Get user_id from token
+    user_id = get_user_id_from_token()
+    
     # Check if it's an in-memory job or a database call_id (UUID format)
     if job_id in jobs:
         # In-memory job from recent upload
@@ -275,6 +278,9 @@ def analyze_call(job_id):
         call_id = job.get('call_id') or job['result'].get('call_id')
         utterances = job['result']['utterances']
         speaker_roles = job['result']['speaker_roles']
+        # Use user_id from job if not in token
+        if not user_id:
+            user_id = job.get('user_id')
     else:
         # Try to load from database (saved call)
         try:
@@ -286,6 +292,9 @@ def analyze_call(job_id):
             call_id = call['id']
             utterances = call.get('utterances', [])
             speaker_roles = call.get('speaker_roles', {})
+            # Use user_id from call if not in token
+            if not user_id:
+                user_id = call.get('user_id')
             
             if not utterances:
                 return jsonify({'error': 'No transcription data found'}), 400
@@ -301,18 +310,19 @@ def analyze_call(job_id):
         'stage': 'Starting deep analysis...',
         'result': None,
         'error': None,
-        'call_id': call_id
+        'call_id': call_id,
+        'user_id': user_id
     }
     
     thread = threading.Thread(
         target=run_deep_analysis,
-        args=(analysis_id, utterances, speaker_roles, call_id)
+        args=(analysis_id, utterances, speaker_roles, call_id, user_id)
     )
     thread.start()
     
     return jsonify({'analysis_id': analysis_id})
 
-def run_deep_analysis(analysis_id, utterances, speaker_roles, call_id=None):
+def run_deep_analysis(analysis_id, utterances, speaker_roles, call_id=None, user_id=None):
     """Run comprehensive sales analysis"""
     try:
         jobs[analysis_id]['progress'] = 10
@@ -324,9 +334,9 @@ def run_deep_analysis(analysis_id, utterances, speaker_roles, call_id=None):
         jobs[analysis_id]['progress'] = 90
         jobs[analysis_id]['stage'] = 'Saving results...'
         
-        # Save to database
+        # Save to database with user_id
         if call_id:
-            save_analysis(call_id, sales_analysis.get('metrics', {}), sales_analysis)
+            save_analysis(call_id, sales_analysis.get('metrics', {}), sales_analysis, user_id)
         
         jobs[analysis_id]['progress'] = 100
         jobs[analysis_id]['stage'] = 'Analysis complete!'

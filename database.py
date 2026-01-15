@@ -201,14 +201,14 @@ def save_call(file_name: str, duration_seconds: int, word_count: int,
         return None
 
 
-def save_analysis(call_id: str, metrics: dict, analysis: dict) -> dict:
+def save_analysis(call_id: str, metrics: dict, analysis: dict, user_id: str = None) -> dict:
     """Save analysis results for a call"""
     client = get_supabase()
     if not client:
         print("[save_analysis] ERROR: No Supabase client available")
         return None
     
-    print(f"[save_analysis] Saving analysis for call_id: {call_id}")
+    print(f"[save_analysis] Saving analysis for call_id: {call_id}, user_id: {user_id}")
     
     # Extract key metrics for easy querying
     talk_ratio = metrics.get('talk_ratio', {})
@@ -232,6 +232,7 @@ def save_analysis(call_id: str, metrics: dict, analysis: dict) -> dict:
     
     data = {
         'call_id': call_id,
+        'user_id': user_id,
         'seller_talk_percentage': talk_ratio.get('seller_percentage', 50),
         'buyer_talk_percentage': talk_ratio.get('buyer_percentage', 50),
         'total_duration_seconds': int(metrics.get('total_duration_seconds', 0)),
