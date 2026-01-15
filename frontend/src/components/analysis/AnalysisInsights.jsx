@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { BarChart3, MessageSquare, Target, Activity, BookOpen, Zap, Volume2, PlayCircle, PauseCircle, X, ChevronDown, ChevronUp, Copy, Check, Clock, Shield } from 'lucide-react'
+import { BarChart3, MessageSquare, Target, Activity, BookOpen, Zap, Volume2, PlayCircle, PauseCircle, X, ChevronDown, ChevronUp, Copy, Check, Clock, Shield, Mic, UserCheck } from 'lucide-react'
 import axios from 'axios'
 import { API_URL } from '../../lib/config'
 import SkillRadarChart from '../charts/SkillRadarChart'
@@ -113,9 +113,10 @@ function PreventionStoryCard({ story, TTSButton }) {
 }
 
 const tabs = [
-  { id: 'overview', label: 'Overview', icon: BarChart3 },
-  { id: 'insights', label: 'Deep Insights', icon: Zap },
-  { id: 'stories', label: 'Stories', icon: BookOpen },
+  { id: 'overview', label: 'Overview', shortLabel: 'סקירה', icon: BarChart3 },
+  { id: 'transcript', label: 'Transcript', shortLabel: 'תמלול', icon: Mic },
+  { id: 'insights', label: 'Deep Insights', shortLabel: 'תובנות', icon: Zap },
+  { id: 'stories', label: 'Stories', shortLabel: 'סיפורים', icon: BookOpen },
 ]
 
 export default function AnalysisInsights({ 
@@ -341,9 +342,10 @@ export default function AnalysisInsights({
       {/* Tab Navigation */}
       <div className="flex items-center gap-1 p-1 bg-slate-800/30 rounded-xl border border-slate-700/30">
         {tabs.map(tab => {
-          // Hide stories tab if no stories, hide insights if no data
+          // Hide tabs based on available data
           if (tab.id === 'stories' && !hasStories) return null
           if (tab.id === 'insights' && !hasDeepInsights) return null
+          if (tab.id === 'transcript' && (!result?.utterances || result.utterances.length === 0)) return null
           
           const Icon = tab.icon
           const isActive = activeTab === tab.id
@@ -352,13 +354,14 @@ export default function AnalysisInsights({
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
+              className={`flex-1 flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-2.5 sm:py-3 rounded-lg text-xs sm:text-sm font-medium transition-all active:scale-95 ${
                 isActive
                   ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/20'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
               }`}
             >
-              <Icon className="w-4 h-4" />
+              <Icon className="w-4 h-4 flex-shrink-0" />
+              <span className="sm:hidden">{tab.shortLabel}</span>
               <span className="hidden sm:inline">{tab.label}</span>
             </button>
           )
@@ -453,6 +456,95 @@ export default function AnalysisInsights({
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {activeTab === 'transcript' && result?.utterances && (
+          <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 overflow-hidden">
+            <div className="p-4 border-b border-slate-700/50 bg-slate-800/80">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-violet-500/20 rounded-xl flex items-center justify-center">
+                    <Mic className="w-5 h-5 text-violet-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-200">Full Transcription</h3>
+                    <p className="text-sm text-slate-500">{result.utterances.length} segments • {result.word_count || 0} words</p>
+                  </div>
+                </div>
+                {/* Speaker Legend */}
+                <div className="hidden sm:flex items-center gap-3">
+                  {Object.entries(result.speaker_roles || {}).map(([speaker, role]) => (
+                    <div
+                      key={speaker}
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium ${
+                        role === 'Seller' 
+                          ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' 
+                          : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                      }`}
+                    >
+                      <div className={`w-2 h-2 rounded-full ${role === 'Seller' ? 'bg-blue-400' : 'bg-emerald-400'}`} />
+                      {role}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            
+            <div className="p-4 max-h-[600px] overflow-y-auto custom-scrollbar">
+              <div className="space-y-2">
+                {result.utterances.map((utterance, index) => {
+                  const role = result.speaker_roles?.[utterance.speaker] || 'Unknown'
+                  const isSeller = role === 'Seller'
+                  const formatTime = (ms) => {
+                    const seconds = Math.floor(ms / 1000)
+                    const mins = Math.floor(seconds / 60)
+                    const secs = seconds % 60
+                    return `${mins}:${secs.toString().padStart(2, '0')}`
+                  }
+                  
+                  return (
+                    <div
+                      key={index}
+                      onClick={() => onSeek && onSeek(utterance.start)}
+                      className={`flex gap-3 p-3 rounded-xl transition-all cursor-pointer ${
+                        isSeller 
+                          ? 'bg-blue-500/5 border border-blue-500/10 hover:border-blue-500/30 hover:bg-blue-500/10' 
+                          : 'bg-emerald-500/5 border border-emerald-500/10 hover:border-emerald-500/30 hover:bg-emerald-500/10'
+                      }`}
+                    >
+                      <div className="flex-shrink-0">
+                        <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${
+                          isSeller ? 'bg-blue-500' : 'bg-emerald-500'
+                        }`}>
+                          <span className="text-white font-bold text-sm">{utterance.speaker}</span>
+                        </div>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className={`text-xs font-semibold ${isSeller ? 'text-blue-400' : 'text-emerald-400'}`}>
+                            {role}
+                          </span>
+                          <span className="text-xs font-mono text-slate-500 px-1.5 py-0.5 bg-slate-800 rounded">
+                            {formatTime(utterance.start)}
+                          </span>
+                          {utterance.sentiment && utterance.sentiment !== 'neutral' && (
+                            <span className={`text-xs px-1.5 py-0.5 rounded ${
+                              utterance.sentiment === 'positive' ? 'bg-emerald-500/20 text-emerald-400' :
+                              utterance.sentiment === 'negative' ? 'bg-red-500/20 text-red-400' :
+                              'bg-slate-500/20 text-slate-400'
+                            }`}>
+                              {utterance.sentiment}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-sm text-slate-300 leading-relaxed">{utterance.text}</p>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
           </div>
         )}
 

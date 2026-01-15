@@ -514,8 +514,8 @@ export default function LiveCallPageMobile() {
   // Setup Modal
   if (showSetup) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-[#0a0a0f] to-[#1a1a2e] flex items-center justify-center p-4">
-        <div className="w-full max-w-lg bg-gradient-to-b from-white/[0.08] to-white/[0.02] rounded-3xl border border-white/10 p-6 shadow-2xl">
+      <div className="min-h-screen bg-gradient-to-b from-[#0a0a0f] to-[#1a1a2e] flex items-center justify-center p-4 overflow-y-auto">
+        <div className="w-full max-w-lg bg-gradient-to-b from-white/[0.08] to-white/[0.02] rounded-2xl sm:rounded-3xl border border-white/10 p-4 sm:p-6 shadow-2xl my-auto max-h-[90vh] overflow-y-auto">
           <div className="text-center mb-6">
             <div className="w-16 h-16 bg-gradient-to-br from-violet-500 to-fuchsia-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
               <Phone className="w-8 h-8 text-white" />
@@ -534,7 +534,7 @@ export default function LiveCallPageMobile() {
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
                   placeholder="ישראל ישראלי"
-                  className="w-full bg-white/[0.05] border border-white/10 rounded-xl pl-10 pr-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-violet-500/50 focus:ring-2 focus:ring-violet-500/20 transition-all"
+                  className="w-full bg-white/[0.05] border border-white/10 rounded-xl pl-10 pr-4 py-3 text-base text-white placeholder-gray-500 focus:outline-none focus:border-violet-500/50 focus:ring-2 focus:ring-violet-500/20 transition-all"
                 />
               </div>
             </div>
@@ -548,7 +548,7 @@ export default function LiveCallPageMobile() {
                   value={customerPhone}
                   onChange={(e) => setCustomerPhone(e.target.value)}
                   placeholder="050-000-0000"
-                  className="w-full bg-white/[0.05] border border-white/10 rounded-xl pl-10 pr-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-violet-500/50 focus:ring-2 focus:ring-violet-500/20 transition-all"
+                  className="w-full bg-white/[0.05] border border-white/10 rounded-xl pl-10 pr-4 py-3 text-base text-white placeholder-gray-500 focus:outline-none focus:border-violet-500/50 focus:ring-2 focus:ring-violet-500/20 transition-all"
                 />
               </div>
             </div>
@@ -562,7 +562,7 @@ export default function LiveCallPageMobile() {
                   value={dealType}
                   onChange={(e) => setDealType(e.target.value)}
                   placeholder="Cool Life Paint, Turf, Pavers..."
-                  className="w-full bg-white/[0.05] border border-white/10 rounded-xl pl-10 pr-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-violet-500/50 focus:ring-2 focus:ring-violet-500/20 transition-all"
+                  className="w-full bg-white/[0.05] border border-white/10 rounded-xl pl-10 pr-4 py-3 text-base text-white placeholder-gray-500 focus:outline-none focus:border-violet-500/50 focus:ring-2 focus:ring-violet-500/20 transition-all"
                 />
               </div>
             </div>
@@ -576,7 +576,7 @@ export default function LiveCallPageMobile() {
                   value={estimatedValue}
                   onChange={(e) => setEstimatedValue(e.target.value)}
                   placeholder="10000"
-                  className="w-full bg-white/[0.05] border border-white/10 rounded-xl pl-10 pr-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-violet-500/50 focus:ring-2 focus:ring-violet-500/20 transition-all"
+                  className="w-full bg-white/[0.05] border border-white/10 rounded-xl pl-10 pr-4 py-3 text-base text-white placeholder-gray-500 focus:outline-none focus:border-violet-500/50 focus:ring-2 focus:ring-violet-500/20 transition-all"
                 />
               </div>
             </div>

@@ -446,7 +446,12 @@ function MainApp() {
     checkAdminStatus()
   }, [user])
 
-  // Fetch dashboard stats when tab changes
+  // Fetch calls on mount and when tab changes
+  useEffect(() => {
+    // Always fetch calls on mount for sidebar
+    fetchCalls()
+  }, [])
+
   useEffect(() => {
     if (activeTab === 'dashboard') {
       fetchDashboard()
@@ -810,15 +815,16 @@ function MainApp() {
 
   // Render Calls History View
   const renderCallsHistory = () => (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-white">Call History</h2>
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-xl sm:text-2xl font-bold text-white">Call History</h2>
         <button
           onClick={() => setActiveTab('upload')}
-          className="px-4 py-2 bg-violet-500 hover:bg-violet-600 text-white rounded-xl font-medium flex items-center gap-2"
+          className="px-3 sm:px-4 py-2 bg-violet-500 hover:bg-violet-600 text-white rounded-xl font-medium flex items-center gap-2 text-sm sm:text-base active:scale-95 transition-all flex-shrink-0"
         >
           <Upload className="w-4 h-4" />
-          New Call
+          <span className="hidden xs:inline">New Call</span>
+          <span className="xs:hidden">New</span>
         </button>
       </div>
 
@@ -832,23 +838,36 @@ function MainApp() {
             <div
               key={call.id}
               onClick={() => viewCall(call.id)}
-              className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] rounded-2xl p-5 border border-white/10 cursor-pointer hover:border-violet-500/50 transition-colors"
+              className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] rounded-xl sm:rounded-2xl p-4 sm:p-5 border border-white/10 cursor-pointer hover:border-violet-500/50 transition-colors active:scale-[0.99]"
             >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-violet-500/20 rounded-xl flex items-center justify-center">
-                    <Phone className="w-6 h-6 text-violet-400" />
+              {/* Mobile: Stack layout, Desktop: Row layout */}
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                {/* Left side: Icon + Info */}
+                <div className="flex items-start sm:items-center gap-3 sm:gap-4">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-violet-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <Phone className="w-5 h-5 sm:w-6 sm:h-6 text-violet-400" />
                   </div>
-                  <div>
-                    <h3 className="text-white font-semibold">{call.file_name}</h3>
-                    <div className="flex items-center gap-4 text-sm text-gray-500">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start sm:items-center justify-between gap-2">
+                      <h3 className="text-white font-semibold text-sm sm:text-base truncate">{call.file_name}</h3>
+                      {/* Status badge - Mobile: next to title */}
+                      <span className={`sm:hidden px-2 py-0.5 rounded-full text-[10px] font-medium flex-shrink-0 ${
+                        call.status === 'analyzed' 
+                          ? 'bg-emerald-500/20 text-emerald-400' 
+                          : 'bg-yellow-500/20 text-yellow-400'
+                      }`}>
+                        {call.status === 'analyzed' ? 'Analyzed' : 'Transcribed'}
+                      </span>
+                    </div>
+                    {/* Metadata - wraps on mobile */}
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs sm:text-sm text-gray-500 mt-1">
                       <span className="flex items-center gap-1">
                         <Clock className="w-3 h-3" />
                         {formatDuration(call.duration_seconds || 0)}
                       </span>
                       <span className="flex items-center gap-1">
                         <Users className="w-3 h-3" />
-                        {call.speakers_count} speakers
+                        {call.speakers_count}
                       </span>
                       <span className="flex items-center gap-1">
                         <Calendar className="w-3 h-3" />
@@ -857,7 +876,8 @@ function MainApp() {
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
+                {/* Right side: Status badge + Arrow - Desktop only */}
+                <div className="hidden sm:flex items-center gap-3 flex-shrink-0">
                   <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                     call.status === 'analyzed' 
                       ? 'bg-emerald-500/20 text-emerald-400' 
@@ -912,16 +932,25 @@ function MainApp() {
         ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         bg-black/95 lg:bg-black/40 border-r border-white/10 flex flex-col transition-all duration-300
       `}>
-        {/* Logo */}
+        {/* Logo + Mobile Close */}
         <div className="p-4 border-b border-white/10">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-violet-500 to-fuchsia-500 rounded-xl flex items-center justify-center flex-shrink-0">
-              <Phone className="w-5 h-5 text-white" />
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-violet-500 to-fuchsia-500 rounded-xl flex items-center justify-center flex-shrink-0">
+                <Phone className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-white">SalesAI</h1>
+                <p className="text-xs text-gray-500">Conversation Intelligence</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-xl font-bold text-white">SalesAI</h1>
-              <p className="text-xs text-gray-500">Conversation Intelligence</p>
-            </div>
+            {/* Mobile close button at top */}
+            <button
+              onClick={() => setMobileMenuOpen(false)}
+              className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors lg:hidden"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
         </div>
 
@@ -971,6 +1000,51 @@ function MainApp() {
               )
             })}
           </ul>
+
+          {/* Recent Calls Section */}
+          {callsList.length > 0 && (
+            <div className="mt-6 pt-4 border-t border-white/10">
+              <div className="flex items-center justify-between px-4 mb-2">
+                <p className="text-xs text-gray-600 uppercase tracking-wider">Recent Calls</p>
+                <button
+                  onClick={() => {
+                    setActiveTab('calls')
+                    setMobileMenuOpen(false)
+                  }}
+                  className="text-xs text-violet-400 hover:text-violet-300"
+                >
+                  View All
+                </button>
+              </div>
+              <ul className="space-y-1 max-h-[200px] overflow-y-auto custom-scrollbar">
+                {callsList.slice(0, 5).map((call) => (
+                  <li key={call.id}>
+                    <button
+                      onClick={() => {
+                        viewCall(call.id)
+                        setMobileMenuOpen(false)
+                      }}
+                      className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-left ${
+                        selectedCall?.call?.id === call.id
+                          ? 'bg-violet-500/20 text-violet-300 border border-violet-500/30'
+                          : 'text-gray-400 hover:text-white hover:bg-white/5'
+                      }`}
+                    >
+                      <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                        call.status === 'analyzed' ? 'bg-emerald-400' : 'bg-yellow-400'
+                      }`} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm truncate">{call.file_name}</p>
+                        <p className="text-[10px] text-gray-600">
+                          {new Date(call.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {/* Admin Section */}
           {isAdmin && (
@@ -1286,34 +1360,34 @@ function MainApp() {
             <div className="space-y-6">
               {/* Call Name Header (for saved calls) */}
               {selectedCall && (
-                <div className="flex items-center gap-4 mb-2">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 mb-2">
                   <button
                     onClick={() => {
                       setSelectedCall(null)
                       setResult(null)
                       setActiveTab('calls')
                     }}
-                    className="px-4 py-2 bg-white/10 hover:bg-white/20 text-gray-300 rounded-xl transition-colors font-medium flex items-center gap-2"
+                    className="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-gray-300 rounded-xl transition-colors font-medium flex items-center gap-2 active:scale-95"
                   >
                     ← Back to History
                   </button>
-                  <h1 className="text-xl font-bold text-white">{result.file_name}</h1>
+                  <h1 className="text-lg sm:text-xl font-bold text-white truncate max-w-full">{result.file_name}</h1>
                 </div>
               )}
               
               {/* Stats Header */}
-              <div className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] rounded-3xl p-6 border border-white/10">
-                <div className="flex items-center justify-between flex-wrap gap-4 mb-6">
-                  <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-xl flex items-center justify-center">
-                      <CheckCircle2 className="w-5 h-5 text-white" />
+              <div className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-white/10">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                  <h2 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-3">
+                    <div className="w-9 h-9 sm:w-10 sm:h-10 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                     </div>
                     {selectedCall ? 'Call Details' : 'Transcription Complete'}
                   </h2>
-                  <div className="flex gap-3">
+                  <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
                     <button
                       onClick={handleAnalyze}
-                      className="px-6 py-3 bg-gradient-to-r from-fuchsia-600 to-violet-600 hover:from-fuchsia-500 hover:to-violet-500 text-white rounded-xl transition-all font-semibold flex items-center gap-2 shadow-lg shadow-fuchsia-500/20"
+                      className="w-full sm:w-auto px-5 sm:px-6 py-3 bg-gradient-to-r from-fuchsia-600 to-violet-600 hover:from-fuchsia-500 hover:to-violet-500 text-white rounded-xl transition-all font-semibold flex items-center justify-center gap-2 shadow-lg shadow-fuchsia-500/20 active:scale-95"
                     >
                       <Brain className="w-5 h-5" />
                       Analyze Call
@@ -1328,7 +1402,7 @@ function MainApp() {
                         setAnalysisResult(null)
                         setShowAnalysis(false)
                       }}
-                      className="px-5 py-2.5 bg-white/10 hover:bg-white/20 text-gray-300 rounded-xl transition-colors font-medium flex items-center gap-2"
+                      className="w-full sm:w-auto px-5 py-2.5 bg-white/10 hover:bg-white/20 text-gray-300 rounded-xl transition-colors font-medium flex items-center justify-center gap-2 active:scale-95"
                     >
                       <Upload className="w-4 h-4" />
                       New Upload
@@ -1337,43 +1411,43 @@ function MainApp() {
                 </div>
 
                 {/* Stats Grid */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                  <div className="bg-white/[0.03] rounded-2xl p-4 border border-white/5">
-                    <div className="flex items-center gap-3 mb-2">
-                      <Users className="w-5 h-5 text-violet-400" />
-                      <span className="text-gray-500 text-sm">Speakers</span>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4 mb-6">
+                  <div className="bg-white/[0.03] rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-white/5">
+                    <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-2">
+                      <Users className="w-4 h-4 sm:w-5 sm:h-5 text-violet-400" />
+                      <span className="text-gray-500 text-xs sm:text-sm">Speakers</span>
                     </div>
-                    <p className="text-3xl font-bold text-white">{result.speakers_count}</p>
+                    <p className="text-2xl sm:text-3xl font-bold text-white">{result.speakers_count}</p>
                   </div>
-                  <div className="bg-white/[0.03] rounded-2xl p-4 border border-white/5">
-                    <div className="flex items-center gap-3 mb-2">
-                      <MessageSquare className="w-5 h-5 text-blue-400" />
-                      <span className="text-gray-500 text-sm">Segments</span>
+                  <div className="bg-white/[0.03] rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-white/5">
+                    <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-2">
+                      <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400" />
+                      <span className="text-gray-500 text-xs sm:text-sm">Segments</span>
                     </div>
-                    <p className="text-3xl font-bold text-white">{result.utterances.length}</p>
+                    <p className="text-2xl sm:text-3xl font-bold text-white">{result.utterances.length}</p>
                   </div>
-                  <div className="bg-white/[0.03] rounded-2xl p-4 border border-white/5">
-                    <div className="flex items-center gap-3 mb-2">
-                      <Clock className="w-5 h-5 text-fuchsia-400" />
-                      <span className="text-gray-500 text-sm">Duration</span>
+                  <div className="bg-white/[0.03] rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-white/5">
+                    <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-2">
+                      <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-fuchsia-400" />
+                      <span className="text-gray-500 text-xs sm:text-sm">Duration</span>
                     </div>
-                    <p className="text-3xl font-bold text-white">{result.audio_duration > 0 ? formatDuration(result.audio_duration) : '--'}</p>
+                    <p className="text-2xl sm:text-3xl font-bold text-white">{result.audio_duration > 0 ? formatDuration(result.audio_duration) : '--'}</p>
                   </div>
-                  <div className="bg-white/[0.03] rounded-2xl p-4 border border-white/5">
-                    <div className="flex items-center gap-3 mb-2">
-                      <Activity className="w-5 h-5 text-emerald-400" />
-                      <span className="text-gray-500 text-sm">Words</span>
+                  <div className="bg-white/[0.03] rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-white/5">
+                    <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-2">
+                      <Activity className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400" />
+                      <span className="text-gray-500 text-xs sm:text-sm">Words</span>
                     </div>
-                    <p className="text-3xl font-bold text-white">{result.word_count || '--'}</p>
+                    <p className="text-2xl sm:text-3xl font-bold text-white">{result.word_count || '--'}</p>
                   </div>
                 </div>
 
                 {/* Speaker Roles */}
-                <div className="flex flex-wrap gap-3">
+                <div className="flex flex-wrap gap-2 sm:gap-3">
                   {Object.entries(result.speaker_roles).map(([speaker, role]) => (
                     <div
                       key={speaker}
-                      className={`px-5 py-3 rounded-xl font-semibold flex items-center gap-3 ${
+                      className={`px-3 sm:px-5 py-2 sm:py-3 rounded-lg sm:rounded-xl font-semibold flex items-center gap-2 sm:gap-3 ${
                         role === 'Seller' 
                           ? 'bg-gradient-to-r from-blue-500/20 to-blue-600/20 border border-blue-500/30 text-blue-300' 
                           : role === 'Buyer'
@@ -1381,14 +1455,14 @@ function MainApp() {
                           : 'bg-gray-500/20 border border-gray-500/30 text-gray-300'
                       }`}
                     >
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                      <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
                         role === 'Seller' ? 'bg-blue-500' : role === 'Buyer' ? 'bg-emerald-500' : 'bg-gray-500'
                       }`}>
-                        <UserCheck className="w-4 h-4 text-white" />
+                        <UserCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
                       </div>
-                      <div>
-                        <p className="text-xs opacity-70">Speaker {speaker}</p>
-                        <p className="font-bold">{role}</p>
+                      <div className="min-w-0">
+                        <p className="text-[10px] sm:text-xs opacity-70">Speaker {speaker}</p>
+                        <p className="font-bold text-sm sm:text-base">{role}</p>
                       </div>
                     </div>
                   ))}

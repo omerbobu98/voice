@@ -49,29 +49,29 @@ export default function DeepInsightsTab({ analysisResult, onSeek, TTSButton }) {
       {/* Objections Section */}
       {objections.length > 0 && (
         <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 overflow-hidden">
-          <div className="p-4 border-b border-slate-700/50 bg-slate-800/80">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-red-500/20 rounded-xl flex items-center justify-center">
-                  <AlertTriangle className="w-5 h-5 text-red-400" />
+          <div className="p-3 sm:p-4 border-b border-slate-700/50 bg-slate-800/80">
+            <div className="flex items-start sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="w-9 h-9 sm:w-10 sm:h-10 bg-red-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-red-400" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-slate-200">Objections Detected</h3>
-                  <p className="text-sm text-slate-500">{objections.length} objections found • Click to see better responses</p>
+                  <h3 className="text-base sm:text-lg font-semibold text-slate-200">Objections Detected</h3>
+                  <p className="text-xs sm:text-sm text-slate-500">{objections.length} found • Tap to expand</p>
                 </div>
               </div>
-              <div className="text-right">
-                <div className="text-2xl font-bold text-slate-200">
+              <div className="text-right flex-shrink-0">
+                <div className="text-xl sm:text-2xl font-bold text-slate-200">
                   {Math.round(objections.reduce((sum, o) => sum + (o.handling_score || 0), 0) / objections.length)}/10
                 </div>
-                <p className="text-xs text-slate-500">Avg Handling</p>
+                <p className="text-[10px] sm:text-xs text-slate-500">Avg Handling</p>
               </div>
             </div>
           </div>
 
           <div className="divide-y divide-slate-700/30">
             {objections.map((objection, i) => (
-              <div key={i} className="p-4">
+              <div key={i} className="p-3 sm:p-4">
                 {/* Objection Header */}
                 <button
                   onClick={() => setExpandedObjection(expandedObjection === i ? null : i)}
@@ -107,12 +107,12 @@ export default function DeepInsightsTab({ analysisResult, onSeek, TTSButton }) {
                         <span className="text-slate-400">Real concern:</span> {objection.real_concern}
                       </p>
                     </div>
-                    <div className="flex items-center gap-3 flex-shrink-0">
-                      <div className="text-right">
-                        <span className={`text-lg font-bold ${getScoreColor(objection.handling_score)}`}>
+                    <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                      <div className="text-right hidden xs:block">
+                        <span className={`text-base sm:text-lg font-bold ${getScoreColor(objection.handling_score)}`}>
                           {objection.handling_score}/10
                         </span>
-                        <p className="text-xs text-slate-500">Handling</p>
+                        <p className="text-[10px] sm:text-xs text-slate-500">Handling</p>
                       </div>
                       {expandedObjection === i ? (
                         <ChevronUp className="w-5 h-5 text-slate-400" />
@@ -201,7 +201,7 @@ export default function DeepInsightsTab({ analysisResult, onSeek, TTSButton }) {
 
           <div className="divide-y divide-slate-700/30">
             {betterResponses.map((resp, i) => (
-              <div key={i} className="p-4">
+              <div key={i} className="p-3 sm:p-4">
                 <button
                   onClick={() => setExpandedResponse(expandedResponse === i ? null : i)}
                   className="w-full text-left"
@@ -241,9 +241,9 @@ export default function DeepInsightsTab({ analysisResult, onSeek, TTSButton }) {
                 </button>
 
                 {expandedResponse === i && (
-                  <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="mt-3 sm:mt-4 grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                     {/* Original */}
-                    <div className="p-4 bg-slate-900/50 rounded-xl border-l-4 border-red-500/50">
+                    <div className="p-3 sm:p-4 bg-slate-900/50 rounded-xl border-l-4 border-red-500/50">
                       <p className="text-xs text-red-400 font-semibold mb-2">❌ What You Said</p>
                       <p className="text-slate-400">"{resp.original_response || resp.original_seller_statement}"</p>
                       {resp.problem_with_original && (
@@ -252,7 +252,7 @@ export default function DeepInsightsTab({ analysisResult, onSeek, TTSButton }) {
                     </div>
 
                     {/* Improved */}
-                    <div className="p-4 bg-emerald-500/10 rounded-xl border-l-4 border-emerald-500">
+                    <div className="p-3 sm:p-4 bg-emerald-500/10 rounded-xl border-l-4 border-emerald-500">
                       <div className="flex items-center justify-between mb-2">
                         <p className="text-xs text-emerald-400 font-semibold">✅ Say This Instead</p>
                         <button

@@ -147,7 +147,7 @@ export default function AIAssistant({ analysisResult, result, selectedText, onCl
         <div className={`fixed z-50 transition-all duration-300 ${
           isMinimized 
             ? 'bottom-6 right-6 w-72' 
-            : 'bottom-6 right-6 w-[400px] max-w-[calc(100vw-2rem)] h-[600px] max-h-[calc(100vh-6rem)]'
+            : 'inset-4 sm:inset-auto sm:bottom-6 sm:right-6 sm:w-[400px] sm:max-w-[calc(100vw-2rem)] sm:h-[600px] sm:max-h-[calc(100vh-6rem)]'
         }`}>
           <div className={`bg-slate-900/95 backdrop-blur-xl rounded-2xl border border-indigo-500/30 shadow-2xl shadow-indigo-500/20 overflow-hidden flex flex-col ${
             isMinimized ? 'h-auto' : 'h-full'

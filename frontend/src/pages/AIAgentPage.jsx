@@ -832,7 +832,7 @@ export default function AIAgentPage() {
                   <button
                     onClick={testMicrophone}
                     disabled={stepStatus.recording === 'testing'}
-                    className="px-4 py-2 bg-violet-500/20 text-violet-400 rounded-lg hover:bg-violet-500/30 transition-colors disabled:opacity-50"
+                    className="px-4 py-3 bg-violet-500/20 text-violet-400 rounded-lg hover:bg-violet-500/30 transition-colors disabled:opacity-50 active:scale-95 min-h-[44px]"
                   >
                     בדוק
                   </button>
@@ -866,7 +866,7 @@ export default function AIAgentPage() {
                   <button
                     onClick={testTranscription}
                     disabled={stepStatus.transcription === 'testing'}
-                    className="px-4 py-2 bg-violet-500/20 text-violet-400 rounded-lg hover:bg-violet-500/30 transition-colors disabled:opacity-50"
+                    className="px-4 py-3 bg-violet-500/20 text-violet-400 rounded-lg hover:bg-violet-500/30 transition-colors disabled:opacity-50 active:scale-95 min-h-[44px]"
                   >
                     בדוק
                   </button>
@@ -882,7 +882,7 @@ export default function AIAgentPage() {
                   <button
                     onClick={testAICoaching}
                     disabled={stepStatus.aiCoaching === 'testing'}
-                    className="px-4 py-2 bg-violet-500/20 text-violet-400 rounded-lg hover:bg-violet-500/30 transition-colors disabled:opacity-50"
+                    className="px-4 py-3 bg-violet-500/20 text-violet-400 rounded-lg hover:bg-violet-500/30 transition-colors disabled:opacity-50 active:scale-95 min-h-[44px]"
                   >
                     בדוק
                   </button>
@@ -898,7 +898,7 @@ export default function AIAgentPage() {
                   <button
                     onClick={testTTS}
                     disabled={stepStatus.tts === 'testing'}
-                    className="px-4 py-2 bg-violet-500/20 text-violet-400 rounded-lg hover:bg-violet-500/30 transition-colors disabled:opacity-50"
+                    className="px-4 py-3 bg-violet-500/20 text-violet-400 rounded-lg hover:bg-violet-500/30 transition-colors disabled:opacity-50 active:scale-95 min-h-[44px]"
                   >
                     בדוק
                   </button>
@@ -945,52 +945,83 @@ export default function AIAgentPage() {
             
           </div>
         ) : (
-          /* Recording Mode - Fixed Height Layout with Call Phase Progress */
-          <div className="flex flex-col gap-4" style={{ height: 'calc(100vh - 140px)' }}>
+          /* Recording Mode - Responsive Layout with Call Phase Progress */
+          <div className="flex flex-col gap-3 lg:gap-4 h-[calc(100dvh-140px)] lg:h-[calc(100vh-140px)]">
             
             {/* TOP BAR: Timer, Phase Progress, Talk Ratio */}
-            <div className="bg-slate-800/50 rounded-2xl border border-slate-700/50 p-4">
-              <div className="flex items-center justify-between gap-6">
-                {/* Timer */}
-                <div className="flex items-center gap-3">
-                  <div className="px-4 py-2 rounded-xl bg-red-500/20 text-red-400 font-mono text-xl flex items-center gap-2">
+            <div className="bg-slate-800/50 rounded-xl lg:rounded-2xl border border-slate-700/50 p-3 lg:p-4">
+              <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 lg:gap-6">
+                {/* Timer + Talk Ratio Row (Mobile) */}
+                <div className="flex items-center justify-between lg:justify-start gap-3">
+                  <div className="px-3 lg:px-4 py-2 rounded-xl bg-red-500/20 text-red-400 font-mono text-lg lg:text-xl flex items-center gap-2">
                     <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
                     {formatDuration(duration)}
+                  </div>
+                  
+                  {/* Talk Ratio - Mobile inline, Desktop separate */}
+                  <div className="flex lg:hidden items-center gap-2">
+                    <div className="w-16 h-2 bg-slate-700 rounded-full overflow-hidden flex">
+                      <div 
+                        className={`h-full transition-all ${
+                          (sellerWords + buyerWords) > 0 && (sellerWords / (sellerWords + buyerWords)) > 0.65 
+                            ? 'bg-orange-500' 
+                            : 'bg-violet-500'
+                        }`}
+                        style={{ 
+                          width: `${(sellerWords + buyerWords) > 0 
+                            ? Math.round((sellerWords / (sellerWords + buyerWords)) * 100) 
+                            : 50}%` 
+                        }}
+                      />
+                    </div>
+                    <span className={`text-xs font-bold ${
+                      (sellerWords + buyerWords) > 0 && (sellerWords / (sellerWords + buyerWords)) > 0.65 
+                        ? 'text-orange-400' 
+                        : 'text-emerald-400'
+                    }`}>
+                      {(sellerWords + buyerWords) > 0 
+                        ? `${Math.round((sellerWords / (sellerWords + buyerWords)) * 100)}%` 
+                        : '50%'}
+                    </span>
                   </div>
                 </div>
                 
                 {/* Call Phase Progress Bar */}
-                <div className="flex-1">
-                  <div className="flex items-center gap-1">
+                <div className="flex-1 order-last lg:order-none">
+                  <div className="flex items-center gap-0.5 lg:gap-1">
                     {[
-                      { name: 'ICE', min: 0, color: 'bg-blue-500' },
-                      { name: 'BENEFITS', min: 20, color: 'bg-cyan-500' },
-                      { name: 'PRODUCT', min: 40, color: 'bg-violet-500' },
-                      { name: 'COMPANY', min: 60, color: 'bg-purple-500' },
-                      { name: 'PRICE', min: 75, color: 'bg-orange-500' },
-                      { name: 'CLOSE', min: 90, color: 'bg-emerald-500' }
+                      { name: 'ICE', short: '❄️', min: 0, color: 'bg-blue-500' },
+                      { name: 'BENEFITS', short: '✨', min: 20, color: 'bg-cyan-500' },
+                      { name: 'PRODUCT', short: '📦', min: 40, color: 'bg-violet-500' },
+                      { name: 'COMPANY', short: '🏢', min: 60, color: 'bg-purple-500' },
+                      { name: 'PRICE', short: '💰', min: 75, color: 'bg-orange-500' },
+                      { name: 'CLOSE', short: '🎯', min: 90, color: 'bg-emerald-500' }
                     ].map((phase, idx) => {
                       const minutes = Math.floor(duration / 60)
                       const isActive = minutes >= phase.min && (idx === 5 || minutes < [20, 40, 60, 75, 90, 999][idx])
                       const isPast = minutes >= [20, 40, 60, 75, 90, 999][idx]
                       
                       return (
-                        <div key={phase.name} className="flex-1 flex flex-col items-center gap-1">
-                          <div className={`h-2 w-full rounded-full transition-all ${
+                        <div key={phase.name} className="flex-1 flex flex-col items-center gap-0.5 lg:gap-1">
+                          <div className={`h-1.5 lg:h-2 w-full rounded-full transition-all ${
                             isActive ? `${phase.color} animate-pulse` : 
                             isPast ? phase.color : 'bg-slate-700'
                           }`} />
-                          <span className={`text-[10px] font-medium ${
+                          {/* Show emoji on mobile, text on desktop */}
+                          <span className={`text-[10px] lg:text-xs font-medium ${
                             isActive ? 'text-white' : isPast ? 'text-gray-400' : 'text-gray-600'
-                          }`}>{phase.name}</span>
+                          }`}>
+                            <span className="lg:hidden">{phase.short}</span>
+                            <span className="hidden lg:inline">{phase.name}</span>
+                          </span>
                         </div>
                       )
                     })}
                   </div>
                 </div>
                 
-                {/* Talk Ratio */}
-                <div className="flex items-center gap-3">
+                {/* Talk Ratio - Desktop only (Mobile shown inline with timer) */}
+                <div className="hidden lg:flex items-center gap-3">
                   <div className="text-right">
                     <p className="text-xs text-gray-400">יחס דיבור</p>
                     <p className={`text-sm font-bold ${
@@ -1022,9 +1053,9 @@ export default function AIAgentPage() {
             </div>
             
             {/* MAIN CONTENT: Transcript + Coach Panel */}
-            <div className="flex gap-4 flex-1 min-h-0">
-              {/* Left: Transcript */}
-              <div className="flex-1 bg-slate-800/50 rounded-2xl border border-slate-700/50 flex flex-col min-h-0">
+            <div className="flex flex-col lg:flex-row gap-3 lg:gap-4 flex-1 min-h-0 overflow-hidden">
+              {/* Transcript Panel */}
+              <div className="flex-1 lg:flex-[2] bg-slate-800/50 rounded-xl lg:rounded-2xl border border-slate-700/50 flex flex-col min-h-0 max-h-[40vh] lg:max-h-none">
                 {/* Connection Status */}
                 <div className="px-4 py-3 border-b border-slate-700/50 flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -1088,8 +1119,8 @@ export default function AIAgentPage() {
                 </div>
               </div>
               
-              {/* Right: AI Coach Panel - Fixed width */}
-              <div className="w-96 bg-slate-800/50 rounded-2xl border border-slate-700/50 flex flex-col min-h-0">
+              {/* AI Coach Panel - Full width mobile, fixed width desktop */}
+              <div className="w-full lg:w-96 bg-slate-800/50 rounded-xl lg:rounded-2xl border border-slate-700/50 flex flex-col min-h-0 flex-1 lg:flex-none">
                 <div className="px-4 py-3 border-b border-slate-700/50 flex items-center justify-between">
                   <h3 className="text-white font-medium flex items-center gap-2">
                     <Brain className="w-5 h-5 text-violet-400" />
