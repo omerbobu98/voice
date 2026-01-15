@@ -1,20 +1,36 @@
 # Progress: SalesAI
 
-## Latest Update - January 14, 2026
+## Latest Update - January 14, 2026 (Evening - 18:45)
 
-### Supabase Migration
-- ❌ Old project `nacwvxqimvbfqlyylszt` was deleted
-- ✅ Migrated to existing project `ueztvmtwxqszvlzmoezx` (train data)
-- ✅ All database tables recreated
-- ✅ Storage buckets configured with policies
-- ✅ Google OAuth configured
-- ✅ Netlify env vars updated
-- ⚠️ Railway env vars need `SUPABASE_SERVICE_KEY` from new project
+### ✅ User Associations Fix - COMPLETED
+All data now properly linked to users!
 
-### Current Deployment
+#### Database Schema Fixes:
+- ✅ `calls.user_id` → FK constraint to `auth.users(id)` ON DELETE CASCADE
+- ✅ `user_profiles` table created with auto-trigger on user signup
+- ✅ RLS policies fixed for calls, analyses, user_profiles
+- ✅ Indexes added on user_id and call_id for performance
+
+#### Backend Code Fixes:
+- ✅ `save_analysis()` now accepts and saves `user_id`
+- ✅ `run_deep_analysis()` passes `user_id` to save_analysis
+- ✅ `analyze_call()` extracts `user_id` from JWT token
+
+#### Infrastructure:
+- ✅ Railway env vars updated with new Supabase keys
+- ✅ Connection verified: `tables_accessible: true`, `storage_accessible: true`
+- ✅ 5 existing users have profiles created
+
+### Current Deployment - ALL WORKING ✅
 - **Frontend**: https://vloce.netlify.app ✅
-- **Backend**: https://web-production-3215.up.railway.app ⚠️ (needs service key update)
+- **Backend**: https://web-production-3215.up.railway.app ✅
 - **Database**: https://ueztvmtwxqszvlzmoezx.supabase.co ✅
+
+### Supabase Project
+```
+PROJECT ID:  ueztvmtwxqszvlzmoezx
+URL: https://ueztvmtwxqszvlzmoezx.supabase.co
+```
 
 ---
 

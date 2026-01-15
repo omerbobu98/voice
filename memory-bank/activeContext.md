@@ -1,33 +1,31 @@
-# Active Context (עודכן 14 בינואר 2026)
+# Active Context (עודכן 14 בינואר 2026 - 18:45)
 
-## 🚨 CRITICAL - Supabase Migration
+## ✅ COMPLETED - Supabase Migration & User Associations Fix
 
-### הפרויקט הישן נמחק!
+### Supabase Project
 ```
-OLD (DELETED): nacwvxqimvbfqlyylszt
-NEW (ACTIVE):  ueztvmtwxqszvlzmoezx
-NEW URL: https://ueztvmtwxqszvlzmoezx.supabase.co
+PROJECT ID:  ueztvmtwxqszvlzmoezx
+URL: https://ueztvmtwxqszvlzmoezx.supabase.co
+STATUS: ✅ WORKING - Railway connected successfully
 ```
 
-### אם יש שגיאות 401 בהעלאת קבצים:
-1. לך ל-Railway → Variables
-2. עדכן `SUPABASE_SERVICE_KEY` מהפרויקט החדש
-3. קח את ה-service_role key מ: https://supabase.com/dashboard/project/ueztvmtwxqszvlzmoezx/settings/api
+### מה תוקן היום (14 בינואר 2026 - ערב):
 
-### פרטים מלאים:
-ראה: `/memory-bank/SUPABASE_MIGRATION_JAN_2026.md`
+#### Database Schema Fixes:
+1. ✅ **FK Constraint** - `calls.user_id` → `auth.users(id)` ON DELETE CASCADE
+2. ✅ **user_profiles table** - נוצרה עם trigger אוטומטי ליצירת profile בהרשמה
+3. ✅ **RLS Policies** - תוקנו לכל הטבלאות (calls, analyses, user_profiles)
+4. ✅ **Indexes** - נוספו על user_id ו-call_id לביצועים טובים יותר
 
----
+#### Backend Code Fixes:
+1. ✅ **save_analysis()** - עכשיו מקבל ושומר `user_id`
+2. ✅ **run_deep_analysis()** - מעביר `user_id` ל-save_analysis
+3. ✅ **analyze_call()** - מחלץ `user_id` מה-JWT token
 
-## 🎯 עבודה אחרונה - Google Authentication + Supabase Migration
-
-### מה הושלם (14 בינואר 2026):
-1. ✅ **Supabase Migration** - העברה לפרויקט חדש ueztvmtwxqszvlzmoezx
-2. ✅ **Database Tables** - כל הטבלאות נוצרו מחדש
-3. ✅ **Storage Policies** - הוספת policies להעלאת קבצים
-4. ✅ **Google OAuth** - הגדרה מחדש עם credentials חדשים
-5. ✅ **Netlify Env Vars** - עודכנו לפרויקט החדש
-6. ⚠️ **Railway** - צריך לעדכן SUPABASE_SERVICE_KEY
+#### Infrastructure:
+1. ✅ **Railway Env Vars** - המשתמש עדכן את ה-keys החדשים
+2. ✅ **Connection Test** - `tables_accessible: true`, `storage_accessible: true`
+3. ✅ **5 Users with Profiles** - כל המשתמשים הקיימים קיבלו profiles
 
 ### הגדרות חשובות:
 - **Site URL**: `https://vloce.netlify.app`
