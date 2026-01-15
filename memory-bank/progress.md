@@ -1,6 +1,33 @@
 # Progress: SalesAI
 
-## Latest Update - January 14, 2026 (Evening - 18:45)
+## Latest Update - January 14, 2026 (Evening - 19:30)
+
+### ✅ Call History Feature - IN PROGRESS
+Implementing full call history with sidebar and unified view.
+
+#### What Was Done:
+- ✅ Added "Recent Calls" section to sidebar (shows 5 most recent calls)
+- ✅ Added "Transcript" tab to AnalysisInsights component
+- ✅ Fixed database schema - added missing columns:
+  - `file_name`, `duration_seconds`, `word_count`, `speakers_count`
+  - `transcription`, `utterances` (JSONB), `speaker_roles` (JSONB)
+  - Updated `status` constraint to include 'transcribed', 'analyzed'
+- ✅ Fixed existing call - updated user_id to match logged-in user
+- ✅ Added debug logging for user_id tracking in upload flow
+
+#### Issue Found:
+- Calls were not showing because `user_id` was NULL
+- RLS policy requires `user_id = auth.uid()` to view calls
+- Backend saves calls but user_id extraction needs verification
+
+#### Files Changed:
+- `frontend/src/App.jsx` - Added Recent Calls sidebar, fetch on mount
+- `frontend/src/components/analysis/AnalysisInsights.jsx` - Added Transcript tab
+- `app.py` - Added debug logging for user_id tracking
+
+---
+
+## Previous Update - January 14, 2026 (Evening - 18:45)
 
 ### ✅ User Associations Fix - COMPLETED
 All data now properly linked to users!

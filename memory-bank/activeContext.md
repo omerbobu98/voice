@@ -1,4 +1,26 @@
-# Active Context (עודכן 14 בינואר 2026 - 18:45)
+# Active Context (עודכן 14 בינואר 2026 - 19:30)
+
+## 🔄 IN PROGRESS - Call History Feature
+
+### מה נעשה:
+1. ✅ **Recent Calls בסיידבר** - 5 שיחות אחרונות מופיעות בסיידבר
+2. ✅ **טאב Transcript** - הוסף ל-AnalysisInsights לצפייה בתמלול מלא
+3. ✅ **תיקון סכמת DB** - הוספו עמודות חסרות:
+   - `file_name`, `duration_seconds`, `word_count`, `speakers_count`
+   - `transcription`, `utterances`, `speaker_roles`
+4. ✅ **תיקון שיחה קיימת** - עודכן user_id
+
+### בעיה שנמצאה:
+- שיחות לא הופיעו כי `user_id` היה NULL
+- RLS דורש `user_id = auth.uid()` לצפייה בשיחות
+- צריך לוודא שהעלאות חדשות שומרות user_id
+
+### קבצים שעודכנו:
+- `frontend/src/App.jsx` - Recent Calls sidebar
+- `frontend/src/components/analysis/AnalysisInsights.jsx` - Transcript tab
+- `app.py` - Debug logging for user_id
+
+---
 
 ## ✅ COMPLETED - Supabase Migration & User Associations Fix
 
