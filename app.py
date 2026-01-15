@@ -226,6 +226,8 @@ def upload_audio():
         return jsonify({'error': 'No file selected'}), 400
     
     user_id = get_user_id_from_token()
+    print(f"[upload_audio] User ID from token: {user_id}")
+    print(f"[upload_audio] Auth header: {request.headers.get('Authorization', 'MISSING')[:50]}...")
     
     job_id = str(uuid.uuid4())
     filepath = os.path.join(UPLOAD_FOLDER, f"{job_id}_{audio_file.filename}")
@@ -353,6 +355,7 @@ def run_deep_analysis(analysis_id, utterances, speaker_roles, call_id=None, user
 def process_audio_async(job_id, filepath, user_id=None):
     try:
         print(f"[process_audio] Starting job {job_id} for file: {filepath}")
+        print(f"[process_audio] User ID received: {user_id}")
         
         # Verify file exists
         if not os.path.exists(filepath):
