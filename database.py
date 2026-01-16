@@ -78,7 +78,7 @@ def test_connection() -> dict:
     return result
 
 
-def upload_audio_file(filepath: str, user_id: str = None, timeout_seconds: int = 30) -> str:
+def upload_audio_file(filepath: str, user_id: str = None, timeout_seconds: int = 120) -> str:
     """Upload audio file to Supabase Storage, returns public URL or None
     
     Note: This is now non-blocking with a timeout. If upload fails or times out,
