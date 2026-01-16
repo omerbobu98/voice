@@ -162,6 +162,18 @@ def debug_db():
     result = test_connection()
     return jsonify(result)
 
+@app.route('/api/debug/auth', methods=['GET'])
+def debug_auth():
+    """Debug endpoint to test auth token extraction"""
+    auth_header = request.headers.get('Authorization', '')
+    user_id = get_user_id_from_token()
+    return jsonify({
+        'has_auth_header': bool(auth_header),
+        'auth_header_prefix': auth_header[:30] if auth_header else None,
+        'user_id': user_id,
+        'user_id_extracted': bool(user_id)
+    })
+
 @app.route('/api/debug/test-transcription', methods=['POST'])
 def test_transcription():
     """Test AssemblyAI transcription with a small file"""
@@ -226,8 +238,14 @@ def upload_audio():
         return jsonify({'error': 'No file selected'}), 400
     
     user_id = get_user_id_from_token()
+    auth_header = request.headers.get('Authorization', 'MISSING')
     print(f"[upload_audio] User ID from token: {user_id}")
-    print(f"[upload_audio] Auth header: {request.headers.get('Authorization', 'MISSING')[:50]}...")
+    print(f"[upload_audio] Auth header: {auth_header[:50] if auth_header else 'MISSING'}...")
+    
+    # Require authentication for upload
+    if not user_id:
+        print(f"[upload_audio] ERROR: No user_id extracted from token. Auth header: {auth_header[:100] if auth_header else 'MISSING'}")
+        return jsonify({'error': 'Authentication required. Please log in again.'}), 401
     
     job_id = str(uuid.uuid4())
     filepath = os.path.join(UPLOAD_FOLDER, f"{job_id}_{audio_file.filename}")

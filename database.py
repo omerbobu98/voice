@@ -169,6 +169,12 @@ def save_call(file_name: str, duration_seconds: int, word_count: int,
         print("[save_call] ERROR: No Supabase client available")
         return None
     
+    # user_id is required due to FK constraint
+    if not user_id:
+        print("[save_call] ERROR: No user_id provided - cannot save call without user association")
+        print("[save_call] This usually means the auth token was not properly extracted")
+        return None
+    
     data = {
         'file_name': file_name,
         'duration_seconds': duration_seconds,
@@ -177,18 +183,15 @@ def save_call(file_name: str, duration_seconds: int, word_count: int,
         'transcription': transcription,
         'utterances': utterances,
         'speaker_roles': speaker_roles,
-        'status': 'transcribed'
+        'status': 'transcribed',
+        'user_id': user_id
     }
     
     if audio_url:
         data['audio_url'] = audio_url
     
-    if user_id:
-        data['user_id'] = user_id
-    else:
-        print("[save_call] WARNING: No user_id provided, call will not be associated with a user")
-    
     try:
+        print(f"[save_call] Attempting to save call for user_id: {user_id}")
         result = client.table('calls').insert(data).execute()
         if result.data:
             print(f"[save_call] SUCCESS: Saved call {result.data[0].get('id')} for user {user_id}")
@@ -198,6 +201,8 @@ def save_call(file_name: str, duration_seconds: int, word_count: int,
             return None
     except Exception as e:
         print(f"[save_call] ERROR: Failed to insert call: {e}")
+        import traceback
+        traceback.print_exc()
         return None
 
 
