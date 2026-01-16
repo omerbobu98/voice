@@ -762,6 +762,140 @@ def admin_get_call(call_id):
     return jsonify(data)
 
 
+@app.route('/api/admin/trends', methods=['GET'])
+@require_admin
+def admin_trends():
+    """Get trends data for charts (calls over time, scores over time)"""
+    from datetime import datetime, timedelta
+    from collections import defaultdict
+    
+    days = request.args.get('days', 30, type=int)
+    
+    client = get_supabase()
+    if not client:
+        return jsonify({'error': 'Database not available'}), 500
+    
+    try:
+        # Get all calls with their analyses
+        calls = client.table('calls').select('id, user_id, created_at, duration_seconds, file_name, status, audio_url').order('created_at', desc=True).execute()
+        calls_data = calls.data or []
+        
+        analyses = client.table('analyses').select('call_id, overall_score, meddic_score, bant_score, deal_risk_level, objection_count, created_at').execute()
+        analyses_data = analyses.data or []
+        
+        # Create analysis map
+        analysis_map = {a['call_id']: a for a in analyses_data}
+        
+        # Group by date
+        calls_by_date = defaultdict(list)
+        scores_by_date = defaultdict(list)
+        
+        cutoff_date = datetime.utcnow() - timedelta(days=days)
+        
+        for call in calls_data:
+            if not call.get('created_at'):
+                continue
+            date_str = call['created_at'][:10]  # YYYY-MM-DD
+            call_date = datetime.strptime(date_str, '%Y-%m-%d')
+            
+            if call_date >= cutoff_date:
+                calls_by_date[date_str].append(call)
+                
+                # Get analysis score if exists
+                analysis = analysis_map.get(call['id'])
+                if analysis and analysis.get('overall_score'):
+                    scores_by_date[date_str].append(analysis['overall_score'])
+        
+        # Build daily stats
+        daily_stats = []
+        current_date = cutoff_date
+        while current_date <= datetime.utcnow():
+            date_str = current_date.strftime('%Y-%m-%d')
+            day_calls = calls_by_date.get(date_str, [])
+            day_scores = scores_by_date.get(date_str, [])
+            
+            daily_stats.append({
+                'date': date_str,
+                'calls': len(day_calls),
+                'avg_score': round(sum(day_scores) / len(day_scores)) if day_scores else 0,
+                'analyzed': len(day_scores)
+            })
+            current_date += timedelta(days=1)
+        
+        # Get users with their call counts for user breakdown
+        users_breakdown = defaultdict(lambda: {'calls': 0, 'analyzed': 0, 'total_score': 0, 'scores_count': 0})
+        
+        # Get user info
+        try:
+            users_info = client.rpc('get_all_users_admin').execute()
+            user_map = {u['user_id']: u for u in (users_info.data or [])}
+        except:
+            user_map = {}
+        
+        for call in calls_data:
+            uid = call.get('user_id')
+            if uid:
+                users_breakdown[uid]['calls'] += 1
+                analysis = analysis_map.get(call['id'])
+                if analysis:
+                    users_breakdown[uid]['analyzed'] += 1
+                    if analysis.get('overall_score'):
+                        users_breakdown[uid]['total_score'] += analysis['overall_score']
+                        users_breakdown[uid]['scores_count'] += 1
+        
+        users_list = []
+        for uid, data in users_breakdown.items():
+            user_info = user_map.get(uid, {})
+            users_list.append({
+                'user_id': uid,
+                'email': user_info.get('email', ''),
+                'display_name': user_info.get('display_name', user_info.get('email', uid[:8])),
+                'calls': data['calls'],
+                'analyzed': data['analyzed'],
+                'avg_score': round(data['total_score'] / data['scores_count']) if data['scores_count'] > 0 else 0
+            })
+        
+        users_list.sort(key=lambda x: x['calls'], reverse=True)
+        
+        # Recent calls with user info and analysis
+        recent_calls = []
+        for call in calls_data[:50]:
+            uid = call.get('user_id')
+            user_info = user_map.get(uid, {})
+            analysis = analysis_map.get(call['id'])
+            
+            recent_calls.append({
+                'id': call['id'],
+                'file_name': call.get('file_name', 'Unknown'),
+                'duration_seconds': call.get('duration_seconds', 0),
+                'created_at': call.get('created_at'),
+                'status': call.get('status', 'pending'),
+                'audio_url': call.get('audio_url'),
+                'user_id': uid,
+                'user_email': user_info.get('email', ''),
+                'user_name': user_info.get('display_name', ''),
+                'overall_score': analysis.get('overall_score') if analysis else None,
+                'deal_risk_level': analysis.get('deal_risk_level') if analysis else None
+            })
+        
+        return jsonify({
+            'daily_stats': daily_stats,
+            'users_breakdown': users_list,
+            'recent_calls': recent_calls,
+            'totals': {
+                'total_calls': len(calls_data),
+                'total_analyzed': len(analyses_data),
+                'total_users': len(users_breakdown)
+            }
+        })
+        
+    except Exception as e:
+        print(f"[admin_trends] Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/api/tts', methods=['POST'])
 def text_to_speech():
     """Generate speech audio from text using OpenAI TTS"""
