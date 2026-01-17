@@ -346,32 +346,32 @@ function PDFDownloadButton({ analysisResult, fileName = 'call_analysis' }) {
   )
 }
 
-// Story Bank Content Component - Organized library with filters
+// Story Bank Content Component - Clean Professional Design
 const STORY_EMOTIONS = [
-  { value: 'trust', label: 'אמון', icon: '🤝', color: 'bg-blue-500/20 text-blue-400' },
-  { value: 'urgency', label: 'דחיפות', icon: '⏰', color: 'bg-red-500/20 text-red-400' },
-  { value: 'value', label: 'ערך', icon: '💎', color: 'bg-emerald-500/20 text-emerald-400' },
-  { value: 'fear_of_loss', label: 'FOMO', icon: '😰', color: 'bg-orange-500/20 text-orange-400' },
-  { value: 'professionalism', label: 'מקצועיות', icon: '👔', color: 'bg-indigo-500/20 text-indigo-400' },
-  { value: 'integrity', label: 'יושרה', icon: '💯', color: 'bg-teal-500/20 text-teal-400' },
-  { value: 'success', label: 'הצלחה', icon: '🏆', color: 'bg-yellow-500/20 text-yellow-400' },
-  { value: 'social_proof', label: 'הוכחה חברתית', icon: '👥', color: 'bg-violet-500/20 text-violet-400' }
+  { value: 'trust', label: 'אמון', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
+  { value: 'urgency', label: 'דחיפות', color: 'bg-red-500/20 text-red-400 border-red-500/30' },
+  { value: 'value', label: 'ערך', color: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' },
+  { value: 'fear_of_loss', label: 'פחד מהפסד', color: 'bg-orange-500/20 text-orange-400 border-orange-500/30' },
+  { value: 'professionalism', label: 'מקצועיות', color: 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30' },
+  { value: 'integrity', label: 'יושרה', color: 'bg-teal-500/20 text-teal-400 border-teal-500/30' },
+  { value: 'success', label: 'הצלחה', color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' },
+  { value: 'social_proof', label: 'הוכחה חברתית', color: 'bg-violet-500/20 text-violet-400 border-violet-500/30' }
 ]
 
 const STORY_OBJECTIONS = [
-  { value: 'need_to_think', label: 'צריך לחשוב', icon: '🤔' },
-  { value: 'too_expensive', label: 'יקר לי', icon: '💰' },
-  { value: 'spouse_decision', label: 'בן/בת זוג', icon: '👫' },
-  { value: 'getting_quotes', label: 'בודק הצעות', icon: '📋' },
-  { value: 'bad_timing', label: 'לא עכשיו', icon: '⏳' }
+  { value: 'need_to_think', label: 'צריך לחשוב' },
+  { value: 'too_expensive', label: 'יקר לי' },
+  { value: 'spouse_decision', label: 'בן/בת זוג' },
+  { value: 'getting_quotes', label: 'בודק הצעות' },
+  { value: 'bad_timing', label: 'לא עכשיו' }
 ]
 
 const STORY_PRODUCTS = [
-  { value: 'cool_life', label: 'Cool Life', icon: '🎨' },
-  { value: 'turf', label: 'דשא', icon: '🌿' },
-  { value: 'pavers', label: 'ריצוף', icon: '🧱' },
-  { value: 'concrete', label: 'בטון', icon: '🏗️' },
-  { value: 'fence', label: 'גדר', icon: '🚧' }
+  { value: 'cool_life', label: 'Cool Life' },
+  { value: 'turf', label: 'דשא' },
+  { value: 'pavers', label: 'ריצוף' },
+  { value: 'concrete', label: 'בטון' },
+  { value: 'fence', label: 'גדר' }
 ]
 
 function StoryBankContent() {
@@ -451,15 +451,15 @@ function StoryBankContent() {
     const emotion = STORY_EMOTIONS.find(e => e.value === emotionValue)
     if (!emotion) return null
     return (
-      <span className={`px-2 py-0.5 rounded-lg text-xs ${emotion.color}`}>
-        {emotion.icon} {emotion.label}
+      <span key={emotionValue} className={`px-2 py-0.5 rounded text-xs border ${emotion.color}`}>
+        {emotion.label}
       </span>
     )
   }
 
   const getObjectionLabel = (value) => {
     const obj = STORY_OBJECTIONS.find(o => o.value === value)
-    return obj ? `${obj.icon} ${obj.label}` : '📚 כללי'
+    return obj ? obj.label : 'כללי'
   }
 
   return (
@@ -511,7 +511,7 @@ function StoryBankContent() {
                     filterObjection === obj.value ? 'bg-violet-500 text-white' : 'bg-white/5 text-gray-400 hover:text-white'
                   }`}
                 >
-                  {obj.icon} {obj.label}
+                  {obj.label}
                 </button>
               ))}
             </div>
@@ -537,7 +537,7 @@ function StoryBankContent() {
                     filterProduct === prod.value ? 'bg-emerald-500 text-white' : 'bg-white/5 text-gray-400 hover:text-white'
                   }`}
                 >
-                  {prod.icon} {prod.label}
+                  {prod.label}
                 </button>
               ))}
             </div>

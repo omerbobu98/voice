@@ -1127,16 +1127,16 @@ function DailyDrillCard({ drill }) {
 
 // ============ STORIES SECTION COMPONENT ============
 const EMOTION_OPTIONS = [
-  { value: 'trust', label: 'אמון', icon: '🤝', color: 'text-blue-400', bg: 'bg-blue-500/20' },
-  { value: 'urgency', label: 'דחיפות', icon: '⏰', color: 'text-red-400', bg: 'bg-red-500/20' },
-  { value: 'value', label: 'ערך', icon: '💎', color: 'text-emerald-400', bg: 'bg-emerald-500/20' },
-  { value: 'fear_of_loss', label: 'FOMO', icon: '😰', color: 'text-orange-400', bg: 'bg-orange-500/20' },
-  { value: 'peace_of_mind', label: 'שקט נפשי', icon: '😌', color: 'text-cyan-400', bg: 'bg-cyan-500/20' },
-  { value: 'pride', label: 'גאווה', icon: '🦁', color: 'text-amber-400', bg: 'bg-amber-500/20' },
-  { value: 'professionalism', label: 'מקצועיות', icon: '👔', color: 'text-indigo-400', bg: 'bg-indigo-500/20' },
-  { value: 'integrity', label: 'יושרה', icon: '💯', color: 'text-teal-400', bg: 'bg-teal-500/20' },
-  { value: 'success', label: 'הצלחה', icon: '🏆', color: 'text-yellow-400', bg: 'bg-yellow-500/20' },
-  { value: 'social_proof', label: 'הוכחה חברתית', icon: '👥', color: 'text-violet-400', bg: 'bg-violet-500/20' }
+  { value: 'trust', label: 'אמון', color: 'text-blue-400', bg: 'bg-blue-500/20', border: 'border-blue-500/30' },
+  { value: 'urgency', label: 'דחיפות', color: 'text-red-400', bg: 'bg-red-500/20', border: 'border-red-500/30' },
+  { value: 'value', label: 'ערך', color: 'text-emerald-400', bg: 'bg-emerald-500/20', border: 'border-emerald-500/30' },
+  { value: 'fear_of_loss', label: 'פחד מהפסד', color: 'text-orange-400', bg: 'bg-orange-500/20', border: 'border-orange-500/30' },
+  { value: 'peace_of_mind', label: 'שקט נפשי', color: 'text-cyan-400', bg: 'bg-cyan-500/20', border: 'border-cyan-500/30' },
+  { value: 'pride', label: 'גאווה', color: 'text-amber-400', bg: 'bg-amber-500/20', border: 'border-amber-500/30' },
+  { value: 'professionalism', label: 'מקצועיות', color: 'text-indigo-400', bg: 'bg-indigo-500/20', border: 'border-indigo-500/30' },
+  { value: 'integrity', label: 'יושרה', color: 'text-teal-400', bg: 'bg-teal-500/20', border: 'border-teal-500/30' },
+  { value: 'success', label: 'הצלחה', color: 'text-yellow-400', bg: 'bg-yellow-500/20', border: 'border-yellow-500/30' },
+  { value: 'social_proof', label: 'הוכחה חברתית', color: 'text-violet-400', bg: 'bg-violet-500/20', border: 'border-violet-500/30' }
 ]
 
 const OBJECTION_OPTIONS = [
@@ -1158,9 +1158,34 @@ const PRODUCT_OPTIONS = [
   { value: 'fence', label: 'גדר' }
 ]
 
-// ============ STORY IMPROVEMENT CARD ============
+// Detect the message/intent from a story
+const detectStoryMessage = (story) => {
+  const text = (story.original_story || '').toLowerCase()
+  
+  if (text.includes('יקר') || text.includes('מחיר') || text.includes('זול') || text.includes('expensive') || text.includes('cheap') || text.includes('price')) {
+    return { message: 'להראות שהזול יוצא יקר בסוף', emotion: 'value' }
+  }
+  if (text.includes('לחשוב') || text.includes('think') || text.includes('החלטה')) {
+    return { message: 'לעזור ללקוח להחליט עכשיו', emotion: 'urgency' }
+  }
+  if (text.includes('אשתי') || text.includes('בעלי') || text.includes('spouse') || text.includes('wife') || text.includes('husband')) {
+    return { message: 'להפוך את הלקוח לשגריר', emotion: 'trust' }
+  }
+  if (text.includes('הצעות') || text.includes('quotes') || text.includes('בודק')) {
+    return { message: 'להראות למה אי אפשר להשוות', emotion: 'professionalism' }
+  }
+  if (text.includes('איכות') || text.includes('quality') || text.includes('תוצאה') || text.includes('result')) {
+    return { message: 'להדגיש את האיכות והתוצאות', emotion: 'value' }
+  }
+  if (text.includes('אמון') || text.includes('trust') || text.includes('סומך')) {
+    return { message: 'לבנות אמון עם הלקוח', emotion: 'trust' }
+  }
+  
+  return { message: 'לשכנע את הלקוח', emotion: 'trust' }
+}
+
+// ============ STORY IMPROVEMENT CARD - CLEAN PROFESSIONAL DESIGN ============
 function StoryImprovementCard({ story, analysisResult, onSaveToBank }) {
-  const [expanded, setExpanded] = useState(false)
   const [improving, setImproving] = useState(false)
   const [improvedStory, setImprovedStory] = useState(null)
   const [selectedEmotions, setSelectedEmotions] = useState([])
@@ -1169,18 +1194,29 @@ function StoryImprovementCard({ story, analysisResult, onSaveToBank }) {
   const [targetMessage, setTargetMessage] = useState('')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  
+  // Auto-detect message from story
+  const detectedMessage = detectStoryMessage(story)
+  
+  // Initialize with detected emotion
+  useEffect(() => {
+    if (detectedMessage.emotion && selectedEmotions.length === 0) {
+      setSelectedEmotions([detectedMessage.emotion])
+    }
+    if (!targetMessage) {
+      setTargetMessage(detectedMessage.message)
+    }
+  }, [])
 
   const toggleEmotion = (value) => {
     setSelectedEmotions(prev => 
-      prev.includes(value) 
-        ? prev.filter(e => e !== value)
-        : [...prev, value]
+      prev.includes(value) ? prev.filter(e => e !== value) : [...prev, value]
     )
   }
 
   const improveStory = async () => {
     if (selectedEmotions.length === 0) {
-      alert('בחר לפחות רגש אחד שתרצה להעביר')
+      alert('בחר לפחות רגש אחד')
       return
     }
     
@@ -1190,7 +1226,7 @@ function StoryImprovementCard({ story, analysisResult, onSaveToBank }) {
         mode: 'improve',
         raw_story: story.original_story,
         target_emotions: selectedEmotions,
-        target_message: targetMessage || 'לשפר את הסיפור ולהפוך אותו למשכנע יותר',
+        target_message: targetMessage || detectedMessage.message,
         objection_type: selectedObjection,
         product: selectedProduct
       })
@@ -1232,246 +1268,193 @@ function StoryImprovementCard({ story, analysisResult, onSaveToBank }) {
 
   // Determine what's missing in the 6 elements
   const sixElements = story.six_elements_check || {}
-  const missingCount = Object.values(sixElements).filter(v => !v).length
-  const hasAllElements = missingCount === 0
+  const presentCount = Object.values(sixElements).filter(v => v).length
 
   return (
-    <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 rounded-2xl border border-slate-700/50 overflow-hidden">
-      {/* Header */}
-      <button
-        onClick={() => setExpanded(!expanded)}
-        className="w-full p-4 text-right"
-      >
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-start gap-3 flex-1">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
-              hasAllElements ? 'bg-emerald-500/20' : 'bg-amber-500/20'
+    <div className="bg-slate-900/60 rounded-xl border border-slate-700/50 overflow-hidden" dir="rtl">
+      {/* Full Story Display */}
+      <div className="p-5 border-b border-slate-700/50">
+        <div className="flex items-start justify-between gap-4 mb-4">
+          <div className="flex items-center gap-3">
+            <span className={`text-xs px-2 py-1 rounded ${
+              story.effectiveness_score >= 7 ? 'bg-emerald-500/20 text-emerald-400' : 
+              story.effectiveness_score >= 5 ? 'bg-amber-500/20 text-amber-400' : 
+              'bg-red-500/20 text-red-400'
             }`}>
-              <BookMarked className={`w-5 h-5 ${hasAllElements ? 'text-emerald-400' : 'text-amber-400'}`} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap mb-1">
-                <span className="text-xs text-slate-500">{story.timestamp}</span>
-                <span className={`px-2 py-0.5 rounded-lg text-xs ${
-                  story.effectiveness_score >= 7 
-                    ? 'bg-emerald-500/20 text-emerald-400' 
-                    : story.effectiveness_score >= 5 
-                      ? 'bg-amber-500/20 text-amber-400'
-                      : 'bg-red-500/20 text-red-400'
-                }`}>
-                  ציון: {story.effectiveness_score}/10
-                </span>
-                {saved && (
-                  <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 rounded-lg text-xs flex items-center gap-1">
-                    <CheckCircle2 className="w-3 h-3" /> נשמר לבנק
-                  </span>
-                )}
-              </div>
-              <p className="text-slate-200 font-medium line-clamp-2">{story.original_story}</p>
-              {missingCount > 0 && (
-                <p className="text-xs text-amber-400 mt-1">חסרים {missingCount} אלמנטים מתוך 6</p>
-              )}
-            </div>
+              {story.effectiveness_score}/10
+            </span>
+            <span className="text-xs text-slate-500">{presentCount}/6 אלמנטים</span>
+            {saved && (
+              <span className="text-xs text-emerald-400 flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3" /> נשמר
+              </span>
+            )}
           </div>
-          {expanded ? <ChevronUp className="w-5 h-5 text-slate-400" /> : <ChevronDown className="w-5 h-5 text-slate-400" />}
+          {story.timestamp && <span className="text-xs text-slate-600">{story.timestamp}</span>}
         </div>
-      </button>
+        
+        {/* The Full Story */}
+        <div className="bg-slate-800/50 rounded-lg p-4 mb-4">
+          <p className="text-sm text-slate-300 leading-relaxed whitespace-pre-wrap">{story.original_story}</p>
+        </div>
+        
+        {/* Detected Message */}
+        <div className="flex items-center gap-2 text-sm">
+          <span className="text-slate-500">מסר שזוהה:</span>
+          <span className="text-violet-400 font-medium">{detectedMessage.message}</span>
+        </div>
+      </div>
 
-      {expanded && (
-        <div className="px-4 pb-4 space-y-4" dir="rtl">
-          {/* 6 Elements Analysis */}
-          <div className="p-4 bg-slate-800/50 rounded-xl">
-            <h4 className="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-2">
-              <Hash className="w-4 h-4 text-violet-400" />
-              ניתוח 6 האלמנטים
-            </h4>
-            <div className="grid grid-cols-2 gap-2">
-              {[
-                { key: 'has_relatable_character', label: 'דמות שניתן להזדהות איתה' },
-                { key: 'has_same_hesitation', label: 'אותו היסוס כמו הלקוח' },
-                { key: 'has_decision_moment', label: 'רגע ההחלטה' },
-                { key: 'has_cost_of_waiting', label: 'מחיר ההמתנה' },
-                { key: 'has_specific_results', label: 'תוצאות ספציפיות' },
-                { key: 'has_emotional_payoff', label: 'תחושה רגשית בסוף' }
-              ].map(({ key, label }) => (
-                <div key={key} className={`flex items-center gap-2 p-2 rounded-lg ${
-                  sixElements[key] ? 'bg-emerald-500/10' : 'bg-red-500/10'
-                }`}>
-                  {sixElements[key] 
-                    ? <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                    : <X className="w-4 h-4 text-red-400 flex-shrink-0" />
-                  }
-                  <span className={`text-xs ${sixElements[key] ? 'text-emerald-300' : 'text-red-300'}`}>
-                    {label}
-                  </span>
-                </div>
+      {/* What's Missing - Compact */}
+      {presentCount < 6 && (
+        <div className="px-5 py-3 bg-slate-800/30 border-b border-slate-700/50">
+          <p className="text-xs text-slate-500 mb-2">אלמנטים חסרים:</p>
+          <div className="flex flex-wrap gap-2">
+            {[
+              { key: 'has_relatable_character', label: 'דמות להזדהות' },
+              { key: 'has_same_hesitation', label: 'אותו היסוס' },
+              { key: 'has_decision_moment', label: 'רגע החלטה' },
+              { key: 'has_cost_of_waiting', label: 'מחיר המתנה' },
+              { key: 'has_specific_results', label: 'תוצאות ספציפיות' },
+              { key: 'has_emotional_payoff', label: 'רגש בסוף' }
+            ].filter(({ key }) => !sixElements[key]).map(({ key, label }) => (
+              <span key={key} className="text-xs px-2 py-1 bg-red-500/10 text-red-400 rounded">
+                {label}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Improvement Section */}
+      {!improvedStory ? (
+        <div className="p-5 space-y-4">
+          <p className="text-sm font-medium text-slate-300">שפר את הסיפור</p>
+          
+          {/* Target Message - Editable */}
+          <div>
+            <label className="text-xs text-slate-500 block mb-1">מסר להעביר</label>
+            <input
+              type="text"
+              value={targetMessage}
+              onChange={(e) => setTargetMessage(e.target.value)}
+              className="w-full p-2.5 bg-slate-800/50 border border-slate-700 rounded-lg text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-violet-500"
+            />
+          </div>
+          
+          {/* Emotion Selection - Clean Pills */}
+          <div>
+            <label className="text-xs text-slate-500 block mb-2">רגש לשדר</label>
+            <div className="flex flex-wrap gap-2">
+              {EMOTION_OPTIONS.map(emotion => (
+                <button
+                  key={emotion.value}
+                  onClick={() => toggleEmotion(emotion.value)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${
+                    selectedEmotions.includes(emotion.value)
+                      ? `${emotion.bg} ${emotion.color} ${emotion.border}`
+                      : 'bg-slate-800/50 text-slate-400 border-slate-700 hover:border-slate-600'
+                  }`}
+                >
+                  {emotion.label}
+                </button>
               ))}
             </div>
           </div>
 
-          {/* What AI suggests */}
-          {story.improved_story && (
-            <div className="p-4 bg-violet-500/10 rounded-xl border border-violet-500/20">
-              <h4 className="text-sm font-semibold text-violet-400 mb-2 flex items-center gap-2">
-                <Sparkles className="w-4 h-4" />
-                הצעה לשיפור (מהניתוח)
-              </h4>
-              <p className="text-sm text-slate-300 leading-relaxed">{story.improved_story}</p>
-            </div>
-          )}
-
-          {/* Improvement Controls */}
-          {!improvedStory && (
-            <div className="space-y-4 p-4 bg-gradient-to-br from-violet-500/5 to-fuchsia-500/5 rounded-xl border border-violet-500/20">
-              <h4 className="text-sm font-semibold text-slate-200 flex items-center gap-2">
-                <Wand2 className="w-4 h-4 text-violet-400" />
-                שפר את הסיפור עם AI
-              </h4>
-              
-              {/* Emotion Selection */}
-              <div>
-                <p className="text-xs text-slate-400 mb-2">איזה רגש/נקודה תרצה להעביר? (בחר לפחות 1)</p>
-                <div className="flex flex-wrap gap-2">
-                  {EMOTION_OPTIONS.map(emotion => (
-                    <button
-                      key={emotion.value}
-                      onClick={() => toggleEmotion(emotion.value)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1 ${
-                        selectedEmotions.includes(emotion.value)
-                          ? `${emotion.bg} ${emotion.color} ring-2 ring-offset-1 ring-offset-slate-900 ring-${emotion.color.replace('text-', '')}`
-                          : 'bg-slate-700/50 text-slate-400 hover:text-slate-200'
-                      }`}
-                    >
-                      <span>{emotion.icon}</span>
-                      {emotion.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Objection Selection */}
-              <div>
-                <p className="text-xs text-slate-400 mb-2">נגד איזו התנגדות? (אופציונלי)</p>
-                <select
-                  value={selectedObjection}
-                  onChange={(e) => setSelectedObjection(e.target.value)}
-                  className="w-full p-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-200 focus:outline-none focus:border-violet-500"
-                >
-                  {OBJECTION_OPTIONS.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Target Message */}
-              <div>
-                <p className="text-xs text-slate-400 mb-2">מסר ספציפי להעביר (אופציונלי)</p>
-                <input
-                  type="text"
-                  value={targetMessage}
-                  onChange={(e) => setTargetMessage(e.target.value)}
-                  placeholder="לדוגמה: להראות שאני מקצועי ואמין"
-                  className="w-full p-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-violet-500"
-                />
-              </div>
-
-              {/* Improve Button */}
-              <button
-                onClick={improveStory}
-                disabled={improving || selectedEmotions.length === 0}
-                className="w-full py-3 bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-600 hover:to-fuchsia-600 disabled:from-slate-600 disabled:to-slate-600 text-white rounded-xl font-medium transition-all flex items-center justify-center gap-2"
+          {/* Objection - Simple Dropdown */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-slate-500 block mb-1">נגד התנגדות</label>
+              <select
+                value={selectedObjection}
+                onChange={(e) => setSelectedObjection(e.target.value)}
+                className="w-full p-2 bg-slate-800/50 border border-slate-700 rounded-lg text-xs text-slate-300 focus:outline-none focus:border-violet-500"
               >
-                {improving ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    משפר את הסיפור...
-                  </>
-                ) : (
-                  <>
-                    <Wand2 className="w-4 h-4" />
-                    שפר עם AI
-                  </>
-                )}
-              </button>
+                {OBJECTION_OPTIONS.map(opt => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
             </div>
-          )}
+            <div>
+              <label className="text-xs text-slate-500 block mb-1">מוצר</label>
+              <select
+                value={selectedProduct}
+                onChange={(e) => setSelectedProduct(e.target.value)}
+                className="w-full p-2 bg-slate-800/50 border border-slate-700 rounded-lg text-xs text-slate-300 focus:outline-none focus:border-violet-500"
+              >
+                {PRODUCT_OPTIONS.map(opt => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </div>
+          </div>
 
-          {/* Improved Story Result */}
-          {improvedStory && (
-            <div className="space-y-4">
-              {/* Original vs Improved */}
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="p-4 bg-slate-800/50 rounded-xl">
-                  <h5 className="text-xs text-slate-500 mb-2 flex items-center gap-1">
-                    <span className="w-2 h-2 bg-slate-500 rounded-full"></span>
-                    הסיפור המקורי
-                  </h5>
-                  <p className="text-sm text-slate-400 leading-relaxed">{story.original_story}</p>
-                </div>
-                <div className="p-4 bg-gradient-to-br from-violet-500/10 to-fuchsia-500/10 rounded-xl border border-violet-500/30">
-                  <h5 className="text-xs text-violet-400 mb-2 flex items-center gap-1">
-                    <span className="w-2 h-2 bg-violet-400 rounded-full"></span>
-                    הסיפור המשופר
-                  </h5>
-                  <p className="text-sm text-slate-200 leading-relaxed">{improvedStory.story_content}</p>
-                </div>
-              </div>
+          {/* Improve Button */}
+          <button
+            onClick={improveStory}
+            disabled={improving || selectedEmotions.length === 0}
+            className="w-full py-3 bg-violet-600 hover:bg-violet-700 disabled:bg-slate-700 text-white rounded-lg font-medium transition-all flex items-center justify-center gap-2"
+          >
+            {improving ? (
+              <><Loader2 className="w-4 h-4 animate-spin" /> משפר...</>
+            ) : (
+              <><Wand2 className="w-4 h-4" /> שפר את הסיפור</>
+            )}
+          </button>
+        </div>
+      ) : (
+        /* Improved Result */
+        <div className="p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium text-emerald-400">הסיפור המשופר</p>
+            <button onClick={() => setImprovedStory(null)} className="text-xs text-slate-500 hover:text-slate-300">
+              נסה שוב
+            </button>
+          </div>
+          
+          {/* Improved Story */}
+          <div className="bg-violet-500/10 border border-violet-500/20 rounded-lg p-4">
+            <p className="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap">{improvedStory.story_content}</p>
+          </div>
 
-              {/* Story Components */}
-              <div className="grid sm:grid-cols-2 gap-3">
-                {improvedStory.setup_line && (
-                  <div className="p-3 bg-amber-500/10 rounded-xl border border-amber-500/20">
-                    <p className="text-xs text-amber-400 mb-1">🎯 משפט פתיחה</p>
-                    <p className="text-sm text-slate-200">{improvedStory.setup_line}</p>
-                  </div>
-                )}
-                {improvedStory.closing_bridge && (
-                  <div className="p-3 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
-                    <p className="text-xs text-emerald-400 mb-1">🌉 גשר סגירה</p>
-                    <p className="text-sm text-slate-200">{improvedStory.closing_bridge}</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Explanation */}
-              {improvedStory.explanation && (
-                <div className="p-3 bg-blue-500/10 rounded-xl border border-blue-500/20">
-                  <p className="text-xs text-blue-400 mb-1">💡 למה זה עובד יותר טוב</p>
-                  <p className="text-sm text-slate-300">{improvedStory.explanation}</p>
+          {/* Setup + Closing */}
+          {(improvedStory.setup_line || improvedStory.closing_bridge) && (
+            <div className="grid grid-cols-2 gap-3">
+              {improvedStory.setup_line && (
+                <div className="p-3 bg-slate-800/50 rounded-lg">
+                  <p className="text-xs text-amber-400 mb-1">פתיחה</p>
+                  <p className="text-xs text-slate-300">{improvedStory.setup_line}</p>
                 </div>
               )}
-
-              {/* Save Button */}
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setImprovedStory(null)}
-                  className="flex-1 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-medium flex items-center justify-center gap-2"
-                >
-                  <RefreshCw className="w-4 h-4" />
-                  נסה שוב
-                </button>
-                <button
-                  onClick={saveToBank}
-                  disabled={saving || saved}
-                  className="flex-1 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 disabled:from-slate-600 disabled:to-slate-600 text-white rounded-xl font-medium flex items-center justify-center gap-2"
-                >
-                  {saving ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : saved ? (
-                    <>
-                      <CheckCircle2 className="w-4 h-4" />
-                      נשמר!
-                    </>
-                  ) : (
-                    <>
-                      <Save className="w-4 h-4" />
-                      שמור ל-Story Bank
-                    </>
-                  )}
-                </button>
-              </div>
+              {improvedStory.closing_bridge && (
+                <div className="p-3 bg-slate-800/50 rounded-lg">
+                  <p className="text-xs text-emerald-400 mb-1">גשר סגירה</p>
+                  <p className="text-xs text-slate-300">{improvedStory.closing_bridge}</p>
+                </div>
+              )}
             </div>
           )}
+
+          {/* Explanation */}
+          {improvedStory.explanation && (
+            <p className="text-xs text-slate-500 italic">{improvedStory.explanation}</p>
+          )}
+
+          {/* Save Button */}
+          <button
+            onClick={saveToBank}
+            disabled={saving || saved}
+            className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-700 text-white rounded-lg font-medium transition-all flex items-center justify-center gap-2"
+          >
+            {saving ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : saved ? (
+              <><CheckCircle2 className="w-4 h-4" /> נשמר!</>
+            ) : (
+              <><Save className="w-4 h-4" /> שמור ל-Story Bank</>
+            )}
+          </button>
         </div>
       )}
     </div>
