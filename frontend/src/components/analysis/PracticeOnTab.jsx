@@ -1185,7 +1185,59 @@ const detectStoryMessage = (story) => {
   return { message: 'לשכנע את הלקוח', emotion: 'trust' }
 }
 
-// ============ STORY IMPROVEMENT CARD - CLEAN PROFESSIONAL DESIGN ============
+// ============ TEXT TO SPEECH HOOK ============
+const useTextToSpeech = () => {
+  const [speaking, setSpeaking] = useState(false)
+  const [currentId, setCurrentId] = useState(null)
+  const utteranceRef = useRef(null)
+
+  const speak = (text, id) => {
+    // Stop any current speech
+    window.speechSynthesis.cancel()
+    
+    if (speaking && currentId === id) {
+      setSpeaking(false)
+      setCurrentId(null)
+      return
+    }
+
+    const utterance = new SpeechSynthesisUtterance(text)
+    utterance.lang = 'he-IL'
+    utterance.rate = 0.9
+    utterance.pitch = 1
+    
+    // Try to find Hebrew voice
+    const voices = window.speechSynthesis.getVoices()
+    const hebrewVoice = voices.find(v => v.lang.includes('he')) || voices.find(v => v.lang.includes('en'))
+    if (hebrewVoice) utterance.voice = hebrewVoice
+
+    utterance.onstart = () => {
+      setSpeaking(true)
+      setCurrentId(id)
+    }
+    utterance.onend = () => {
+      setSpeaking(false)
+      setCurrentId(null)
+    }
+    utterance.onerror = () => {
+      setSpeaking(false)
+      setCurrentId(null)
+    }
+
+    utteranceRef.current = utterance
+    window.speechSynthesis.speak(utterance)
+  }
+
+  const stop = () => {
+    window.speechSynthesis.cancel()
+    setSpeaking(false)
+    setCurrentId(null)
+  }
+
+  return { speak, stop, speaking, currentId }
+}
+
+// ============ STORY IMPROVEMENT CARD - PREMIUM PROFESSIONAL DESIGN ============
 function StoryImprovementCard({ story, analysisResult, onSaveToBank }) {
   const [improving, setImproving] = useState(false)
   const [improvedStory, setImprovedStory] = useState(null)
@@ -1195,6 +1247,8 @@ function StoryImprovementCard({ story, analysisResult, onSaveToBank }) {
   const [targetMessage, setTargetMessage] = useState('')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
+  const { speak, speaking, currentId } = useTextToSpeech()
   
   // Auto-detect message from story
   const detectedMessage = detectStoryMessage(story)
@@ -1217,8 +1271,7 @@ function StoryImprovementCard({ story, analysisResult, onSaveToBank }) {
 
   const improveStory = async () => {
     if (selectedEmotions.length === 0) {
-      alert('בחר לפחות רגש אחד')
-      return
+      setSelectedEmotions([detectedMessage.emotion || 'trust'])
     }
     
     setImproving(true)
@@ -1227,7 +1280,7 @@ function StoryImprovementCard({ story, analysisResult, onSaveToBank }) {
       const response = await axios.post(`${API_URL}/api/story-bank/generate`, {
         mode: 'improve',
         raw_story: story.original_story,
-        target_emotions: selectedEmotions,
+        target_emotions: selectedEmotions.length > 0 ? selectedEmotions : [detectedMessage.emotion || 'trust'],
         target_message: targetMessage || detectedMessage.message,
         objection_type: selectedObjection,
         product: selectedProduct
@@ -1273,197 +1326,302 @@ function StoryImprovementCard({ story, analysisResult, onSaveToBank }) {
     setSaving(false)
   }
 
-  // Determine what's missing in the 6 elements
   const sixElements = story.six_elements_check || {}
   const presentCount = Object.values(sixElements).filter(v => v).length
+  const missingElements = [
+    { key: 'has_relatable_character', label: 'דמות להזדהות' },
+    { key: 'has_same_hesitation', label: 'אותו היסוס' },
+    { key: 'has_decision_moment', label: 'רגע החלטה' },
+    { key: 'has_cost_of_waiting', label: 'מחיר המתנה' },
+    { key: 'has_specific_results', label: 'תוצאות ספציפיות' },
+    { key: 'has_emotional_payoff', label: 'רגש בסוף' }
+  ].filter(({ key }) => !sixElements[key])
 
   return (
-    <div className="bg-slate-900/60 rounded-xl border border-slate-700/50 overflow-hidden" dir="rtl">
-      {/* Full Story Display */}
-      <div className="p-5 border-b border-slate-700/50">
-        <div className="flex items-start justify-between gap-4 mb-4">
+    <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 rounded-2xl border border-slate-700/50 overflow-hidden shadow-2xl" dir="rtl">
+      
+      {/* ===== SECTION 1: ORIGINAL STORY ===== */}
+      <div className="p-4 sm:p-6 lg:p-8">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
           <div className="flex items-center gap-3">
-            <span className={`text-xs px-2 py-1 rounded ${
-              story.effectiveness_score >= 7 ? 'bg-emerald-500/20 text-emerald-400' : 
-              story.effectiveness_score >= 5 ? 'bg-amber-500/20 text-amber-400' : 
-              'bg-red-500/20 text-red-400'
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 border border-amber-500/30 flex items-center justify-center">
+              <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 text-amber-400" />
+            </div>
+            <div>
+              <h3 className="text-base sm:text-lg font-bold text-white">הסיפור שסיפרת</h3>
+              <p className="text-xs sm:text-sm text-slate-500">הגרסה המקורית מהשיחה</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className={`text-xs sm:text-sm px-3 py-1.5 rounded-full font-medium ${
+              story.effectiveness_score >= 7 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 
+              story.effectiveness_score >= 5 ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : 
+              'bg-red-500/20 text-red-400 border border-red-500/30'
             }`}>
               {story.effectiveness_score}/10
             </span>
-            <span className="text-xs text-slate-500">{presentCount}/6 אלמנטים</span>
-            {saved && (
-              <span className="text-xs text-emerald-400 flex items-center gap-1">
-                <CheckCircle2 className="w-3 h-3" /> נשמר
-              </span>
-            )}
+            <span className="text-xs sm:text-sm px-3 py-1.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700">
+              {presentCount}/6 אלמנטים
+            </span>
           </div>
-          {story.timestamp && <span className="text-xs text-slate-600">{story.timestamp}</span>}
         </div>
-        
-        {/* The Full Story */}
-        <div className="bg-slate-800/50 rounded-lg p-4 mb-4">
-          <p className="text-sm text-slate-300 leading-relaxed whitespace-pre-wrap">{story.original_story}</p>
-        </div>
-        
-        {/* Detected Message */}
-        <div className="flex items-center gap-2 text-sm">
-          <span className="text-slate-500">מסר שזוהה:</span>
-          <span className="text-violet-400 font-medium">{detectedMessage.message}</span>
-        </div>
-      </div>
 
-      {/* What's Missing - Compact */}
-      {presentCount < 6 && (
-        <div className="px-5 py-3 bg-slate-800/30 border-b border-slate-700/50">
-          <p className="text-xs text-slate-500 mb-2">אלמנטים חסרים:</p>
-          <div className="flex flex-wrap gap-2">
-            {[
-              { key: 'has_relatable_character', label: 'דמות להזדהות' },
-              { key: 'has_same_hesitation', label: 'אותו היסוס' },
-              { key: 'has_decision_moment', label: 'רגע החלטה' },
-              { key: 'has_cost_of_waiting', label: 'מחיר המתנה' },
-              { key: 'has_specific_results', label: 'תוצאות ספציפיות' },
-              { key: 'has_emotional_payoff', label: 'רגש בסוף' }
-            ].filter(({ key }) => !sixElements[key]).map(({ key, label }) => (
-              <span key={key} className="text-xs px-2 py-1 bg-red-500/10 text-red-400 rounded">
+        {/* Original Story Box */}
+        <div className="relative group">
+          <div className="absolute inset-0 bg-gradient-to-r from-amber-500/5 to-orange-500/5 rounded-xl blur-xl group-hover:blur-2xl transition-all" />
+          <div className="relative bg-slate-800/80 backdrop-blur-sm rounded-xl p-4 sm:p-6 border border-slate-700/50">
+            <p className="text-sm sm:text-base text-slate-200 leading-relaxed whitespace-pre-wrap font-light">
+              {story.original_story}
+            </p>
+            
+            {/* Listen Button */}
+            <button
+              onClick={() => speak(story.original_story, 'original')}
+              className={`mt-4 flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                speaking && currentId === 'original'
+                  ? 'bg-amber-500 text-white'
+                  : 'bg-slate-700/50 text-slate-300 hover:bg-slate-700 hover:text-white'
+              }`}
+            >
+              {speaking && currentId === 'original' ? (
+                <><Pause className="w-4 h-4" /> עצור</>
+              ) : (
+                <><Volume2 className="w-4 h-4" /> האזן לסיפור</>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Missing Elements - Compact Pills */}
+        {missingElements.length > 0 && (
+          <div className="mt-4 flex flex-wrap gap-2">
+            <span className="text-xs text-slate-500">חסר:</span>
+            {missingElements.map(({ key, label }) => (
+              <span key={key} className="text-xs px-2 py-1 bg-red-500/10 text-red-400/80 rounded-md border border-red-500/20">
                 {label}
               </span>
             ))}
           </div>
+        )}
+      </div>
+
+      {/* ===== SECTION 2: DETECTED MESSAGE ===== */}
+      <div className="px-4 sm:px-6 lg:px-8 py-4 bg-gradient-to-r from-violet-500/10 to-purple-500/10 border-y border-slate-700/50">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+          <div className="flex items-center gap-2">
+            <Lightbulb className="w-4 h-4 sm:w-5 sm:h-5 text-violet-400" />
+            <span className="text-sm text-slate-400 font-medium">המסר שזוהה:</span>
+          </div>
+          <span className="text-sm sm:text-base text-violet-300 font-semibold">{detectedMessage.message}</span>
         </div>
-      )}
+      </div>
 
-      {/* Improvement Section */}
-      {!improvedStory ? (
-        <div className="p-5 space-y-4">
-          <p className="text-sm font-medium text-slate-300">שפר את הסיפור</p>
-          
-          {/* Target Message - Editable */}
-          <div>
-            <label className="text-xs text-slate-500 block mb-1">מסר להעביר</label>
-            <input
-              type="text"
-              value={targetMessage}
-              onChange={(e) => setTargetMessage(e.target.value)}
-              className="w-full p-2.5 bg-slate-800/50 border border-slate-700 rounded-lg text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-violet-500"
-            />
-          </div>
-          
-          {/* Emotion Selection - Clean Pills */}
-          <div>
-            <label className="text-xs text-slate-500 block mb-2">רגש לשדר</label>
-            <div className="flex flex-wrap gap-2">
-              {EMOTION_OPTIONS.map(emotion => (
-                <button
-                  key={emotion.value}
-                  onClick={() => toggleEmotion(emotion.value)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${
-                    selectedEmotions.includes(emotion.value)
-                      ? `${emotion.bg} ${emotion.color} ${emotion.border}`
-                      : 'bg-slate-800/50 text-slate-400 border-slate-700 hover:border-slate-600'
-                  }`}
-                >
-                  {emotion.label}
-                </button>
-              ))}
+      {/* ===== SECTION 3: IMPROVED VERSION ===== */}
+      {improvedStory ? (
+        <div className="p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-emerald-500/5 to-teal-500/5">
+          {/* Improved Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 border border-emerald-500/30 flex items-center justify-center">
+                <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-400" />
+              </div>
+              <div>
+                <h3 className="text-base sm:text-lg font-bold text-emerald-400">הגרסה המשופרת</h3>
+                <p className="text-xs sm:text-sm text-slate-500">עם כל 6 האלמנטים</p>
+              </div>
             </div>
-          </div>
-
-          {/* Objection - Simple Dropdown */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs text-slate-500 block mb-1">נגד התנגדות</label>
-              <select
-                value={selectedObjection}
-                onChange={(e) => setSelectedObjection(e.target.value)}
-                className="w-full p-2 bg-slate-800/50 border border-slate-700 rounded-lg text-xs text-slate-300 focus:outline-none focus:border-violet-500"
-              >
-                {OBJECTION_OPTIONS.map(opt => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="text-xs text-slate-500 block mb-1">מוצר</label>
-              <select
-                value={selectedProduct}
-                onChange={(e) => setSelectedProduct(e.target.value)}
-                className="w-full p-2 bg-slate-800/50 border border-slate-700 rounded-lg text-xs text-slate-300 focus:outline-none focus:border-violet-500"
-              >
-                {PRODUCT_OPTIONS.map(opt => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* Improve Button */}
-          <button
-            onClick={improveStory}
-            disabled={improving || selectedEmotions.length === 0}
-            className="w-full py-3 bg-violet-600 hover:bg-violet-700 disabled:bg-slate-700 text-white rounded-lg font-medium transition-all flex items-center justify-center gap-2"
-          >
-            {improving ? (
-              <><Loader2 className="w-4 h-4 animate-spin" /> משפר...</>
-            ) : (
-              <><Wand2 className="w-4 h-4" /> שפר את הסיפור</>
+            {saved && (
+              <span className="flex items-center gap-1.5 text-sm text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-full border border-emerald-500/30">
+                <CheckCircle2 className="w-4 h-4" /> נשמר בבנק הסיפורים
+              </span>
             )}
-          </button>
-        </div>
-      ) : (
-        /* Improved Result */
-        <div className="p-5 space-y-4">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-medium text-emerald-400">הסיפור המשופר</p>
-            <button onClick={() => setImprovedStory(null)} className="text-xs text-slate-500 hover:text-slate-300">
-              נסה שוב
-            </button>
-          </div>
-          
-          {/* Improved Story */}
-          <div className="bg-violet-500/10 border border-violet-500/20 rounded-lg p-4">
-            <p className="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap">{improvedStory.story_content}</p>
           </div>
 
-          {/* Setup + Closing */}
+          {/* Improved Story Box */}
+          <div className="relative group">
+            <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 rounded-xl blur-xl group-hover:blur-2xl transition-all" />
+            <div className="relative bg-slate-800/80 backdrop-blur-sm rounded-xl p-4 sm:p-6 border border-emerald-500/20">
+              <p className="text-sm sm:text-base text-slate-100 leading-relaxed whitespace-pre-wrap">
+                {improvedStory.story_content}
+              </p>
+              
+              {/* Listen Button */}
+              <button
+                onClick={() => speak(improvedStory.story_content, 'improved')}
+                className={`mt-4 flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  speaking && currentId === 'improved'
+                    ? 'bg-emerald-500 text-white'
+                    : 'bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30'
+                }`}
+              >
+                {speaking && currentId === 'improved' ? (
+                  <><Pause className="w-4 h-4" /> עצור</>
+                ) : (
+                  <><Volume2 className="w-4 h-4" /> האזן לסיפור המשופר</>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Setup Line + Closing Bridge */}
           {(improvedStory.setup_line || improvedStory.closing_bridge) && (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
               {improvedStory.setup_line && (
-                <div className="p-3 bg-slate-800/50 rounded-lg">
-                  <p className="text-xs text-amber-400 mb-1">פתיחה</p>
-                  <p className="text-xs text-slate-300">{improvedStory.setup_line}</p>
+                <div className="p-4 bg-amber-500/10 rounded-xl border border-amber-500/20">
+                  <p className="text-xs text-amber-400 font-medium mb-2 flex items-center gap-1.5">
+                    <ArrowRight className="w-3 h-3" /> משפט פתיחה
+                  </p>
+                  <p className="text-sm text-slate-200">{improvedStory.setup_line}</p>
                 </div>
               )}
               {improvedStory.closing_bridge && (
-                <div className="p-3 bg-slate-800/50 rounded-lg">
-                  <p className="text-xs text-emerald-400 mb-1">גשר סגירה</p>
-                  <p className="text-xs text-slate-300">{improvedStory.closing_bridge}</p>
+                <div className="p-4 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
+                  <p className="text-xs text-emerald-400 font-medium mb-2 flex items-center gap-1.5">
+                    <ArrowRight className="w-3 h-3" /> גשר סגירה
+                  </p>
+                  <p className="text-sm text-slate-200">{improvedStory.closing_bridge}</p>
                 </div>
               )}
             </div>
           )}
-
-          {/* Explanation */}
-          {improvedStory.explanation && (
-            <p className="text-xs text-slate-500 italic">{improvedStory.explanation}</p>
-          )}
-
-          {/* Save Button */}
-          <button
-            onClick={saveToBank}
-            disabled={saving || saved}
-            className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-700 text-white rounded-lg font-medium transition-all flex items-center justify-center gap-2"
-          >
-            {saving ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : saved ? (
-              <><CheckCircle2 className="w-4 h-4" /> נשמר!</>
-            ) : (
-              <><Save className="w-4 h-4" /> שמור ל-Story Bank</>
-            )}
-          </button>
+        </div>
+      ) : (
+        /* Placeholder before improvement */
+        <div className="p-4 sm:p-6 lg:p-8 bg-slate-800/30">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center">
+              <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-slate-600" />
+            </div>
+            <div>
+              <h3 className="text-base sm:text-lg font-bold text-slate-500">הגרסה המשופרת</h3>
+              <p className="text-xs sm:text-sm text-slate-600">לחץ על "צור גרסה משופרת" למטה</p>
+            </div>
+          </div>
+          <div className="h-32 sm:h-40 rounded-xl border-2 border-dashed border-slate-700 flex items-center justify-center">
+            <p className="text-slate-600 text-sm">הסיפור המשופר יופיע כאן</p>
+          </div>
         </div>
       )}
+
+      {/* ===== SECTION 4: IMPROVEMENT CONTROLS ===== */}
+      <div className="p-4 sm:p-6 lg:p-8 border-t border-slate-700/50 bg-slate-900/50">
+        {/* Toggle Settings */}
+        <button
+          onClick={() => setShowSettings(!showSettings)}
+          className="w-full flex items-center justify-between p-3 rounded-lg bg-slate-800/50 border border-slate-700/50 text-slate-300 hover:bg-slate-800 transition-all mb-4"
+        >
+          <span className="text-sm font-medium flex items-center gap-2">
+            <Brain className="w-4 h-4 text-violet-400" />
+            הגדרות שיפור
+          </span>
+          <ChevronDown className={`w-4 h-4 transition-transform ${showSettings ? 'rotate-180' : ''}`} />
+        </button>
+
+        {/* Settings Panel */}
+        {showSettings && (
+          <div className="space-y-4 mb-6 p-4 bg-slate-800/30 rounded-xl border border-slate-700/30">
+            {/* Target Message */}
+            <div>
+              <label className="text-xs text-slate-400 block mb-2 font-medium">מסר להעביר</label>
+              <input
+                type="text"
+                value={targetMessage}
+                onChange={(e) => setTargetMessage(e.target.value)}
+                placeholder={detectedMessage.message}
+                className="w-full p-3 bg-slate-800/80 border border-slate-700 rounded-xl text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500/50 transition-all"
+              />
+            </div>
+            
+            {/* Emotions */}
+            <div>
+              <label className="text-xs text-slate-400 block mb-2 font-medium">רגשות לשדר</label>
+              <div className="flex flex-wrap gap-2">
+                {EMOTION_OPTIONS.map(emotion => (
+                  <button
+                    key={emotion.value}
+                    onClick={() => toggleEmotion(emotion.value)}
+                    className={`px-3 py-2 rounded-lg text-xs font-medium transition-all border ${
+                      selectedEmotions.includes(emotion.value)
+                        ? `${emotion.bg} ${emotion.color} ${emotion.border} shadow-lg`
+                        : 'bg-slate-800/50 text-slate-400 border-slate-700 hover:border-slate-600'
+                    }`}
+                  >
+                    {emotion.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Dropdowns */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-slate-400 block mb-2 font-medium">נגד התנגדות</label>
+                <select
+                  value={selectedObjection}
+                  onChange={(e) => setSelectedObjection(e.target.value)}
+                  className="w-full p-3 bg-slate-800/80 border border-slate-700 rounded-xl text-sm text-slate-300 focus:outline-none focus:border-violet-500"
+                >
+                  {OBJECTION_OPTIONS.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-slate-400 block mb-2 font-medium">מוצר</label>
+                <select
+                  value={selectedProduct}
+                  onChange={(e) => setSelectedProduct(e.target.value)}
+                  className="w-full p-3 bg-slate-800/80 border border-slate-700 rounded-xl text-sm text-slate-300 focus:outline-none focus:border-violet-500"
+                >
+                  {PRODUCT_OPTIONS.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Action Buttons */}
+        <div className="flex flex-col sm:flex-row gap-3">
+          {/* Improve Button */}
+          <button
+            onClick={improveStory}
+            disabled={improving}
+            className="flex-1 py-3.5 sm:py-4 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 disabled:from-slate-700 disabled:to-slate-700 text-white rounded-xl font-semibold transition-all flex items-center justify-center gap-2 shadow-lg shadow-violet-500/20 hover:shadow-violet-500/40 disabled:shadow-none"
+          >
+            {improving ? (
+              <><Loader2 className="w-5 h-5 animate-spin" /> יוצר גרסה משופרת...</>
+            ) : improvedStory ? (
+              <><RefreshCw className="w-5 h-5" /> צור גרסה חדשה</>
+            ) : (
+              <><Wand2 className="w-5 h-5" /> צור גרסה משופרת</>
+            )}
+          </button>
+
+          {/* Save Button */}
+          {improvedStory && (
+            <button
+              onClick={saveToBank}
+              disabled={saving || saved}
+              className={`flex-1 py-3.5 sm:py-4 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 shadow-lg ${
+                saved 
+                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                  : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-emerald-500/20 hover:shadow-emerald-500/40'
+              }`}
+            >
+              {saving ? (
+                <><Loader2 className="w-5 h-5 animate-spin" /> שומר...</>
+              ) : saved ? (
+                <><CheckCircle2 className="w-5 h-5" /> נשמר בהצלחה!</>
+              ) : (
+                <><BookMarked className="w-5 h-5" /> שמור ל-Story Bank</>
+              )}
+            </button>
+          )}
+        </div>
+      </div>
     </div>
   )
 }
