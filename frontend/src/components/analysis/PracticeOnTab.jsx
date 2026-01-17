@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import axios from 'axios'
 import { API_URL } from '../../lib/config'
+import { supabase } from '../../lib/supabase'
 
 // ============ SALES METHODOLOGY GUIDES ============
 const SALES_METHODOLOGY_GUIDES = {
@@ -1222,6 +1223,7 @@ function StoryImprovementCard({ story, analysisResult, onSaveToBank }) {
     
     setImproving(true)
     try {
+      const { data: { session } } = await supabase.auth.getSession()
       const response = await axios.post(`${API_URL}/api/story-bank/generate`, {
         mode: 'improve',
         raw_story: story.original_story,
@@ -1229,6 +1231,8 @@ function StoryImprovementCard({ story, analysisResult, onSaveToBank }) {
         target_message: targetMessage || detectedMessage.message,
         objection_type: selectedObjection,
         product: selectedProduct
+      }, {
+        headers: { Authorization: `Bearer ${session?.access_token}` }
       })
       
       if (response.data.story) {
@@ -1236,7 +1240,7 @@ function StoryImprovementCard({ story, analysisResult, onSaveToBank }) {
       }
     } catch (err) {
       console.error('Error improving story:', err)
-      alert('שגיאה בשיפור הסיפור')
+      alert('שגיאה בשיפור הסיפור: ' + (err.response?.data?.error || err.message))
     }
     setImproving(false)
   }
@@ -1245,6 +1249,7 @@ function StoryImprovementCard({ story, analysisResult, onSaveToBank }) {
     if (!improvedStory) return
     setSaving(true)
     try {
+      const { data: { session } } = await supabase.auth.getSession()
       await axios.post(`${API_URL}/api/story-bank`, {
         title: improvedStory.title || 'סיפור משופר',
         content: improvedStory.story_content,
@@ -1256,6 +1261,8 @@ function StoryImprovementCard({ story, analysisResult, onSaveToBank }) {
         structure: improvedStory.structure,
         explanation: improvedStory.explanation,
         original_story: story.original_story
+      }, {
+        headers: { Authorization: `Bearer ${session?.access_token}` }
       })
       setSaved(true)
       onSaveToBank && onSaveToBank()
@@ -1490,6 +1497,7 @@ function NewStoryCreator({ analysisResult, onSaveToBank }) {
     
     setImproving(true)
     try {
+      const { data: { session } } = await supabase.auth.getSession()
       const response = await axios.post(`${API_URL}/api/story-bank/generate`, {
         mode: 'improve',
         raw_story: rawStory,
@@ -1497,6 +1505,8 @@ function NewStoryCreator({ analysisResult, onSaveToBank }) {
         target_message: targetMessage || 'לשפר את הסיפור',
         objection_type: selectedObjection,
         product: selectedProduct
+      }, {
+        headers: { Authorization: `Bearer ${session?.access_token}` }
       })
       
       if (response.data.story) {
@@ -1504,7 +1514,7 @@ function NewStoryCreator({ analysisResult, onSaveToBank }) {
       }
     } catch (err) {
       console.error('Error:', err)
-      alert('שגיאה בשיפור הסיפור')
+      alert('שגיאה בשיפור הסיפור: ' + (err.response?.data?.error || err.message))
     }
     setImproving(false)
   }
@@ -1513,6 +1523,7 @@ function NewStoryCreator({ analysisResult, onSaveToBank }) {
     if (!improvedStory) return
     setSaving(true)
     try {
+      const { data: { session } } = await supabase.auth.getSession()
       await axios.post(`${API_URL}/api/story-bank`, {
         title: improvedStory.title || 'סיפור חדש',
         content: improvedStory.story_content,
@@ -1524,6 +1535,8 @@ function NewStoryCreator({ analysisResult, onSaveToBank }) {
         structure: improvedStory.structure,
         explanation: improvedStory.explanation,
         original_story: rawStory
+      }, {
+        headers: { Authorization: `Bearer ${session?.access_token}` }
       })
       // Reset form
       setRawStory('')
