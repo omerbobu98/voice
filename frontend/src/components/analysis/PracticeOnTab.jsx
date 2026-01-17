@@ -5,11 +5,10 @@ import {
   Star, Trophy, ArrowRight, Lightbulb, AlertTriangle, Sparkles,
   RotateCcw, Copy, Check, Users, Brain, TrendingUp, Award, Send,
   Square, Loader2, ThumbsUp, ThumbsDown, HelpCircle, GraduationCap,
-  FileText, Headphones, PenTool, RefreshCw, Library
+  FileText, Headphones, PenTool, RefreshCw
 } from 'lucide-react'
 import axios from 'axios'
 import { API_URL } from '../../lib/config'
-import { InlineStoryGenerator } from './StoryBank'
 
 // ============ SALES METHODOLOGY GUIDES ============
 const SALES_METHODOLOGY_GUIDES = {
@@ -1470,7 +1469,6 @@ export default function PracticeOnTab({ analysisResult, result, TTSButton }) {
     { id: 'weaknesses', label: 'חולשות לשיפור', icon: Target },
     { id: 'exercises', label: 'תרגילים', icon: Dumbbell },
     { id: 'roleplay', label: 'משחקי תפקידים', icon: Users },
-    { id: 'stories', label: 'יוצר סיפורים', icon: Library, highlight: true },
     { id: 'actions', label: 'משימות', icon: CheckCircle2 }
   ]
   
@@ -1572,26 +1570,18 @@ export default function PracticeOnTab({ analysisResult, result, TTSButton }) {
         {sections.map(section => {
           const Icon = section.icon
           const isActive = activeSection === section.id
-          const isHighlight = section.highlight
           return (
             <button
               key={section.id}
               onClick={() => setActiveSection(section.id)}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-xl whitespace-nowrap transition-all ${
                 isActive
-                  ? isHighlight 
-                    ? 'bg-gradient-to-r from-fuchsia-500 to-pink-500 text-white shadow-lg shadow-fuchsia-500/20'
-                    : 'bg-violet-500 text-white shadow-lg shadow-violet-500/20'
-                  : isHighlight
-                    ? 'bg-gradient-to-r from-fuchsia-500/20 to-pink-500/20 text-fuchsia-400 border border-fuchsia-500/30 hover:from-fuchsia-500/30 hover:to-pink-500/30'
-                    : 'bg-slate-800/50 text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
+                  ? 'bg-violet-500 text-white shadow-lg shadow-violet-500/20'
+                  : 'bg-slate-800/50 text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
               }`}
             >
               <Icon className="w-4 h-4" />
               <span className="text-sm font-medium">{section.label}</span>
-              {isHighlight && !isActive && (
-                <span className="px-1.5 py-0.5 bg-fuchsia-500/30 text-fuchsia-300 text-xs rounded-full">NEW</span>
-              )}
             </button>
           )
         })}
@@ -1707,24 +1697,6 @@ export default function PracticeOnTab({ analysisResult, result, TTSButton }) {
               <p className="text-sm text-slate-500 mt-1">נסה לתרגל עם חבר או עמית באמצעות הסקריפטים שלמעלה</p>
             </div>
           )}
-        </div>
-      )}
-      
-      {activeSection === 'stories' && (
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-slate-200 flex items-center gap-2">
-            <Library className="w-5 h-5 text-fuchsia-400" />
-            יוצר סיפורים מותאמים אישית
-          </h3>
-          <p className="text-slate-400 text-sm mb-4">
-            צור סיפורים מכירתיים מותאמים לפי הרגש והמסר שאתה רוצה להעביר. הסיפורים נשמרים לבנק הסיפורים שלך.
-          </p>
-          <InlineStoryGenerator 
-            onStorySaved={(story) => {
-              console.log('Story saved:', story)
-            }}
-            TTSButton={TTSButton}
-          />
         </div>
       )}
       
