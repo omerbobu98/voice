@@ -4,7 +4,8 @@ import {
   Upload, Users, MessageSquare, Clock, FileAudio, CheckCircle2, Mic, Brain, UserCheck,
   BarChart3, TrendingUp, AlertTriangle, Target, Zap, Phone, PlayCircle, PauseCircle,
   ChevronRight, Sparkles, Shield, Award, PieChart, Activity, Volume2, Home, History,
-  Settings, User, Menu, X, ChevronDown, Calendar, Hash, LogOut, FileDown, Edit3, Dumbbell
+  Settings, User, Menu, X, ChevronDown, Calendar, Hash, LogOut, FileDown, Edit3, Dumbbell,
+  Library
 } from 'lucide-react'
 import axios from 'axios'
 import { useAuth } from './contexts/AuthContext'
@@ -22,6 +23,7 @@ import PracticePage from './pages/PracticePage'
 import { API_URL } from './lib/config'
 import { AnalysisInsights } from './components/analysis'
 import AIAssistant from './components/AIAssistant'
+import { StoryBankPanel } from './components/analysis/StoryBank'
 
 const stages = [
   { key: 'upload', label: 'Uploading', icon: Upload, progress: 10 },
@@ -35,6 +37,7 @@ const stages = [
 const navItems = [
   { id: 'dashboard', label: 'Dashboard', icon: Home },
   { id: 'ai-agent', label: 'AI Agent', icon: Brain, highlight: true, isRoute: true },
+  { id: 'story-bank', label: 'בנק סיפורים', icon: Library, highlight: true, isPanel: true },
   { id: 'upload', label: 'New Call', icon: Upload },
   { id: 'calls', label: 'Call History', icon: History },
   { id: 'settings', label: 'Settings', icon: Settings },
@@ -384,6 +387,7 @@ function MainApp() {
   const [showRenameModal, setShowRenameModal] = useState(false)
   const [renameValue, setRenameValue] = useState('')
   const [renaming, setRenaming] = useState(false)
+  const [showStoryBank, setShowStoryBank] = useState(false)
   const timerRef = useRef(null)
   const pollRef = useRef(null)
   const audioRef = useRef(null)
@@ -1027,6 +1031,27 @@ function MainApp() {
                         <span className="ml-auto px-2 py-0.5 bg-violet-500/30 text-violet-300 text-xs rounded-full">NEW</span>
                       )}
                     </a>
+                  </li>
+                )
+              }
+              
+              // Special handling for panel-based navigation (Story Bank)
+              if (item.isPanel) {
+                return (
+                  <li key={item.id}>
+                    <button
+                      onClick={() => {
+                        setShowStoryBank(true)
+                        setMobileMenuOpen(false)
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all bg-gradient-to-r from-fuchsia-500/20 to-pink-500/20 text-fuchsia-400 border border-fuchsia-500/30 hover:from-fuchsia-500/30 hover:to-pink-500/30"
+                    >
+                      <Icon className="w-5 h-5 flex-shrink-0" />
+                      <span className="font-medium">{item.label}</span>
+                      {item.highlight && (
+                        <span className="ml-auto px-2 py-0.5 bg-fuchsia-500/30 text-fuchsia-300 text-xs rounded-full">NEW</span>
+                      )}
+                    </button>
                   </li>
                 )
               }
@@ -1883,6 +1908,13 @@ function MainApp() {
           </div>
         </div>
       )}
+
+      {/* Story Bank Panel */}
+      <StoryBankPanel 
+        isOpen={showStoryBank} 
+        onClose={() => setShowStoryBank(false)}
+        TTSButton={TTSPlayer}
+      />
     </div>
   )
 }
