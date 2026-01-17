@@ -1178,6 +1178,7 @@ def generate_story():
     objection_type = data.get('objection_type', 'general')
     product_type = data.get('product_type', 'general')
     additional_context = data.get('additional_context', '')
+    use_persona = data.get('use_persona', True)
     
     if not target_message:
         return jsonify({'error': 'Target message is required'}), 400
@@ -1185,13 +1186,48 @@ def generate_story():
     if not openai_client:
         return jsonify({'error': 'OpenAI not configured'}), 500
     
+    # Fetch persona data if available
+    persona_context = ""
+    client = get_supabase()
+    if client and use_persona:
+        try:
+            persona_result = client.table('sales_persona').select('*').eq('user_id', user_id).execute()
+            if persona_result.data:
+                p = persona_result.data[0]
+                persona_parts = []
+                if p.get('seller_name'):
+                    persona_parts.append(f"שם המוכר: {p['seller_name']}")
+                if p.get('years_experience'):
+                    persona_parts.append(f"ניסיון: {p['years_experience']} שנים")
+                if p.get('areas_served'):
+                    persona_parts.append(f"אזורי שירות: {', '.join(p['areas_served'])}")
+                if p.get('specialties'):
+                    persona_parts.append(f"התמחויות: {', '.join(p['specialties'])}")
+                if p.get('total_projects_completed'):
+                    persona_parts.append(f"פרויקטים שהושלמו: {p['total_projects_completed']}")
+                if p.get('happy_customers_count'):
+                    persona_parts.append(f"לקוחות מרוצים: {p['happy_customers_count']}")
+                if p.get('notable_projects'):
+                    projects_str = "; ".join([f"{proj.get('name', '')} - {proj.get('description', '')}" for proj in p['notable_projects'][:3]])
+                    persona_parts.append(f"פרויקטים בולטים: {projects_str}")
+                if p.get('customer_testimonials'):
+                    testimonials_str = "; ".join([f"\"{t.get('quote', '')}\" - {t.get('customer_name', '')}" for t in p['customer_testimonials'][:2]])
+                    persona_parts.append(f"המלצות לקוחות: {testimonials_str}")
+                if p.get('background_story'):
+                    persona_parts.append(f"סיפור רקע: {p['background_story'][:200]}")
+                
+                if persona_parts:
+                    persona_context = "\n\n## פרופיל המוכר (השתמש בפרטים אלה ליצירת סיפורים אותנטיים):\n" + "\n".join(persona_parts)
+        except Exception as e:
+            print(f"[generate_story] Error fetching persona: {e}")
+    
     try:
         prompt = STORY_GENERATOR_PROMPT.format(
             target_emotion=target_emotion,
             target_message=target_message,
             objection_type=objection_type,
             product_type=product_type,
-            additional_context=additional_context
+            additional_context=additional_context + persona_context
         )
         
         response = openai_client.chat.completions.create(
@@ -1372,6 +1408,161 @@ def increment_story_usage(story_id):
         return jsonify({'success': True})
     except Exception as e:
         print(f"[increment_story_usage] Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+# ============ Sales Persona API ============
+
+@app.route('/api/persona', methods=['GET'])
+def get_persona():
+    """Get the current user's sales persona"""
+    
+    user_id = get_user_id_from_token()
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    client = get_supabase()
+    if not client:
+        return jsonify({'error': 'Database not configured'}), 500
+    
+    try:
+        result = client.table('sales_persona').select('*').eq('user_id', user_id).execute()
+        persona = result.data[0] if result.data else None
+        return jsonify({
+            'success': True,
+            'persona': persona
+        })
+    except Exception as e:
+        print(f"[get_persona] Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/persona', methods=['POST'])
+def save_persona():
+    """Create or update the user's sales persona"""
+    
+    user_id = get_user_id_from_token()
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    data = request.get_json()
+    
+    client = get_supabase()
+    if not client:
+        return jsonify({'error': 'Database not configured'}), 500
+    
+    try:
+        # Check if persona exists
+        existing = client.table('sales_persona').select('id').eq('user_id', user_id).execute()
+        
+        persona_data = {
+            'user_id': user_id,
+            'seller_name': data.get('seller_name'),
+            'nickname': data.get('nickname'),
+            'years_experience': data.get('years_experience'),
+            'areas_served': data.get('areas_served', []),
+            'background_story': data.get('background_story'),
+            'why_this_job': data.get('why_this_job'),
+            'specialties': data.get('specialties', []),
+            'certifications': data.get('certifications', []),
+            'total_projects_completed': data.get('total_projects_completed', 0),
+            'notable_projects': data.get('notable_projects', []),
+            'biggest_project': data.get('biggest_project'),
+            'most_challenging_project': data.get('most_challenging_project'),
+            'happy_customers_count': data.get('happy_customers_count', 0),
+            'referral_rate': data.get('referral_rate'),
+            'repeat_customers_count': data.get('repeat_customers_count', 0),
+            'customer_testimonials': data.get('customer_testimonials', []),
+            'achievements': data.get('achievements', []),
+            'objection_responses': data.get('objection_responses', {}),
+            'updated_at': 'now()'
+        }
+        
+        if existing.data:
+            # Update existing
+            result = client.table('sales_persona').update(persona_data).eq('user_id', user_id).execute()
+        else:
+            # Create new
+            result = client.table('sales_persona').insert(persona_data).execute()
+        
+        return jsonify({
+            'success': True,
+            'persona': result.data[0] if result.data else None
+        })
+    except Exception as e:
+        print(f"[save_persona] Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/persona/project', methods=['POST'])
+def add_persona_project():
+    """Add a notable project to the persona"""
+    
+    user_id = get_user_id_from_token()
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    data = request.get_json()
+    
+    client = get_supabase()
+    if not client:
+        return jsonify({'error': 'Database not configured'}), 500
+    
+    try:
+        # Get current persona
+        result = client.table('sales_persona').select('notable_projects, total_projects_completed').eq('user_id', user_id).execute()
+        
+        if not result.data:
+            # Create persona if doesn't exist
+            client.table('sales_persona').insert({'user_id': user_id, 'notable_projects': [data], 'total_projects_completed': 1}).execute()
+        else:
+            projects = result.data[0].get('notable_projects', []) or []
+            projects.append(data)
+            total = (result.data[0].get('total_projects_completed', 0) or 0) + 1
+            client.table('sales_persona').update({
+                'notable_projects': projects,
+                'total_projects_completed': total,
+                'updated_at': 'now()'
+            }).eq('user_id', user_id).execute()
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        print(f"[add_persona_project] Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/persona/testimonial', methods=['POST'])
+def add_persona_testimonial():
+    """Add a customer testimonial to the persona"""
+    
+    user_id = get_user_id_from_token()
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    data = request.get_json()
+    
+    client = get_supabase()
+    if not client:
+        return jsonify({'error': 'Database not configured'}), 500
+    
+    try:
+        result = client.table('sales_persona').select('customer_testimonials, happy_customers_count').eq('user_id', user_id).execute()
+        
+        if not result.data:
+            client.table('sales_persona').insert({'user_id': user_id, 'customer_testimonials': [data], 'happy_customers_count': 1}).execute()
+        else:
+            testimonials = result.data[0].get('customer_testimonials', []) or []
+            testimonials.append(data)
+            happy_count = (result.data[0].get('happy_customers_count', 0) or 0) + 1
+            client.table('sales_persona').update({
+                'customer_testimonials': testimonials,
+                'happy_customers_count': happy_count,
+                'updated_at': 'now()'
+            }).eq('user_id', user_id).execute()
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        print(f"[add_persona_testimonial] Error: {e}")
         return jsonify({'error': str(e)}), 500
 
 
