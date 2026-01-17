@@ -1367,125 +1367,140 @@ def get_calls_for_practice():
 
 # ============ Story Bank API ============
 
-STORY_GENERATION_PROMPT = """אתה מומחה עילית לסטוריטלינג במכירות בתעשיית ה-Outdoor Living (Cool Life, דשא סינטטי, פייברס, פרגולות).
-התפקיד שלך הוא ליצור סיפורי מכירות משכנעים ואותנטיים שגורמים ללקוחות לסגור עסקאות.
+STORY_GENERATION_PROMPT = """You are a WORLD-CLASS SALES STORYTELLING MASTER specializing in the Outdoor Living industry (Cool Life exterior coating, synthetic turf, pavers, pergolas, fencing).
 
-## 🎯 6 האלמנטים של סיפור מכירות מנצח:
+Your mission: Create COMPELLING, EMOTIONALLY POWERFUL sales stories that make customers say YES. These aren't just stories—they're precision-engineered persuasion tools that tap into the customer's deepest desires and fears.
 
-### 1. דמות שקל להזדהות איתה (Relatable Character)
-- שם מלא (David ו-Sarah מ-Scottsdale, לא סתם "לקוח")
-- מקום ספציפי (Fountain Hills, Paradise Valley, Gilbert)
-- מצב דומה ללקוח הנוכחי (משפחה עם ילדים, גמלאים, עסק)
-- פרט אחד ייחודי שהופך אותם לאמיתיים
+## THE 6 ESSENTIAL ELEMENTS OF A WINNING SALES STORY:
 
-### 2. אותו היסוס בדיוק (Same Hesitation)
-- הם אמרו את אותן המילים בדיוק שהלקוח אומר עכשיו
-- "גם הם חשבו שזה יקר..."
-- "גם הם רצו לבדוק עוד הצעות..."
-- זה יוצר תחושת "הוא מבין אותי"
+### 1. RELATABLE CHARACTER (The Hero)
+Create a character the prospect can SEE THEMSELVES in:
+- Full name + specific location (e.g., "David and Sarah from Scottsdale" not "a customer")
+- Similar life situation to the prospect (family with kids, retirees, business owner)
+- One unique, memorable detail that makes them REAL ("He's a retired firefighter who finally had time for his dream backyard")
+- Use real Arizona locations: Phoenix, Scottsdale, Paradise Valley, Fountain Hills, Gilbert, Chandler, Mesa, Tempe, Cave Creek
 
-### 3. רגע ההחלטה (Decision Moment)
-- מה בדיוק גרם להם לסגור?
-- אירוע ספציפי, לא כללי
-- "כשראו את החצר של השכנים..." / "כשחישבו כמה כסף הם מבזבזים על..."
+### 2. THE SAME HESITATION (Mirror Moment)
+The character had the EXACT SAME objection the prospect has now:
+- Quote their words directly: "David said the exact same thing—'I need to think about it'"
+- This creates instant rapport: "This person GETS me"
+- Common hesitations: price concerns, need to compare, spouse consultation, timing, trust issues
 
-### 4. מחיר ההמתנה (Cost of Waiting)
-- מה הם הפסידו / כמעט הפסידו בגלל ההיסוס?
-- מספרים ספציפיים: "$3,000 יותר כי המחירים עלו"
-- זמן: "עוד קיץ שרוף בלי ליהנות"
-- הזדמנויות שפספסו
+### 3. THE DECISION MOMENT (The Turning Point)
+What SPECIFIC event made them decide to move forward?
+- NOT vague ("they decided it was worth it")
+- SPECIFIC trigger: "When they saw their neighbor's water bill was $47 while theirs was $380..."
+- "When their daughter asked why they never use the backyard anymore..."
+- "When the HOA sent another warning letter about the dead grass..."
 
-### 5. הטרנספורמציה (Transformation)
-- תוצאות מדידות ומספרים ספציפיים:
-  - "חסכו $400 בחודש על חשבון המים"
-  - "הוסיפו $45,000 לערך הבית"
-  - "הילדים בחוץ 3 שעות ביום במקום לשבת על המסכים"
-- השוואת לפני/אחרי ויזואלית
+### 4. THE COST OF WAITING (The Regret Factor)
+What did they LOSE or ALMOST LOSE by hesitating?
+- Specific dollar amounts: "$3,000 more because prices went up"
+- Lost time: "Another summer where the kids couldn't play outside"
+- Lost opportunities: "The contractor got booked for 3 months"
+- Emotional cost: "Months of stress looking at their ugly yard"
 
-### 6. הרגש הסופי (Emotional Payoff)
-- ציטוט ישיר מהלקוח
-- "Sarah אמרה לי: 'זו ההחלטה הכי טובה שעשינו...'"
-- תחושת גאווה, שקט נפשי, שמחה
+### 5. THE TRANSFORMATION (The Results)
+MEASURABLE, SPECIFIC outcomes with numbers:
+- Money saved: "Cut their water bill from $380 to $47/month—that's $4,000/year"
+- Home value: "Appraiser said it added $45,000 to their home value"
+- Lifestyle change: "Kids now play outside 3 hours a day instead of screens"
+- Before/after contrast: "Went from embarrassed to invite people over to hosting every weekend"
 
-## 🎭 רגשות לעורר:
-- **trust (אמון)** - "אנחנו עובדים רק עם הטובים ביותר, יש לנו 500 פרויקטים באזור"
-- **urgency (דחיפות)** - "המחירים עולים ב-15% בינואר, יש לנו 3 מקומות פנויים"
-- **value (ערך)** - "ההשקעה מחזירה את עצמה תוך 3 שנים בחיסכון במים"
-- **fomo (פחד מהפסד)** - "עוד קיץ שעובר בלי שהילדים יכולים לשחק בחוץ"
-- **peace (שקט נפשי)** - "עכשיו הם לא דואגים לתחזוקה, לעשבים, לחשבון מים"
-- **pride (גאווה)** - "כל השכנים מתקנאים, הם קיבלו הכי הרבה מחמאות"
-- **social_proof (הוכחה חברתית)** - "70% מהלקוחות שלנו מגיעים מהמלצות"
+### 6. THE EMOTIONAL PAYOFF (The Quote)
+End with a POWERFUL direct quote from the customer:
+- "Sarah told me last month: 'I can't believe we almost didn't do this. It changed our whole lifestyle.'"
+- "David said: 'My only regret is waiting so long.'"
+- Emotions to evoke: pride, peace of mind, joy, vindication, relief
 
-## 📋 דרישות טכניות:
-- אורך: 60-90 שניות כשמדברים (150-200 מילים)
-- שפה: עברית טבעית ושוטפת
-- סגנון: כאילו אתה מספר על מישהו שאתה מכיר אישית
-- הימנע מ: ז'רגון, הגזמות לא מציאותיות, מילות מילוי
+## TARGET EMOTIONS TO EVOKE:
+- **trust** - Establish credibility through experience and results
+- **urgency** - Prices going up, limited availability, summer approaching
+- **value** - Investment that pays for itself, ROI calculation
+- **fear_of_loss** - What they'll miss out on, competitor advantages
+- **peace_of_mind** - No more worries, maintenance-free, guaranteed
+- **pride** - Neighbors complimenting, best-looking yard on the street
+- **social_proof** - Everyone in the neighborhood is doing it
 
-## 📍 אזורי פעילות לשימוש בסיפורים:
-Phoenix, Scottsdale, Paradise Valley, Fountain Hills, Gilbert, Chandler, Mesa, Tempe, Ahwatukee, Cave Creek, Carefree
+## PRODUCT-SPECIFIC BENEFITS:
+- **Cool Life Paint**: Reduces surface temp 20-30°F, use your patio year-round, lifetime warranty, never repaint again
+- **Turf**: Save $200-400/month on water, zero maintenance, green 365 days, pet-friendly, no chemicals
+- **Pavers**: Adds 10-15% to home value, 25+ year durability, transforms curb appeal instantly
+- **Pergola**: Extends living space, protection from Arizona sun, outdoor entertainment hub
 
-## 🔧 מוצרים ותועלות:
-- **Cool Life**: הורדת 20-30 מעלות, חיסכון בחשמל, שימוש בחצר כל השנה
-- **Turf (דשא סינטטי)**: חיסכון $200-400/חודש במים, אפס תחזוקה, ירוק 365 יום
-- **Pavers**: עלייה בערך הבית 10-15%, עמידות 25+ שנים, אפס תחזוקה
-- **Pergola**: הרחבת שטח מגורים, הגנה מהשמש, שדרוג ויזואלי
+## STORY REQUIREMENTS:
+- Length: 150-200 words (60-90 seconds spoken)
+- Tone: Conversational, like telling a friend about someone you know
+- Style: Vivid, visual, emotional—make them SEE and FEEL the story
+- Avoid: Jargon, unrealistic claims, filler words, being generic
 
-החזר JSON בלבד בפורמט הבא:
+Return ONLY valid JSON in this exact format:
 {
-  "title": "כותרת קצרה וקליטה (עברית)",
-  "setup_line": "משפט פתיחה טבעי שמוביל לסיפור (עברית)",
-  "story_content": "הסיפור המלא עם 6 האלמנטים (עברית)",
-  "closing_bridge": "שאלה/משפט שמוביל לסגירה (עברית)",
+  "title": "Short catchy title (English)",
+  "setup_line": "Natural transition line to introduce the story (English)",
+  "story_content": "The full story with all 6 elements woven naturally together (English)",
+  "closing_bridge": "Question or statement that leads to closing (English)",
   "structure": {
-    "character": "תיאור הדמות",
-    "hesitation": "ההיסוס שלהם",
-    "decision_moment": "מה גרם להם להחליט",
-    "cost_of_waiting": "מה הם הפסידו/כמעט הפסידו",
-    "transformation": "התוצאות הספציפיות",
-    "emotional_payoff": "הציטוט הסופי"
+    "character": "Description of the character",
+    "hesitation": "Their exact hesitation",
+    "decision_moment": "What made them decide",
+    "cost_of_waiting": "What they lost or almost lost",
+    "transformation": "Specific measurable results",
+    "emotional_payoff": "Their powerful quote"
   },
-  "explanation": "הסבר קצר למה הסיפור הזה עובד (עברית)",
-  "tags": ["רגש1", "סוג_התנגדות", "מוצר"]
+  "explanation": "Brief explanation of why this story works psychologically",
+  "tags": ["emotion", "objection_type", "product"]
 }"""
 
-STORY_IMPROVEMENT_PROMPT = """אתה מומחה לשיפור סיפורי מכירות. קיבלת סיפור גולמי מאיש מכירות ותפקידך לשפר אותו באמצעות 6 האלמנטים של סיפור מכירות מנצח.
+STORY_IMPROVEMENT_PROMPT = """You are a MASTER STORY DOCTOR—a world-class expert at transforming mediocre sales stories into POWERFUL closing machines.
 
-## הסיפור המקורי שצריך לשפר:
+You've received a raw story from a salesperson. Your job is to ENHANCE it using the 6 essential elements while keeping the original core authentic.
+
+## THE ORIGINAL STORY TO IMPROVE:
 {raw_story}
 
-## מה לעשות:
-1. **שמור על הליבה** - אל תמציא סיפור חדש, שפר את מה שיש
-2. **הוסף פרטים** - שמות ספציפיים, מקומות, מספרים
-3. **חזק את האלמנטים החסרים** - בדוק מה חסר מ-6 האלמנטים והוסף
-4. **הוסף ציטוט** - אם אין ציטוט מהלקוח, הוסף אחד משכנע
-5. **חדד את הרגש** - ודא שהסיפור מעורר את הרגש הרצוי
+## YOUR MISSION:
+1. **PRESERVE THE CORE** - Don't invent a new story. Enhance what exists.
+2. **ADD SPECIFICITY** - Names, locations, dollar amounts, timeframes
+3. **STRENGTHEN WEAK ELEMENTS** - Identify which of the 6 elements are missing or weak
+4. **ADD A POWERFUL QUOTE** - If there's no customer quote, create one that feels real
+5. **SHARPEN THE EMOTION** - Make sure the story evokes the target emotion viscerally
 
-## 6 האלמנטים לבדוק:
-1. ✅ דמות שקל להזדהות איתה (שם, מקום, מצב)
-2. ✅ אותו היסוס בדיוק כמו הלקוח הנוכחי
-3. ✅ רגע ההחלטה - מה שגרם להם לסגור
-4. ✅ מחיר ההמתנה - מה הפסידו או כמעט הפסידו
-5. ✅ טרנספורמציה - תוצאות ומספרים ספציפיים
-6. ✅ רגש סופי - ציטוט שמשאיר רושם
+## THE 6 ELEMENTS CHECKLIST:
+1. ✅ RELATABLE CHARACTER - Full name, specific location, similar situation to prospect
+2. ✅ SAME HESITATION - The exact objection the current prospect has
+3. ✅ DECISION MOMENT - The specific trigger that made them say yes
+4. ✅ COST OF WAITING - What they lost or almost lost by hesitating (with numbers!)
+5. ✅ TRANSFORMATION - Measurable, specific results with dollar amounts
+6. ✅ EMOTIONAL PAYOFF - A powerful direct quote that resonates
 
-החזר JSON בלבד:
+## STORY ENHANCEMENT TECHNIQUES:
+- Turn vague descriptions into vivid, visual scenes
+- Replace generic terms with specific names and places
+- Add sensory details: what they SAW, FELT, HEARD
+- Include specific numbers: dollars saved, time gained, value added
+- Create a memorable "quotable quote" ending
+
+## ARIZONA LOCATIONS TO USE:
+Phoenix, Scottsdale, Paradise Valley, Fountain Hills, Gilbert, Chandler, Mesa, Tempe, Ahwatukee, Cave Creek, Carefree, Peoria, Glendale
+
+Return ONLY valid JSON:
 {
-  "title": "כותרת קצרה וקליטה",
-  "setup_line": "משפט פתיחה טבעי",
-  "story_content": "הסיפור המשופר (שמור על הרעיון המקורי!)",
-  "closing_bridge": "שאלה שמובילה לסגירה",
+  "title": "Short catchy title",
+  "setup_line": "Natural transition to introduce the story",
+  "story_content": "The IMPROVED story (keep the original idea but make it 10x better!)",
+  "closing_bridge": "Question or statement that leads to closing",
   "structure": {
-    "character": "הדמות בסיפור",
-    "hesitation": "ההיסוס",
-    "decision_moment": "רגע ההחלטה",
-    "cost_of_waiting": "מחיר ההמתנה",
-    "transformation": "התוצאות",
-    "emotional_payoff": "הציטוט הסופי"
+    "character": "The character in the story",
+    "hesitation": "Their hesitation",
+    "decision_moment": "What made them decide",
+    "cost_of_waiting": "What they lost or almost lost",
+    "transformation": "The specific results",
+    "emotional_payoff": "The powerful closing quote"
   },
-  "improvements_made": ["שיפור 1", "שיפור 2", "שיפור 3"],
-  "explanation": "למה הגרסה המשופרת טובה יותר",
-  "tags": ["רגש", "התנגדות", "מוצר"]
+  "improvements_made": ["Improvement 1", "Improvement 2", "Improvement 3"],
+  "explanation": "Why the improved version is more persuasive",
+  "tags": ["emotion", "objection", "product"]
 }"""
 
 
@@ -1668,30 +1683,43 @@ def generate_story():
     
     # Map emotion IDs to Hebrew labels
     emotion_labels = {
-        'trust': 'אמון',
-        'urgency': 'דחיפות',
-        'value': 'ערך',
-        'fomo': 'פחד מהפסד',
-        'peace': 'שקט נפשי',
-        'pride': 'גאווה',
-        'social_proof': 'הוכחה חברתית'
+        'trust': 'Trust & Credibility',
+        'urgency': 'Urgency',
+        'value': 'Value & ROI',
+        'fomo': 'Fear of Missing Out',
+        'fear_of_loss': 'Fear of Loss',
+        'peace': 'Peace of Mind',
+        'peace_of_mind': 'Peace of Mind',
+        'pride': 'Pride',
+        'social_proof': 'Social Proof',
+        'professionalism': 'Professionalism',
+        'integrity': 'Integrity',
+        'success': 'Success'
     }
     
     objection_labels = {
-        'think': 'צריך לחשוב על זה',
-        'price': 'יקר לי',
-        'spouse': 'צריך להתייעץ עם בן/בת זוג',
-        'offers': 'בודק עוד הצעות',
-        'timing': 'לא עכשיו',
-        'trust': 'לא מכיר אתכם'
+        'think': 'Need to think about it',
+        'need_to_think': 'Need to think about it',
+        'price': 'Too expensive',
+        'too_expensive': 'Too expensive',
+        'spouse': 'Need to talk to spouse',
+        'spouse_decision': 'Need to talk to spouse',
+        'offers': 'Getting other quotes',
+        'getting_quotes': 'Getting other quotes',
+        'timing': 'Not the right time',
+        'bad_timing': 'Not the right time',
+        'trust': "Don't know you",
+        'check_finances': 'Need to check finances'
     }
     
     product_labels = {
-        'cool_life': 'Cool Life (מיזוג חיצוני)',
-        'turf': 'דשא סינטטי',
-        'pavers': 'Pavers (ריצוף)',
-        'pergola': 'פרגולה',
-        'general': 'כללי'
+        'cool_life': 'Cool Life (Exterior Heat-Reflective Coating)',
+        'turf': 'Synthetic Turf',
+        'pavers': 'Pavers (Patios, Walkways, Driveways)',
+        'pergola': 'Pergola',
+        'concrete': 'Concrete',
+        'fence': 'Fencing',
+        'general': 'General'
     }
     
     try:
@@ -1702,33 +1730,34 @@ def generate_story():
         if mode == 'improve':
             # Use improvement prompt
             system_prompt = STORY_IMPROVEMENT_PROMPT.replace('{raw_story}', raw_story)
-            user_prompt = f"""שפר את הסיפור הזה כך שיעביר את המסר ויעורר את הרגשות הנכונים.
+            user_prompt = f"""Transform this story into a POWERFUL closing tool that delivers the message and evokes the right emotions.
 
-**המסר שצריך להעביר:** {target_message}
-**הרגשות לעורר:** {emotions_text}
+**MESSAGE TO CONVEY:** {target_message}
+**EMOTIONS TO EVOKE:** {emotions_text}
 """
             if objection_text:
-                user_prompt += f"**התנגדות לטפל בה:** {objection_text}\n"
+                user_prompt += f"**OBJECTION TO ADDRESS:** {objection_text}\n"
             if product_text:
-                user_prompt += f"**מוצר:** {product_text}\n"
+                user_prompt += f"**PRODUCT:** {product_text}\n"
             
-            user_prompt += "\nשפר את הסיפור תוך שמירה על הרעיון המקורי, אבל הוסף את 6 האלמנטים שחסרים."
+            user_prompt += "\nEnhance the story while keeping the original core idea. Add all 6 missing elements to make it compelling and persuasive."
         else:
             # Use creation prompt
             system_prompt = STORY_GENERATION_PROMPT
-            user_prompt = f"""צור סיפור מכירות חדש בעברית.
+            user_prompt = f"""Create a NEW sales story in English that will close deals.
 
-**המסר שצריך להעביר:** {target_message}
-**הרגשות לעורר:** {emotions_text}
+**MESSAGE TO CONVEY:** {target_message}
+**EMOTIONS TO EVOKE:** {emotions_text}
 """
             if objection_text:
-                user_prompt += f"**התנגדות למנוע/לטפל:** {objection_text}\n"
+                user_prompt += f"**OBJECTION TO PREVENT/ADDRESS:** {objection_text}\n"
             if product_text:
-                user_prompt += f"**מוצר רלוונטי:** {product_text}\n"
+                user_prompt += f"**RELEVANT PRODUCT:** {product_text}\n"
             
             user_prompt += """
-צור סיפור מכירות מנצח שמשתמש בכל 6 האלמנטים.
-הסיפור צריך להיות אותנטי, רגשי, עם מספרים ספציפיים וציטוט מהלקוח.
+Create a WINNING sales story using all 6 essential elements.
+The story must be authentic, emotional, with specific numbers and a powerful customer quote.
+Make it vivid, visual, and impossible to resist.
 """
         
         response = openai_client.chat.completions.create(

@@ -1126,63 +1126,196 @@ function DailyDrillCard({ drill }) {
   )
 }
 
+// ============ TRANSLATIONS ============
+const TRANSLATIONS = {
+  en: {
+    // Story Card
+    yourStory: 'Your Story',
+    originalVersion: 'The original version from your call',
+    improvedVersion: 'The Improved Version',
+    withAllElements: 'With all 6 storytelling elements',
+    detectedMessage: 'Detected Message',
+    setupLine: 'Setup Line',
+    closingBridge: 'Closing Bridge',
+    listenToStory: 'Listen to Story',
+    listenToImproved: 'Listen to Improved',
+    stop: 'Stop',
+    missing: 'Missing',
+    elements: 'elements',
+    // Settings
+    improvementSettings: 'Improvement Settings',
+    messageToConvey: 'Message to Convey',
+    emotionsToEvoke: 'Emotions to Evoke',
+    targetObjection: 'Target Objection',
+    product: 'Product',
+    // Buttons
+    createImprovedVersion: 'Create Improved Version',
+    creatingVersion: 'Creating improved version...',
+    createNewVersion: 'Create New Version',
+    saveToStoryBank: 'Save to Story Bank',
+    saving: 'Saving...',
+    savedSuccessfully: 'Saved!',
+    savedToStoryBank: 'Saved to Story Bank',
+    // Placeholders
+    improvedWillAppear: 'The improved story will appear here',
+    clickCreateBelow: 'Click "Create Improved Version" below',
+    // Element names
+    relatableCharacter: 'Relatable Character',
+    sameHesitation: 'Same Hesitation',
+    decisionMoment: 'Decision Moment',
+    costOfWaiting: 'Cost of Waiting',
+    specificResults: 'Specific Results',
+    emotionalPayoff: 'Emotional Payoff',
+    // New Story Creator
+    createNewStory: 'Create New Story',
+    writeYourStory: 'Write a story you tell customers and we\'ll enhance it',
+    storyPlaceholder: 'Write your story here as you tell it today...\n\nFor example: "I had a customer who also said it was too expensive, but after they saw the results, they told me it was the best investment they ever made..."',
+    whatEmotionToConvey: 'What emotion should it convey?',
+    forObjection: 'For objection',
+    improveWithAI: 'Improve with AI',
+    improving: 'Improving...',
+    writeYourStoryFirst: 'Write your story first',
+    selectAtLeastOneEmotion: 'Select at least one emotion',
+    storySavedSuccess: 'Story saved successfully!',
+    // Language toggle
+    switchToHebrew: 'עברית',
+    switchToEnglish: 'English'
+  },
+  he: {
+    // Story Card
+    yourStory: 'הסיפור שלך',
+    originalVersion: 'הגרסה המקורית מהשיחה',
+    improvedVersion: 'הגרסה המשופרת',
+    withAllElements: 'עם כל 6 האלמנטים',
+    detectedMessage: 'המסר שזוהה',
+    setupLine: 'משפט פתיחה',
+    closingBridge: 'גשר סגירה',
+    listenToStory: 'האזן לסיפור',
+    listenToImproved: 'האזן לגרסה המשופרת',
+    stop: 'עצור',
+    missing: 'חסר',
+    elements: 'אלמנטים',
+    // Settings
+    improvementSettings: 'הגדרות שיפור',
+    messageToConvey: 'מסר להעביר',
+    emotionsToEvoke: 'רגשות לשדר',
+    targetObjection: 'נגד התנגדות',
+    product: 'מוצר',
+    // Buttons
+    createImprovedVersion: 'צור גרסה משופרת',
+    creatingVersion: 'יוצר גרסה משופרת...',
+    createNewVersion: 'צור גרסה חדשה',
+    saveToStoryBank: 'שמור ל-Story Bank',
+    saving: 'שומר...',
+    savedSuccessfully: 'נשמר בהצלחה!',
+    savedToStoryBank: 'נשמר בבנק הסיפורים',
+    // Placeholders
+    improvedWillAppear: 'הסיפור המשופר יופיע כאן',
+    clickCreateBelow: 'לחץ על "צור גרסה משופרת" למטה',
+    // Element names
+    relatableCharacter: 'דמות להזדהות',
+    sameHesitation: 'אותו היסוס',
+    decisionMoment: 'רגע החלטה',
+    costOfWaiting: 'מחיר המתנה',
+    specificResults: 'תוצאות ספציפיות',
+    emotionalPayoff: 'רגש בסוף',
+    // New Story Creator
+    createNewStory: 'צור סיפור חדש',
+    writeYourStory: 'כתוב סיפור שאתה מספר ללקוחות ונשפר אותו',
+    storyPlaceholder: 'כתוב כאן את הסיפור שלך כמו שאתה מספר אותו היום...\n\nלדוגמה: "היה לי לקוח שגם הוא אמר שזה יקר לו, אבל אחרי שהוא ראה את התוצאות הוא אמר לי שזו ההשקעה הכי טובה שהוא עשה..."',
+    whatEmotionToConvey: 'איזה רגש להעביר?',
+    forObjection: 'נגד התנגדות',
+    improveWithAI: 'שפר עם AI',
+    improving: 'משפר...',
+    writeYourStoryFirst: 'כתוב את הסיפור שלך',
+    selectAtLeastOneEmotion: 'בחר לפחות רגש אחד',
+    storySavedSuccess: 'הסיפור נשמר בהצלחה!',
+    // Language toggle
+    switchToHebrew: 'עברית',
+    switchToEnglish: 'English'
+  }
+}
+
 // ============ STORIES SECTION COMPONENT ============
 const EMOTION_OPTIONS = [
-  { value: 'trust', label: 'אמון', color: 'text-blue-400', bg: 'bg-blue-500/20', border: 'border-blue-500/30' },
-  { value: 'urgency', label: 'דחיפות', color: 'text-red-400', bg: 'bg-red-500/20', border: 'border-red-500/30' },
-  { value: 'value', label: 'ערך', color: 'text-emerald-400', bg: 'bg-emerald-500/20', border: 'border-emerald-500/30' },
-  { value: 'fear_of_loss', label: 'פחד מהפסד', color: 'text-orange-400', bg: 'bg-orange-500/20', border: 'border-orange-500/30' },
-  { value: 'peace_of_mind', label: 'שקט נפשי', color: 'text-cyan-400', bg: 'bg-cyan-500/20', border: 'border-cyan-500/30' },
-  { value: 'pride', label: 'גאווה', color: 'text-amber-400', bg: 'bg-amber-500/20', border: 'border-amber-500/30' },
-  { value: 'professionalism', label: 'מקצועיות', color: 'text-indigo-400', bg: 'bg-indigo-500/20', border: 'border-indigo-500/30' },
-  { value: 'integrity', label: 'יושרה', color: 'text-teal-400', bg: 'bg-teal-500/20', border: 'border-teal-500/30' },
-  { value: 'success', label: 'הצלחה', color: 'text-yellow-400', bg: 'bg-yellow-500/20', border: 'border-yellow-500/30' },
-  { value: 'social_proof', label: 'הוכחה חברתית', color: 'text-violet-400', bg: 'bg-violet-500/20', border: 'border-violet-500/30' }
+  { value: 'trust', labelEn: 'Trust', labelHe: 'אמון', color: 'text-blue-400', bg: 'bg-blue-500/20', border: 'border-blue-500/30' },
+  { value: 'urgency', labelEn: 'Urgency', labelHe: 'דחיפות', color: 'text-red-400', bg: 'bg-red-500/20', border: 'border-red-500/30' },
+  { value: 'value', labelEn: 'Value', labelHe: 'ערך', color: 'text-emerald-400', bg: 'bg-emerald-500/20', border: 'border-emerald-500/30' },
+  { value: 'fear_of_loss', labelEn: 'Fear of Loss', labelHe: 'פחד מהפסד', color: 'text-orange-400', bg: 'bg-orange-500/20', border: 'border-orange-500/30' },
+  { value: 'peace_of_mind', labelEn: 'Peace of Mind', labelHe: 'שקט נפשי', color: 'text-cyan-400', bg: 'bg-cyan-500/20', border: 'border-cyan-500/30' },
+  { value: 'pride', labelEn: 'Pride', labelHe: 'גאווה', color: 'text-amber-400', bg: 'bg-amber-500/20', border: 'border-amber-500/30' },
+  { value: 'professionalism', labelEn: 'Professionalism', labelHe: 'מקצועיות', color: 'text-indigo-400', bg: 'bg-indigo-500/20', border: 'border-indigo-500/30' },
+  { value: 'integrity', labelEn: 'Integrity', labelHe: 'יושרה', color: 'text-teal-400', bg: 'bg-teal-500/20', border: 'border-teal-500/30' },
+  { value: 'success', labelEn: 'Success', labelHe: 'הצלחה', color: 'text-yellow-400', bg: 'bg-yellow-500/20', border: 'border-yellow-500/30' },
+  { value: 'social_proof', labelEn: 'Social Proof', labelHe: 'הוכחה חברתית', color: 'text-violet-400', bg: 'bg-violet-500/20', border: 'border-violet-500/30' }
 ]
 
 const OBJECTION_OPTIONS = [
-  { value: '', label: 'ללא התנגדות ספציפית' },
-  { value: 'need_to_think', label: 'צריך לחשוב על זה' },
-  { value: 'too_expensive', label: 'יקר לי' },
-  { value: 'spouse_decision', label: 'צריך לדבר עם בן/בת זוג' },
-  { value: 'getting_quotes', label: 'בודק עוד הצעות' },
-  { value: 'bad_timing', label: 'לא עכשיו' },
-  { value: 'check_finances', label: 'צריך לבדוק פיננסים' }
+  { value: '', labelEn: 'No specific objection', labelHe: 'ללא התנגדות ספציפית' },
+  { value: 'need_to_think', labelEn: 'Need to think about it', labelHe: 'צריך לחשוב על זה' },
+  { value: 'too_expensive', labelEn: 'Too expensive', labelHe: 'יקר לי' },
+  { value: 'spouse_decision', labelEn: 'Need to talk to spouse', labelHe: 'צריך לדבר עם בן/בת זוג' },
+  { value: 'getting_quotes', labelEn: 'Getting other quotes', labelHe: 'בודק עוד הצעות' },
+  { value: 'bad_timing', labelEn: 'Not the right time', labelHe: 'לא עכשיו' },
+  { value: 'check_finances', labelEn: 'Need to check finances', labelHe: 'צריך לבדוק פיננסים' }
 ]
 
 const PRODUCT_OPTIONS = [
-  { value: '', label: 'כללי' },
-  { value: 'cool_life', label: 'Cool Life Paint' },
-  { value: 'turf', label: 'דשא סינטטי' },
-  { value: 'pavers', label: 'ריצוף' },
-  { value: 'concrete', label: 'בטון' },
-  { value: 'fence', label: 'גדר' }
+  { value: '', labelEn: 'General', labelHe: 'כללי' },
+  { value: 'cool_life', labelEn: 'Cool Life Paint', labelHe: 'Cool Life Paint' },
+  { value: 'turf', labelEn: 'Synthetic Turf', labelHe: 'דשא סינטטי' },
+  { value: 'pavers', labelEn: 'Pavers', labelHe: 'ריצוף' },
+  { value: 'concrete', labelEn: 'Concrete', labelHe: 'בטון' },
+  { value: 'fence', labelEn: 'Fencing', labelHe: 'גדר' }
 ]
 
-// Detect the message/intent from a story
-const detectStoryMessage = (story) => {
+// Detect the message/intent from a story (returns English messages for the new system)
+const detectStoryMessage = (story, lang = 'en') => {
   const text = (story.original_story || '').toLowerCase()
   
-  if (text.includes('יקר') || text.includes('מחיר') || text.includes('זול') || text.includes('expensive') || text.includes('cheap') || text.includes('price')) {
-    return { message: 'להראות שהזול יוצא יקר בסוף', emotion: 'value' }
-  }
-  if (text.includes('לחשוב') || text.includes('think') || text.includes('החלטה')) {
-    return { message: 'לעזור ללקוח להחליט עכשיו', emotion: 'urgency' }
-  }
-  if (text.includes('אשתי') || text.includes('בעלי') || text.includes('spouse') || text.includes('wife') || text.includes('husband')) {
-    return { message: 'להפוך את הלקוח לשגריר', emotion: 'trust' }
-  }
-  if (text.includes('הצעות') || text.includes('quotes') || text.includes('בודק')) {
-    return { message: 'להראות למה אי אפשר להשוות', emotion: 'professionalism' }
-  }
-  if (text.includes('איכות') || text.includes('quality') || text.includes('תוצאה') || text.includes('result')) {
-    return { message: 'להדגיש את האיכות והתוצאות', emotion: 'value' }
-  }
-  if (text.includes('אמון') || text.includes('trust') || text.includes('סומך')) {
-    return { message: 'לבנות אמון עם הלקוח', emotion: 'trust' }
+  const messages = {
+    en: {
+      price: 'Show that cheap ends up expensive',
+      think: 'Help customer decide now',
+      spouse: 'Turn customer into ambassador',
+      quotes: 'Show why comparison is impossible',
+      quality: 'Emphasize quality and results',
+      trust: 'Build trust with customer',
+      default: 'Persuade the customer'
+    },
+    he: {
+      price: 'להראות שהזול יוצא יקר בסוף',
+      think: 'לעזור ללקוח להחליט עכשיו',
+      spouse: 'להפוך את הלקוח לשגריר',
+      quotes: 'להראות למה אי אפשר להשוות',
+      quality: 'להדגיש את האיכות והתוצאות',
+      trust: 'לבנות אמון עם הלקוח',
+      default: 'לשכנע את הלקוח'
+    }
   }
   
-  return { message: 'לשכנע את הלקוח', emotion: 'trust' }
+  const m = messages[lang]
+  
+  if (text.includes('יקר') || text.includes('מחיר') || text.includes('זול') || text.includes('expensive') || text.includes('cheap') || text.includes('price')) {
+    return { message: m.price, emotion: 'value' }
+  }
+  if (text.includes('לחשוב') || text.includes('think') || text.includes('החלטה')) {
+    return { message: m.think, emotion: 'urgency' }
+  }
+  if (text.includes('אשתי') || text.includes('בעלי') || text.includes('spouse') || text.includes('wife') || text.includes('husband')) {
+    return { message: m.spouse, emotion: 'trust' }
+  }
+  if (text.includes('הצעות') || text.includes('quotes') || text.includes('בודק')) {
+    return { message: m.quotes, emotion: 'professionalism' }
+  }
+  if (text.includes('איכות') || text.includes('quality') || text.includes('תוצאה') || text.includes('result')) {
+    return { message: m.quality, emotion: 'value' }
+  }
+  if (text.includes('אמון') || text.includes('trust') || text.includes('סומך')) {
+    return { message: m.trust, emotion: 'trust' }
+  }
+  
+  return { message: m.default, emotion: 'trust' }
 }
 
 // ============ TEXT TO SPEECH HOOK ============
@@ -1191,7 +1324,7 @@ const useTextToSpeech = () => {
   const [currentId, setCurrentId] = useState(null)
   const utteranceRef = useRef(null)
 
-  const speak = (text, id) => {
+  const speak = (text, id, lang = 'en') => {
     // Stop any current speech
     window.speechSynthesis.cancel()
     
@@ -1202,14 +1335,16 @@ const useTextToSpeech = () => {
     }
 
     const utterance = new SpeechSynthesisUtterance(text)
-    utterance.lang = 'he-IL'
+    utterance.lang = lang === 'he' ? 'he-IL' : 'en-US'
     utterance.rate = 0.9
     utterance.pitch = 1
     
-    // Try to find Hebrew voice
+    // Try to find appropriate voice
     const voices = window.speechSynthesis.getVoices()
-    const hebrewVoice = voices.find(v => v.lang.includes('he')) || voices.find(v => v.lang.includes('en'))
-    if (hebrewVoice) utterance.voice = hebrewVoice
+    const targetVoice = lang === 'he' 
+      ? voices.find(v => v.lang.includes('he')) || voices.find(v => v.lang.includes('en'))
+      : voices.find(v => v.lang.includes('en-US')) || voices.find(v => v.lang.includes('en'))
+    if (targetVoice) utterance.voice = targetVoice
 
     utterance.onstart = () => {
       setSpeaking(true)
@@ -1237,6 +1372,20 @@ const useTextToSpeech = () => {
   return { speak, stop, speaking, currentId }
 }
 
+// ============ LANGUAGE TOGGLE COMPONENT ============
+function LanguageToggle({ lang, setLang }) {
+  return (
+    <button
+      onClick={() => setLang(lang === 'en' ? 'he' : 'en')}
+      className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700 hover:border-violet-500/50 transition-all text-sm font-medium"
+    >
+      <span className={`transition-all ${lang === 'en' ? 'text-violet-400' : 'text-slate-500'}`}>EN</span>
+      <span className="text-slate-600">/</span>
+      <span className={`transition-all ${lang === 'he' ? 'text-violet-400' : 'text-slate-500'}`}>עב</span>
+    </button>
+  )
+}
+
 // ============ STORY IMPROVEMENT CARD - PREMIUM PROFESSIONAL DESIGN ============
 function StoryImprovementCard({ story, analysisResult, onSaveToBank }) {
   const [improving, setImproving] = useState(false)
@@ -1248,10 +1397,14 @@ function StoryImprovementCard({ story, analysisResult, onSaveToBank }) {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
+  const [lang, setLang] = useState('en') // Default to English
   const { speak, speaking, currentId } = useTextToSpeech()
   
+  // Get translations
+  const t = TRANSLATIONS[lang]
+  
   // Auto-detect message from story
-  const detectedMessage = detectStoryMessage(story)
+  const detectedMessage = detectStoryMessage(story, lang)
   
   // Initialize with detected emotion
   useEffect(() => {
@@ -1261,7 +1414,7 @@ function StoryImprovementCard({ story, analysisResult, onSaveToBank }) {
     if (!targetMessage) {
       setTargetMessage(detectedMessage.message)
     }
-  }, [])
+  }, [lang])
 
   const toggleEmotion = (value) => {
     setSelectedEmotions(prev => 
@@ -1321,7 +1474,7 @@ function StoryImprovementCard({ story, analysisResult, onSaveToBank }) {
       onSaveToBank && onSaveToBank()
     } catch (err) {
       console.error('Error saving story:', err)
-      alert('שגיאה בשמירת הסיפור')
+      alert(lang === 'en' ? 'Error saving story' : 'שגיאה בשמירת הסיפור')
     }
     setSaving(false)
   }
@@ -1329,19 +1482,29 @@ function StoryImprovementCard({ story, analysisResult, onSaveToBank }) {
   const sixElements = story.six_elements_check || {}
   const presentCount = Object.values(sixElements).filter(v => v).length
   const missingElements = [
-    { key: 'has_relatable_character', label: 'דמות להזדהות' },
-    { key: 'has_same_hesitation', label: 'אותו היסוס' },
-    { key: 'has_decision_moment', label: 'רגע החלטה' },
-    { key: 'has_cost_of_waiting', label: 'מחיר המתנה' },
-    { key: 'has_specific_results', label: 'תוצאות ספציפיות' },
-    { key: 'has_emotional_payoff', label: 'רגש בסוף' }
+    { key: 'has_relatable_character', labelEn: 'Relatable Character', labelHe: 'דמות להזדהות' },
+    { key: 'has_same_hesitation', labelEn: 'Same Hesitation', labelHe: 'אותו היסוס' },
+    { key: 'has_decision_moment', labelEn: 'Decision Moment', labelHe: 'רגע החלטה' },
+    { key: 'has_cost_of_waiting', labelEn: 'Cost of Waiting', labelHe: 'מחיר המתנה' },
+    { key: 'has_specific_results', labelEn: 'Specific Results', labelHe: 'תוצאות ספציפיות' },
+    { key: 'has_emotional_payoff', labelEn: 'Emotional Payoff', labelHe: 'רגש בסוף' }
   ].filter(({ key }) => !sixElements[key])
 
   return (
-    <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 rounded-2xl border border-slate-700/50 overflow-hidden shadow-2xl" dir="rtl">
+    <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 rounded-2xl border border-slate-700/50 overflow-hidden shadow-2xl" dir={lang === 'he' ? 'rtl' : 'ltr'}>
+      
+      {/* ===== LANGUAGE TOGGLE IN TOP RIGHT ===== */}
+      <div className="absolute top-4 right-4 z-10">
+        <LanguageToggle lang={lang} setLang={setLang} />
+      </div>
       
       {/* ===== SECTION 1: ORIGINAL STORY ===== */}
-      <div className="p-4 sm:p-6 lg:p-8">
+      <div className="p-4 sm:p-6 lg:p-8 relative">
+        {/* Language Toggle */}
+        <div className="flex justify-end mb-4">
+          <LanguageToggle lang={lang} setLang={setLang} />
+        </div>
+        
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
           <div className="flex items-center gap-3">
@@ -1349,8 +1512,8 @@ function StoryImprovementCard({ story, analysisResult, onSaveToBank }) {
               <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 text-amber-400" />
             </div>
             <div>
-              <h3 className="text-base sm:text-lg font-bold text-white">הסיפור שסיפרת</h3>
-              <p className="text-xs sm:text-sm text-slate-500">הגרסה המקורית מהשיחה</p>
+              <h3 className="text-base sm:text-lg font-bold text-white">{t.yourStory}</h3>
+              <p className="text-xs sm:text-sm text-slate-500">{t.originalVersion}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -1362,7 +1525,7 @@ function StoryImprovementCard({ story, analysisResult, onSaveToBank }) {
               {story.effectiveness_score}/10
             </span>
             <span className="text-xs sm:text-sm px-3 py-1.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700">
-              {presentCount}/6 אלמנטים
+              {presentCount}/6 {t.elements}
             </span>
           </div>
         </div>
@@ -1377,7 +1540,7 @@ function StoryImprovementCard({ story, analysisResult, onSaveToBank }) {
             
             {/* Listen Button */}
             <button
-              onClick={() => speak(story.original_story, 'original')}
+              onClick={() => speak(story.original_story, 'original', lang)}
               className={`mt-4 flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 speaking && currentId === 'original'
                   ? 'bg-amber-500 text-white'
@@ -1385,9 +1548,9 @@ function StoryImprovementCard({ story, analysisResult, onSaveToBank }) {
               }`}
             >
               {speaking && currentId === 'original' ? (
-                <><Pause className="w-4 h-4" /> עצור</>
+                <><Pause className="w-4 h-4" /> {t.stop}</>
               ) : (
-                <><Volume2 className="w-4 h-4" /> האזן לסיפור</>
+                <><Volume2 className="w-4 h-4" /> {t.listenToStory}</>
               )}
             </button>
           </div>
@@ -1396,10 +1559,10 @@ function StoryImprovementCard({ story, analysisResult, onSaveToBank }) {
         {/* Missing Elements - Compact Pills */}
         {missingElements.length > 0 && (
           <div className="mt-4 flex flex-wrap gap-2">
-            <span className="text-xs text-slate-500">חסר:</span>
-            {missingElements.map(({ key, label }) => (
+            <span className="text-xs text-slate-500">{t.missing}:</span>
+            {missingElements.map(({ key, labelEn, labelHe }) => (
               <span key={key} className="text-xs px-2 py-1 bg-red-500/10 text-red-400/80 rounded-md border border-red-500/20">
-                {label}
+                {lang === 'en' ? labelEn : labelHe}
               </span>
             ))}
           </div>
@@ -1411,7 +1574,7 @@ function StoryImprovementCard({ story, analysisResult, onSaveToBank }) {
         <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
           <div className="flex items-center gap-2">
             <Lightbulb className="w-4 h-4 sm:w-5 sm:h-5 text-violet-400" />
-            <span className="text-sm text-slate-400 font-medium">המסר שזוהה:</span>
+            <span className="text-sm text-slate-400 font-medium">{t.detectedMessage}:</span>
           </div>
           <span className="text-sm sm:text-base text-violet-300 font-semibold">{detectedMessage.message}</span>
         </div>
@@ -1427,13 +1590,13 @@ function StoryImprovementCard({ story, analysisResult, onSaveToBank }) {
                 <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-400" />
               </div>
               <div>
-                <h3 className="text-base sm:text-lg font-bold text-emerald-400">הגרסה המשופרת</h3>
-                <p className="text-xs sm:text-sm text-slate-500">עם כל 6 האלמנטים</p>
+                <h3 className="text-base sm:text-lg font-bold text-emerald-400">{t.improvedVersion}</h3>
+                <p className="text-xs sm:text-sm text-slate-500">{t.withAllElements}</p>
               </div>
             </div>
             {saved && (
               <span className="flex items-center gap-1.5 text-sm text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-full border border-emerald-500/30">
-                <CheckCircle2 className="w-4 h-4" /> נשמר בבנק הסיפורים
+                <CheckCircle2 className="w-4 h-4" /> {t.savedToStoryBank}
               </span>
             )}
           </div>
@@ -1448,7 +1611,7 @@ function StoryImprovementCard({ story, analysisResult, onSaveToBank }) {
               
               {/* Listen Button */}
               <button
-                onClick={() => speak(improvedStory.story_content, 'improved')}
+                onClick={() => speak(improvedStory.story_content, 'improved', lang)}
                 className={`mt-4 flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                   speaking && currentId === 'improved'
                     ? 'bg-emerald-500 text-white'
@@ -1456,9 +1619,9 @@ function StoryImprovementCard({ story, analysisResult, onSaveToBank }) {
                 }`}
               >
                 {speaking && currentId === 'improved' ? (
-                  <><Pause className="w-4 h-4" /> עצור</>
+                  <><Pause className="w-4 h-4" /> {t.stop}</>
                 ) : (
-                  <><Volume2 className="w-4 h-4" /> האזן לסיפור המשופר</>
+                  <><Volume2 className="w-4 h-4" /> {t.listenToImproved}</>
                 )}
               </button>
             </div>
@@ -1470,7 +1633,7 @@ function StoryImprovementCard({ story, analysisResult, onSaveToBank }) {
               {improvedStory.setup_line && (
                 <div className="p-4 bg-amber-500/10 rounded-xl border border-amber-500/20">
                   <p className="text-xs text-amber-400 font-medium mb-2 flex items-center gap-1.5">
-                    <ArrowRight className="w-3 h-3" /> משפט פתיחה
+                    <ArrowRight className="w-3 h-3" /> {t.setupLine}
                   </p>
                   <p className="text-sm text-slate-200">{improvedStory.setup_line}</p>
                 </div>
@@ -1478,7 +1641,7 @@ function StoryImprovementCard({ story, analysisResult, onSaveToBank }) {
               {improvedStory.closing_bridge && (
                 <div className="p-4 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
                   <p className="text-xs text-emerald-400 font-medium mb-2 flex items-center gap-1.5">
-                    <ArrowRight className="w-3 h-3" /> גשר סגירה
+                    <ArrowRight className="w-3 h-3" /> {t.closingBridge}
                   </p>
                   <p className="text-sm text-slate-200">{improvedStory.closing_bridge}</p>
                 </div>
@@ -1494,12 +1657,12 @@ function StoryImprovementCard({ story, analysisResult, onSaveToBank }) {
               <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-slate-600" />
             </div>
             <div>
-              <h3 className="text-base sm:text-lg font-bold text-slate-500">הגרסה המשופרת</h3>
-              <p className="text-xs sm:text-sm text-slate-600">לחץ על "צור גרסה משופרת" למטה</p>
+              <h3 className="text-base sm:text-lg font-bold text-slate-500">{t.improvedVersion}</h3>
+              <p className="text-xs sm:text-sm text-slate-600">{t.clickCreateBelow}</p>
             </div>
           </div>
           <div className="h-32 sm:h-40 rounded-xl border-2 border-dashed border-slate-700 flex items-center justify-center">
-            <p className="text-slate-600 text-sm">הסיפור המשופר יופיע כאן</p>
+            <p className="text-slate-600 text-sm">{t.improvedWillAppear}</p>
           </div>
         </div>
       )}
@@ -1513,7 +1676,7 @@ function StoryImprovementCard({ story, analysisResult, onSaveToBank }) {
         >
           <span className="text-sm font-medium flex items-center gap-2">
             <Brain className="w-4 h-4 text-violet-400" />
-            הגדרות שיפור
+            {t.improvementSettings}
           </span>
           <ChevronDown className={`w-4 h-4 transition-transform ${showSettings ? 'rotate-180' : ''}`} />
         </button>
@@ -1523,7 +1686,7 @@ function StoryImprovementCard({ story, analysisResult, onSaveToBank }) {
           <div className="space-y-4 mb-6 p-4 bg-slate-800/30 rounded-xl border border-slate-700/30">
             {/* Target Message */}
             <div>
-              <label className="text-xs text-slate-400 block mb-2 font-medium">מסר להעביר</label>
+              <label className="text-xs text-slate-400 block mb-2 font-medium">{t.messageToConvey}</label>
               <input
                 type="text"
                 value={targetMessage}
@@ -1535,7 +1698,7 @@ function StoryImprovementCard({ story, analysisResult, onSaveToBank }) {
             
             {/* Emotions */}
             <div>
-              <label className="text-xs text-slate-400 block mb-2 font-medium">רגשות לשדר</label>
+              <label className="text-xs text-slate-400 block mb-2 font-medium">{t.emotionsToEvoke}</label>
               <div className="flex flex-wrap gap-2">
                 {EMOTION_OPTIONS.map(emotion => (
                   <button
@@ -1547,7 +1710,7 @@ function StoryImprovementCard({ story, analysisResult, onSaveToBank }) {
                         : 'bg-slate-800/50 text-slate-400 border-slate-700 hover:border-slate-600'
                     }`}
                   >
-                    {emotion.label}
+                    {lang === 'en' ? emotion.labelEn : emotion.labelHe}
                   </button>
                 ))}
               </div>
@@ -1556,26 +1719,26 @@ function StoryImprovementCard({ story, analysisResult, onSaveToBank }) {
             {/* Dropdowns */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="text-xs text-slate-400 block mb-2 font-medium">נגד התנגדות</label>
+                <label className="text-xs text-slate-400 block mb-2 font-medium">{t.targetObjection}</label>
                 <select
                   value={selectedObjection}
                   onChange={(e) => setSelectedObjection(e.target.value)}
                   className="w-full p-3 bg-slate-800/80 border border-slate-700 rounded-xl text-sm text-slate-300 focus:outline-none focus:border-violet-500"
                 >
                   {OBJECTION_OPTIONS.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    <option key={opt.value} value={opt.value}>{lang === 'en' ? opt.labelEn : opt.labelHe}</option>
                   ))}
                 </select>
               </div>
               <div>
-                <label className="text-xs text-slate-400 block mb-2 font-medium">מוצר</label>
+                <label className="text-xs text-slate-400 block mb-2 font-medium">{t.product}</label>
                 <select
                   value={selectedProduct}
                   onChange={(e) => setSelectedProduct(e.target.value)}
                   className="w-full p-3 bg-slate-800/80 border border-slate-700 rounded-xl text-sm text-slate-300 focus:outline-none focus:border-violet-500"
                 >
                   {PRODUCT_OPTIONS.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    <option key={opt.value} value={opt.value}>{lang === 'en' ? opt.labelEn : opt.labelHe}</option>
                   ))}
                 </select>
               </div>
@@ -1592,11 +1755,11 @@ function StoryImprovementCard({ story, analysisResult, onSaveToBank }) {
             className="flex-1 py-3.5 sm:py-4 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 disabled:from-slate-700 disabled:to-slate-700 text-white rounded-xl font-semibold transition-all flex items-center justify-center gap-2 shadow-lg shadow-violet-500/20 hover:shadow-violet-500/40 disabled:shadow-none"
           >
             {improving ? (
-              <><Loader2 className="w-5 h-5 animate-spin" /> יוצר גרסה משופרת...</>
+              <><Loader2 className="w-5 h-5 animate-spin" /> {t.creatingVersion}</>
             ) : improvedStory ? (
-              <><RefreshCw className="w-5 h-5" /> צור גרסה חדשה</>
+              <><RefreshCw className="w-5 h-5" /> {t.createNewVersion}</>
             ) : (
-              <><Wand2 className="w-5 h-5" /> צור גרסה משופרת</>
+              <><Wand2 className="w-5 h-5" /> {t.createImprovedVersion}</>
             )}
           </button>
 
@@ -1612,11 +1775,11 @@ function StoryImprovementCard({ story, analysisResult, onSaveToBank }) {
               }`}
             >
               {saving ? (
-                <><Loader2 className="w-5 h-5 animate-spin" /> שומר...</>
+                <><Loader2 className="w-5 h-5 animate-spin" /> {t.saving}</>
               ) : saved ? (
-                <><CheckCircle2 className="w-5 h-5" /> נשמר בהצלחה!</>
+                <><CheckCircle2 className="w-5 h-5" /> {t.savedSuccessfully}</>
               ) : (
-                <><BookMarked className="w-5 h-5" /> שמור ל-Story Bank</>
+                <><BookMarked className="w-5 h-5" /> {t.saveToStoryBank}</>
               )}
             </button>
           )}
@@ -1636,6 +1799,10 @@ function NewStoryCreator({ analysisResult, onSaveToBank }) {
   const [improving, setImproving] = useState(false)
   const [improvedStory, setImprovedStory] = useState(null)
   const [saving, setSaving] = useState(false)
+  const [lang, setLang] = useState('en') // Default to English
+  
+  // Get translations
+  const t = TRANSLATIONS[lang]
 
   const toggleEmotion = (value) => {
     setSelectedEmotions(prev => 
@@ -1645,11 +1812,11 @@ function NewStoryCreator({ analysisResult, onSaveToBank }) {
 
   const improveStory = async () => {
     if (!rawStory.trim()) {
-      alert('כתוב את הסיפור שלך')
+      alert(t.writeYourStoryFirst)
       return
     }
     if (selectedEmotions.length === 0) {
-      alert('בחר לפחות רגש אחד')
+      alert(t.selectAtLeastOneEmotion)
       return
     }
     
@@ -1660,7 +1827,7 @@ function NewStoryCreator({ analysisResult, onSaveToBank }) {
         mode: 'improve',
         raw_story: rawStory,
         target_emotions: selectedEmotions,
-        target_message: targetMessage || 'לשפר את הסיפור',
+        target_message: targetMessage || 'Improve the story',
         objection_type: selectedObjection,
         product: selectedProduct
       }, {
@@ -1672,7 +1839,7 @@ function NewStoryCreator({ analysisResult, onSaveToBank }) {
       }
     } catch (err) {
       console.error('Error:', err)
-      alert('שגיאה בשיפור הסיפור: ' + (err.response?.data?.error || err.message))
+      alert('Error improving story: ' + (err.response?.data?.error || err.message))
     }
     setImproving(false)
   }
@@ -1683,7 +1850,7 @@ function NewStoryCreator({ analysisResult, onSaveToBank }) {
     try {
       const { data: { session } } = await supabase.auth.getSession()
       await axios.post(`${API_URL}/api/story-bank`, {
-        title: improvedStory.title || 'סיפור חדש',
+        title: improvedStory.title || 'New Story',
         content: improvedStory.story_content,
         setup_line: improvedStory.setup_line,
         closing_bridge: improvedStory.closing_bridge,
@@ -1703,24 +1870,27 @@ function NewStoryCreator({ analysisResult, onSaveToBank }) {
       setTargetMessage('')
       setImprovedStory(null)
       onSaveToBank && onSaveToBank()
-      alert('הסיפור נשמר בהצלחה!')
+      alert(t.storySavedSuccess)
     } catch (err) {
       console.error('Error:', err)
-      alert('שגיאה בשמירה')
+      alert('Error saving')
     }
     setSaving(false)
   }
 
   return (
-    <div className="bg-gradient-to-br from-violet-500/10 to-fuchsia-500/10 rounded-2xl border border-violet-500/20 p-5 space-y-4">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 bg-gradient-to-br from-violet-500 to-fuchsia-500 rounded-xl flex items-center justify-center">
-          <Plus className="w-5 h-5 text-white" />
+    <div className="bg-gradient-to-br from-violet-500/10 to-fuchsia-500/10 rounded-2xl border border-violet-500/20 p-5 space-y-4" dir={lang === 'he' ? 'rtl' : 'ltr'}>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-gradient-to-br from-violet-500 to-fuchsia-500 rounded-xl flex items-center justify-center">
+            <Plus className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-slate-200">{t.createNewStory}</h3>
+            <p className="text-xs text-slate-400">{t.writeYourStory}</p>
+          </div>
         </div>
-        <div>
-          <h3 className="font-semibold text-slate-200">צור סיפור חדש</h3>
-          <p className="text-xs text-slate-400">כתוב סיפור שאתה מספר ללקוחות ונשפר אותו</p>
-        </div>
+        <LanguageToggle lang={lang} setLang={setLang} />
       </div>
 
       {!improvedStory ? (
@@ -1729,17 +1899,14 @@ function NewStoryCreator({ analysisResult, onSaveToBank }) {
           <textarea
             value={rawStory}
             onChange={(e) => setRawStory(e.target.value)}
-            placeholder="כתוב כאן את הסיפור שלך כמו שאתה מספר אותו היום...
-
-לדוגמה: 'היה לי לקוח שגם הוא אמר שזה יקר לו, אבל אחרי שהוא ראה את התוצאות הוא אמר לי שזו ההשקעה הכי טובה שהוא עשה...'"
+            placeholder={t.storyPlaceholder}
             rows={4}
             className="w-full p-3 bg-slate-800/50 border border-slate-700 rounded-xl text-slate-200 placeholder-slate-500 text-sm focus:outline-none focus:border-violet-500 resize-none"
-            dir="rtl"
           />
 
           {/* Emotions */}
           <div>
-            <p className="text-xs text-slate-400 mb-2">איזה רגש להעביר?</p>
+            <p className="text-xs text-slate-400 mb-2">{t.whatEmotionToConvey}</p>
             <div className="flex flex-wrap gap-2">
               {EMOTION_OPTIONS.map(emotion => (
                 <button
@@ -1751,8 +1918,7 @@ function NewStoryCreator({ analysisResult, onSaveToBank }) {
                       : 'bg-slate-700/50 text-slate-400 hover:text-slate-200'
                   }`}
                 >
-                  <span>{emotion.icon}</span>
-                  {emotion.label}
+                  {lang === 'en' ? emotion.labelEn : emotion.labelHe}
                 </button>
               ))}
             </div>
@@ -1761,26 +1927,26 @@ function NewStoryCreator({ analysisResult, onSaveToBank }) {
           {/* Objection + Product Row */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <p className="text-xs text-slate-400 mb-1">נגד התנגדות</p>
+              <p className="text-xs text-slate-400 mb-1">{t.forObjection}</p>
               <select
                 value={selectedObjection}
                 onChange={(e) => setSelectedObjection(e.target.value)}
                 className="w-full p-2 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-violet-500"
               >
                 {OBJECTION_OPTIONS.map(opt => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  <option key={opt.value} value={opt.value}>{lang === 'en' ? opt.labelEn : opt.labelHe}</option>
                 ))}
               </select>
             </div>
             <div>
-              <p className="text-xs text-slate-400 mb-1">מוצר</p>
+              <p className="text-xs text-slate-400 mb-1">{t.product}</p>
               <select
                 value={selectedProduct}
                 onChange={(e) => setSelectedProduct(e.target.value)}
                 className="w-full p-2 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-violet-500"
               >
                 {PRODUCT_OPTIONS.map(opt => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  <option key={opt.value} value={opt.value}>{lang === 'en' ? opt.labelEn : opt.labelHe}</option>
                 ))}
               </select>
             </div>
@@ -1793,9 +1959,9 @@ function NewStoryCreator({ analysisResult, onSaveToBank }) {
             className="w-full py-3 bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-600 hover:to-fuchsia-600 disabled:from-slate-600 disabled:to-slate-600 text-white rounded-xl font-medium transition-all flex items-center justify-center gap-2"
           >
             {improving ? (
-              <><Loader2 className="w-4 h-4 animate-spin" /> משפר...</>
+              <><Loader2 className="w-4 h-4 animate-spin" /> {t.improving}</>
             ) : (
-              <><Wand2 className="w-4 h-4" /> שפר עם AI</>
+              <><Wand2 className="w-4 h-4" /> {t.improveWithAI}</>
             )}
           </button>
         </>
@@ -1804,11 +1970,11 @@ function NewStoryCreator({ analysisResult, onSaveToBank }) {
           {/* Result */}
           <div className="grid md:grid-cols-2 gap-3">
             <div className="p-3 bg-slate-800/50 rounded-xl">
-              <p className="text-xs text-slate-500 mb-1">מקורי</p>
+              <p className="text-xs text-slate-500 mb-1">{lang === 'en' ? 'Original' : 'מקורי'}</p>
               <p className="text-sm text-slate-400">{rawStory}</p>
             </div>
             <div className="p-3 bg-violet-500/10 rounded-xl border border-violet-500/30">
-              <p className="text-xs text-violet-400 mb-1">משופר</p>
+              <p className="text-xs text-violet-400 mb-1">{lang === 'en' ? 'Improved' : 'משופר'}</p>
               <p className="text-sm text-slate-200">{improvedStory.story_content}</p>
             </div>
           </div>
@@ -1817,13 +1983,13 @@ function NewStoryCreator({ analysisResult, onSaveToBank }) {
           <div className="grid grid-cols-2 gap-3">
             {improvedStory.setup_line && (
               <div className="p-2 bg-amber-500/10 rounded-lg border border-amber-500/20">
-                <p className="text-xs text-amber-400">🎯 פתיחה</p>
+                <p className="text-xs text-amber-400">{t.setupLine}</p>
                 <p className="text-xs text-slate-200 mt-1">{improvedStory.setup_line}</p>
               </div>
             )}
             {improvedStory.closing_bridge && (
               <div className="p-2 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
-                <p className="text-xs text-emerald-400">🌉 סגירה</p>
+                <p className="text-xs text-emerald-400">{t.closingBridge}</p>
                 <p className="text-xs text-slate-200 mt-1">{improvedStory.closing_bridge}</p>
               </div>
             )}
@@ -1835,14 +2001,14 @@ function NewStoryCreator({ analysisResult, onSaveToBank }) {
               onClick={() => setImprovedStory(null)}
               className="flex-1 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-sm font-medium flex items-center justify-center gap-2"
             >
-              <RefreshCw className="w-4 h-4" /> נסה שוב
+              <RefreshCw className="w-4 h-4" /> {lang === 'en' ? 'Try Again' : 'נסה שוב'}
             </button>
             <button
               onClick={saveToBank}
               disabled={saving}
               className="flex-1 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-xl text-sm font-medium flex items-center justify-center gap-2"
             >
-              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Save className="w-4 h-4" /> שמור לבנק</>}
+              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Save className="w-4 h-4" /> {t.saveToStoryBank}</>}
             </button>
           </div>
         </div>
