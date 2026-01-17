@@ -1695,7 +1695,10 @@ function MainApp() {
                     </button>
                     <PDFDownloadButton analysisResult={analysisResult} fileName={result?.file_name} />
                     <button
-                      onClick={() => setActiveTab('practice')}
+                      onClick={() => {
+                        setShowAnalysis(false)
+                        setActiveTab('practice')
+                      }}
                       className="px-3 py-2 bg-gradient-to-r from-fuchsia-500/20 to-violet-500/20 hover:from-fuchsia-500/30 hover:to-violet-500/30 text-fuchsia-300 rounded-xl transition-all text-sm border border-fuchsia-500/30 flex items-center gap-1.5"
                     >
                       <Dumbbell className="w-4 h-4" />
