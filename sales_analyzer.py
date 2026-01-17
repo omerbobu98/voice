@@ -5,6 +5,7 @@ Based on Company Sales Methodology (תורת המכירות)
 """
 
 import json
+import re
 from openai import OpenAI
 
 SALES_COACH_SYSTEM_PROMPT = """You are an ELITE ONE-CALL CLOSE SPECIALIST for HOME IMPROVEMENT SALES - specifically trained on frontal, in-home sales presentations.
@@ -818,7 +819,34 @@ def perform_ai_analysis(transcript: str, metrics: dict, openai_client: OpenAI) -
             if end_idx > 0:
                 response_text = response_text[:end_idx]
         
-        analysis = json.loads(response_text)
+        # Try to parse JSON, with repair attempts if it fails
+        try:
+            analysis = json.loads(response_text)
+        except json.JSONDecodeError as json_err:
+            print(f"[AI Analysis] Initial JSON parse failed: {json_err}")
+            print(f"[AI Analysis] Attempting to repair JSON...")
+            
+            # Remove control characters that break JSON
+            response_text = re.sub(r'[\x00-\x1f\x7f-\x9f]', '', response_text)
+            
+            # Fix common JSON issues
+            # 1. Replace single quotes with double quotes (but not inside strings)
+            # 2. Remove trailing commas before } or ]
+            response_text = re.sub(r',\s*}', '}', response_text)
+            response_text = re.sub(r',\s*]', ']', response_text)
+            
+            # 3. Try to fix unescaped quotes in strings by looking for patterns
+            # This is a simple heuristic - replace \" with escaped version
+            
+            try:
+                analysis = json.loads(response_text)
+                print(f"[AI Analysis] JSON repair successful!")
+            except json.JSONDecodeError as repair_err:
+                print(f"[AI Analysis] JSON repair failed: {repair_err}")
+                # Last resort: try to extract what we can
+                print(f"[AI Analysis] Response snippet (first 500 chars): {response_text[:500]}")
+                raise repair_err
+        
         return analysis
         
     except Exception as e:
