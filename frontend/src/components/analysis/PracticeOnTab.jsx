@@ -1,12 +1,689 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { 
   Target, Dumbbell, Mic, Play, Pause, Volume2, ChevronDown, ChevronUp, 
   CheckCircle2, Circle, Flame, Zap, BookOpen, MessageSquare, Timer,
   Star, Trophy, ArrowRight, Lightbulb, AlertTriangle, Sparkles,
-  RotateCcw, Copy, Check, Users, Brain, TrendingUp, Award
+  RotateCcw, Copy, Check, Users, Brain, TrendingUp, Award, Send,
+  Square, Loader2, ThumbsUp, ThumbsDown, HelpCircle, GraduationCap,
+  FileText, Headphones, PenTool, RefreshCw
 } from 'lucide-react'
 import axios from 'axios'
 import { API_URL } from '../../lib/config'
+
+// ============ SALES METHODOLOGY GUIDES ============
+const SALES_METHODOLOGY_GUIDES = {
+  discovery: {
+    title: 'גילוי כאב (Discovery)',
+    why: 'גילוי כאב הוא הבסיס לכל מכירה. בלי להבין את הכאב האמיתי של הלקוח, אתה מוכר מוצר במקום פתרון.',
+    principle: 'מכירה לתת-מודע של הלקוח. הפוך למומחה בפסיכולוגיה של מכירות.',
+    steps: [
+      { step: 'שאל שאלות פתוחות', desc: 'התחל עם "מתי", "איך", "מה" - לא שאלות סגורות' },
+      { step: 'חפור לעומק', desc: 'על כל תשובה, שאל "ולמה זה מפריע לך?" או "איך זה משפיע?"' },
+      { step: 'כמת את הכאב', desc: 'תרגם לכסף: "כמה זה עולה לך בשנה?"' },
+      { step: 'צור דחיפות', desc: 'הראה את העלות של לא לפעול עכשיו' }
+    ],
+    examples: {
+      'cool_life': [
+        'מתי בפעם האחרונה צבעת את החוץ של הבית?',
+        'אתה רואה התקלפות או דהייה בצד של השמש?',
+        'יש לך מגבלות HOA על צבעים?',
+        'אתה יודע כמה עולה לצבוע בית היום? (10-12K כל 7-8 שנים = 35K+ ב-25 שנה!)'
+      ],
+      'turf': [
+        'כמה אתה משלם על מים בקיץ?',
+        'יש לך גנן? כמה הוא עולה?',
+        'יש לך כתמים צהובים בדשא שלא נעלמים?',
+        'חישוב: מים + גנן = 400$/חודש = 110,000$+ ב-20 שנה!'
+      ],
+      'pavers': [
+        'מה מצב הבטון הנוכחי? סדוק? מוכתם?',
+        'איך אתה מרגיש כשאורחים מגיעים ורואים את הכניסה?',
+        'חשבת כמה זה מוסיף לערך הנכס?'
+      ]
+    },
+    common_mistakes: [
+      'לקפוץ למחיר לפני שגילית את הכאב',
+      'לשאול שאלות סגורות (כן/לא)',
+      'לא לכמת את הכאב בכסף',
+      'לדבר על המוצר לפני שהלקוח הבין את הבעיה'
+    ]
+  },
+  objection_handling: {
+    title: 'טיפול בהתנגדויות',
+    why: 'התנגדות היא לא סירוב - זו בקשה למידע נוסף. כל התנגדות היא הזדמנות לחזק את הקשר.',
+    principle: 'בודד את ההתנגדות האמיתית. ברוב המקרים, ההתנגדות על פני השטח מסתירה חשש אחר.',
+    steps: [
+      { step: 'הקשב ואל תתגונן', desc: 'תן ללקוח לסיים. אמור "אני מבין"' },
+      { step: 'בודד את ההתנגדות', desc: 'השתמש ב-4 שאלות Yes לגלות את הבעיה האמיתית' },
+      { step: 'השתמש בסיפור', desc: 'ספר על לקוח דומה שהיה לו אותו חשש' },
+      { step: 'סגור שוב', desc: 'חזור להצעה עם פתרון לחשש' }
+    ],
+    techniques: {
+      'four_yes': {
+        name: '4 שאלות Yes',
+        description: 'טכניקה לבידוד ההתנגדות האמיתית',
+        script: [
+          'אתה רוצה לעשות את הפרויקט? (כן)',
+          'אתה אוהב את מה שהראיתי לך על החברה? (כן)',
+          'אתה סומך עליי שאעשה לך עבודה טובה? (כן)',
+          'אז הדבר היחיד שמפריע לך זה המחיר, נכון?'
+        ]
+      },
+      'feel_felt_found': {
+        name: 'Feel-Felt-Found',
+        description: 'טכניקה ליצירת הזדהות',
+        script: [
+          'אני מבין איך אתה מרגיש...',
+          'לקוחות אחרים הרגישו בדיוק אותו דבר...',
+          'מה שהם גילו זה ש...'
+        ]
+      }
+    },
+    stories: {
+      'need_to_think': {
+        name: 'סיפור דייוויד',
+        story: 'דייוויד, בעל עסק אינסטלציה, אמר לי בדיוק את אותו דבר - "צריך לחשוב". המתנתי 3 חודשים. המתחרה שלו חתם, עלה ראשון בגוגל, ודייוויד הפסיד 3 עסקאות של 180,000$. כשהתקשר אליי, אמר "הלוואי שלא חיכיתי".'
+      },
+      'too_expensive': {
+        name: 'סיפור הג\'ונסונים',
+        story: 'משפחת ג\'ונסון אמרה "יקר". הלכו לקבלן שהציע 8,000$ פחות. 8 חודשים אחר כך התקשרו - הצבע מתקלף, הקבלן נעלם, האחריות חסרת ערך. שילמו לי כפול לתקן. מר ג\'ונסון אמר: "המחיר הזול הפך להחלטה הכי יקרה שעשיתי."'
+      },
+      'spouse_decision': {
+        name: 'סיפור מריה',
+        story: 'מריה רצתה לדבר עם הבעל. שבוע אחר כך הבעל כבר שכר את החבר שלו "בזול". 6 חודשים - העבודה מתפוררת, הבן אדם נעלם, היא בוכה בטלפון. עכשיו היא מפנה אליי את כל השכנים ואומרת "אל תעשו את הטעות שלי".'
+      }
+    }
+  },
+  closing: {
+    title: 'סגירה',
+    why: 'הסגירה היא לא "לחץ" - היא עזרה ללקוח לקבל את ההחלטה הנכונה. אם המוצר טוב לו, חובתך לעזור לו להחליט.',
+    principle: 'לעולם אל תחשוף מחיר לפני 75 דקות. מחיר לפני ערך = התנגדויות.',
+    steps: [
+      { step: 'ודא 3 Yes', desc: 'מוצר ✓ חברה ✓ אמון ✓' },
+      { step: 'בקש הסכמה', desc: '"אם אתן לך מחיר טוב, תסכים שזו עסקה טובה?"' },
+      { step: 'הצג את ההשקעה', desc: 'השתמש ב"השקעה" לא "מחיר"' },
+      { step: 'שתוק', desc: 'אחרי שאמרת את המחיר - שתוק. מי שמדבר ראשון מפסיד.' }
+    ],
+    urgency_techniques: [
+      'הנחות מפעל שפוקעות בקרוב',
+      'חומרים מפרויקט מסחרי סמוך במחיר מיוחד',
+      'לו"ז צפוף - אם לא סוגרים היום, לא יכול להבטיח מתי נתחיל',
+      'Model Project - צילום לפני/אחרי + סרטון עדות = הנחה משמעותית'
+    ]
+  },
+  storytelling: {
+    title: 'סיפורים שמוכרים',
+    why: 'עובדות מספרות, סיפורים מוכרים. המוח האנושי מתוכנן לזכור סיפורים, לא נתונים.',
+    principle: '6 אלמנטים של סיפור מכירות מנצח',
+    elements: [
+      { name: 'דמות שניתן להזדהות איתה', desc: 'שם, מיקום, מצב דומה ללקוח' },
+      { name: 'אותה היסוס', desc: 'בדיוק אותה התנגדות שיש ללקוח עכשיו' },
+      { name: 'רגע ההחלטה', desc: 'מה גרם להם להחליט?' },
+      { name: 'מחיר ההמתנה', desc: 'מה הפסידו/כמעט הפסידו בגלל שחיכו?' },
+      { name: 'השינוי', desc: 'תוצאות ספציפיות עם מספרים' },
+      { name: 'התחושה', desc: 'איך הם מרגישים עכשיו?' }
+    ],
+    structure: '"תן לי לספר לך על [שם]... הם גרים ב[אזור], מצב דומה לשלך... כשפגשתי אותם, הם אמרו בדיוק מה שאתה אומר - \'[אותה התנגדות]\'... [מה קרה]... [מה הם עשו]... [תוצאות ספציפיות]... עכשיו הם אומרים לכולם - \'[ציטוט רגשי]\'"'
+  }
+}
+
+// ============ INTERACTIVE PRACTICE CARD ============
+function InteractivePracticeCard({ 
+  weakness, 
+  exerciseContext, 
+  onFeedbackReceived,
+  TTSButton 
+}) {
+  const [mode, setMode] = useState('guide') // 'guide' | 'write' | 'record' | 'feedback'
+  const [userInput, setUserInput] = useState('')
+  const [isRecording, setIsRecording] = useState(false)
+  const [isProcessing, setIsProcessing] = useState(false)
+  const [feedback, setFeedback] = useState(null)
+  const [recordingTime, setRecordingTime] = useState(0)
+  const [showGuide, setShowGuide] = useState(false)
+  const mediaRecorderRef = useRef(null)
+  const audioChunksRef = useRef([])
+  const timerRef = useRef(null)
+  
+  const guide = SALES_METHODOLOGY_GUIDES[weakness.guide_key] || SALES_METHODOLOGY_GUIDES.objection_handling
+  
+  // Start recording
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      mediaRecorderRef.current = new MediaRecorder(stream)
+      audioChunksRef.current = []
+      
+      mediaRecorderRef.current.ondataavailable = (e) => {
+        audioChunksRef.current.push(e.data)
+      }
+      
+      mediaRecorderRef.current.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
+        await transcribeAndGetFeedback(audioBlob)
+      }
+      
+      mediaRecorderRef.current.start()
+      setIsRecording(true)
+      setRecordingTime(0)
+      
+      timerRef.current = setInterval(() => {
+        setRecordingTime(prev => prev + 1)
+      }, 1000)
+    } catch (err) {
+      console.error('Failed to start recording:', err)
+      alert('לא ניתן לגשת למיקרופון. אנא אפשר גישה בהגדרות הדפדפן.')
+    }
+  }
+  
+  // Stop recording
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop()
+      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop())
+      setIsRecording(false)
+      clearInterval(timerRef.current)
+    }
+  }
+  
+  // Transcribe audio and get feedback
+  const transcribeAndGetFeedback = async (audioBlob) => {
+    setIsProcessing(true)
+    setMode('feedback')
+    
+    try {
+      // First transcribe
+      const formData = new FormData()
+      formData.append('audio', audioBlob, 'recording.webm')
+      
+      const transcribeRes = await axios.post(`${API_URL}/api/transcribe-practice`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      })
+      
+      if (transcribeRes.data.text) {
+        setUserInput(transcribeRes.data.text)
+        await getFeedback(transcribeRes.data.text)
+      }
+    } catch (err) {
+      console.error('Transcription error:', err)
+      setFeedback({ error: 'שגיאה בתמלול. נסה שוב.' })
+    } finally {
+      setIsProcessing(false)
+    }
+  }
+  
+  // Get AI feedback on text
+  const getFeedback = async (text) => {
+    setIsProcessing(true)
+    
+    try {
+      const res = await axios.post(`${API_URL}/api/practice-feedback`, {
+        user_response: text || userInput,
+        exercise_context: {
+          scenario: exerciseContext?.scenario || weakness.weakness_summary,
+          customer_statement: exerciseContext?.customer_statement || '',
+          ideal_response: exerciseContext?.ideal_response || '',
+          technique: exerciseContext?.technique || ''
+        },
+        exercise_type: weakness.skill_name || 'general'
+      })
+      
+      if (res.data.feedback) {
+        setFeedback(res.data.feedback)
+        setMode('feedback')
+        onFeedbackReceived && onFeedbackReceived(res.data.feedback)
+      }
+    } catch (err) {
+      console.error('Feedback error:', err)
+      setFeedback({ error: 'שגיאה בקבלת פידבק. נסה שוב.' })
+    } finally {
+      setIsProcessing(false)
+    }
+  }
+  
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${mins}:${secs.toString().padStart(2, '0')}`
+  }
+  
+  const resetPractice = () => {
+    setMode('guide')
+    setUserInput('')
+    setFeedback(null)
+    setRecordingTime(0)
+  }
+
+  return (
+    <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 rounded-2xl border border-slate-700/50 overflow-hidden">
+      {/* Header */}
+      <div className="p-4 border-b border-slate-700/50">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-2">
+              <PriorityBadge priority={weakness.priority} />
+              <h3 className="text-lg font-bold text-slate-100">{weakness.skill_name}</h3>
+            </div>
+            <p className="text-sm text-slate-400">{weakness.weakness_summary}</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <ScoreRing current={weakness.current_score} target={weakness.target_score} size={50} />
+          </div>
+        </div>
+        
+        {/* Specific Issues Tags */}
+        {weakness.specific_issues?.length > 0 && (
+          <div className="flex flex-wrap gap-2 mt-3">
+            {weakness.specific_issues.slice(0, 3).map((issue, i) => (
+              <span key={i} className="px-2 py-1 bg-red-500/10 text-red-400 text-xs rounded-lg border border-red-500/20">
+                {issue}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+      
+      {/* Mode Tabs */}
+      <div className="flex border-b border-slate-700/50">
+        {[
+          { id: 'guide', icon: BookOpen, label: 'מדריך' },
+          { id: 'write', icon: PenTool, label: 'כתוב' },
+          { id: 'record', icon: Mic, label: 'הקלט' },
+        ].map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setMode(tab.id)}
+            className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium transition-all ${
+              mode === tab.id 
+                ? 'bg-violet-500/20 text-violet-400 border-b-2 border-violet-500' 
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+            }`}
+          >
+            <tab.icon className="w-4 h-4" />
+            {tab.label}
+          </button>
+        ))}
+        {feedback && (
+          <button
+            onClick={() => setMode('feedback')}
+            className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium transition-all ${
+              mode === 'feedback' 
+                ? 'bg-emerald-500/20 text-emerald-400 border-b-2 border-emerald-500' 
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+            }`}
+          >
+            <Star className="w-4 h-4" />
+            פידבק
+          </button>
+        )}
+      </div>
+      
+      {/* Content Area */}
+      <div className="p-4" dir="rtl">
+        {/* Guide Mode */}
+        {mode === 'guide' && (
+          <div className="space-y-4">
+            {/* Why This Matters */}
+            <div className="p-4 bg-violet-500/10 rounded-xl border border-violet-500/20">
+              <div className="flex items-center gap-2 mb-2">
+                <HelpCircle className="w-4 h-4 text-violet-400" />
+                <h4 className="font-semibold text-violet-400">למה זה חשוב?</h4>
+              </div>
+              <p className="text-sm text-slate-300 leading-relaxed">{guide.why}</p>
+            </div>
+            
+            {/* Principle */}
+            <div className="p-4 bg-amber-500/10 rounded-xl border border-amber-500/20">
+              <div className="flex items-center gap-2 mb-2">
+                <Lightbulb className="w-4 h-4 text-amber-400" />
+                <h4 className="font-semibold text-amber-400">העיקרון המנחה</h4>
+              </div>
+              <p className="text-sm text-slate-300 font-medium">{guide.principle}</p>
+            </div>
+            
+            {/* Steps */}
+            <div className="space-y-3">
+              <h4 className="font-semibold text-slate-200 flex items-center gap-2">
+                <GraduationCap className="w-4 h-4 text-emerald-400" />
+                הצעדים לביצוע
+              </h4>
+              {guide.steps?.map((step, i) => (
+                <div key={i} className="flex gap-3 p-3 bg-slate-800/50 rounded-xl">
+                  <div className="w-8 h-8 bg-emerald-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <span className="text-emerald-400 font-bold text-sm">{i + 1}</span>
+                  </div>
+                  <div>
+                    <p className="font-medium text-slate-200">{step.step}</p>
+                    <p className="text-sm text-slate-400">{step.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            {/* Toggle for more details */}
+            <button
+              onClick={() => setShowGuide(!showGuide)}
+              className="w-full p-3 bg-slate-800/50 rounded-xl text-sm text-slate-300 hover:bg-slate-700/50 transition-colors flex items-center justify-center gap-2"
+            >
+              {showGuide ? 'הסתר פרטים נוספים' : 'הצג דוגמאות וטיפים נוספים'}
+              {showGuide ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </button>
+            
+            {showGuide && (
+              <div className="space-y-4 mt-4">
+                {/* Stories */}
+                {guide.stories && (
+                  <div>
+                    <h4 className="font-semibold text-slate-200 mb-3 flex items-center gap-2">
+                      <BookOpen className="w-4 h-4 text-pink-400" />
+                      סיפורים לשימוש
+                    </h4>
+                    {Object.values(guide.stories).map((story, i) => (
+                      <div key={i} className="p-4 bg-pink-500/5 rounded-xl border border-pink-500/20 mb-3">
+                        <p className="font-medium text-pink-400 mb-2">{story.name}</p>
+                        <p className="text-sm text-slate-300 leading-relaxed">{story.story}</p>
+                        {TTSButton && (
+                          <div className="mt-2">
+                            <TTSButton text={story.story} label="🔊 האזן לסיפור" />
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                {/* Common Mistakes */}
+                {guide.common_mistakes && (
+                  <div>
+                    <h4 className="font-semibold text-slate-200 mb-3 flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4 text-red-400" />
+                      טעויות נפוצות להימנע מהן
+                    </h4>
+                    <ul className="space-y-2">
+                      {guide.common_mistakes.map((mistake, i) => (
+                        <li key={i} className="flex items-start gap-2 text-sm text-slate-300">
+                          <span className="text-red-400">✗</span>
+                          {mistake}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+            
+            {/* CTA to practice */}
+            <div className="flex gap-3 pt-4">
+              <button
+                onClick={() => setMode('write')}
+                className="flex-1 py-3 bg-violet-500 hover:bg-violet-600 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
+              >
+                <PenTool className="w-4 h-4" />
+                תרגל בכתיבה
+              </button>
+              <button
+                onClick={() => setMode('record')}
+                className="flex-1 py-3 bg-pink-500 hover:bg-pink-600 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
+              >
+                <Mic className="w-4 h-4" />
+                תרגל בהקלטה
+              </button>
+            </div>
+          </div>
+        )}
+        
+        {/* Write Mode */}
+        {mode === 'write' && (
+          <div className="space-y-4">
+            {/* Scenario */}
+            <div className="p-4 bg-slate-800/70 rounded-xl">
+              <p className="text-xs text-slate-500 mb-1">התרחיש:</p>
+              <p className="text-slate-200 font-medium">
+                {exerciseContext?.customer_statement || `הלקוח מציג התנגדות בנושא ${weakness.skill_name}`}
+              </p>
+            </div>
+            
+            {/* Text Input */}
+            <div>
+              <label className="text-sm text-slate-400 mb-2 block">התשובה שלך:</label>
+              <textarea
+                value={userInput}
+                onChange={(e) => setUserInput(e.target.value)}
+                placeholder="כתוב כאן את התשובה שלך..."
+                className="w-full h-32 p-4 bg-slate-900/50 border border-slate-700 rounded-xl text-slate-200 placeholder-slate-500 resize-none focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500"
+                dir="rtl"
+              />
+              <p className="text-xs text-slate-500 mt-1">{userInput.length} תווים</p>
+            </div>
+            
+            {/* Hint */}
+            {exerciseContext?.technique && (
+              <div className="p-3 bg-amber-500/10 rounded-xl border border-amber-500/20 flex items-start gap-2">
+                <Lightbulb className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-amber-300">
+                  טיפ: נסה להשתמש בטכניקת <strong>{exerciseContext.technique}</strong>
+                </p>
+              </div>
+            )}
+            
+            {/* Submit */}
+            <button
+              onClick={() => getFeedback()}
+              disabled={!userInput.trim() || isProcessing}
+              className="w-full py-3 bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-600 hover:to-fuchsia-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-medium transition-all flex items-center justify-center gap-2"
+            >
+              {isProcessing ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  מעבד...
+                </>
+              ) : (
+                <>
+                  <Send className="w-4 h-4" />
+                  שלח לפידבק AI
+                </>
+              )}
+            </button>
+          </div>
+        )}
+        
+        {/* Record Mode */}
+        {mode === 'record' && (
+          <div className="space-y-4">
+            {/* Scenario */}
+            <div className="p-4 bg-slate-800/70 rounded-xl">
+              <p className="text-xs text-slate-500 mb-1">התרחיש:</p>
+              <p className="text-slate-200 font-medium">
+                {exerciseContext?.customer_statement || `הלקוח מציג התנגדות בנושא ${weakness.skill_name}`}
+              </p>
+            </div>
+            
+            {/* Recording UI */}
+            <div className="text-center py-8">
+              {!isRecording ? (
+                <button
+                  onClick={startRecording}
+                  className="w-24 h-24 bg-gradient-to-br from-pink-500 to-red-500 hover:from-pink-600 hover:to-red-600 rounded-full flex items-center justify-center mx-auto shadow-lg shadow-pink-500/30 transition-all hover:scale-105"
+                >
+                  <Mic className="w-10 h-10 text-white" />
+                </button>
+              ) : (
+                <div className="space-y-4">
+                  <button
+                    onClick={stopRecording}
+                    className="w-24 h-24 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center mx-auto shadow-lg shadow-red-500/30 animate-pulse"
+                  >
+                    <Square className="w-10 h-10 text-white" />
+                  </button>
+                  <div className="text-2xl font-mono text-red-400">{formatTime(recordingTime)}</div>
+                </div>
+              )}
+              
+              <p className="text-slate-400 mt-4">
+                {isRecording ? 'לחץ לעצירה כשתסיים' : 'לחץ להתחלת הקלטה'}
+              </p>
+            </div>
+            
+            {/* Hint */}
+            <div className="p-3 bg-blue-500/10 rounded-xl border border-blue-500/20 flex items-start gap-2">
+              <Headphones className="w-4 h-4 text-blue-400 flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-blue-300">
+                דבר בקול רם וברור. ה-AI יתמלל את ההקלטה ויתן לך פידבק מפורט.
+              </p>
+            </div>
+          </div>
+        )}
+        
+        {/* Feedback Mode */}
+        {mode === 'feedback' && (
+          <div className="space-y-4">
+            {isProcessing ? (
+              <div className="text-center py-12">
+                <Loader2 className="w-12 h-12 text-violet-400 animate-spin mx-auto mb-4" />
+                <p className="text-slate-300">מנתח את התשובה שלך...</p>
+              </div>
+            ) : feedback?.error ? (
+              <div className="text-center py-8">
+                <AlertTriangle className="w-12 h-12 text-red-400 mx-auto mb-4" />
+                <p className="text-red-400">{feedback.error}</p>
+                <button
+                  onClick={resetPractice}
+                  className="mt-4 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg"
+                >
+                  נסה שוב
+                </button>
+              </div>
+            ) : feedback && (
+              <>
+                {/* Score */}
+                <div className="text-center py-4">
+                  <div className="inline-flex items-center gap-4 p-4 bg-slate-800/70 rounded-2xl">
+                    <div className={`text-5xl font-bold ${
+                      feedback.overall_score >= 8 ? 'text-emerald-400' :
+                      feedback.overall_score >= 6 ? 'text-amber-400' : 'text-red-400'
+                    }`}>
+                      {feedback.overall_score}/10
+                    </div>
+                    <div className="text-right">
+                      <p className="text-slate-400 text-sm">ציון כללי</p>
+                      <p className="text-slate-200 font-medium">
+                        {feedback.overall_score >= 8 ? 'מצוין!' :
+                         feedback.overall_score >= 6 ? 'טוב, יש מקום לשיפור' : 'צריך עוד תרגול'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* User's Response */}
+                <div className="p-4 bg-slate-800/50 rounded-xl">
+                  <p className="text-xs text-slate-500 mb-1">מה אמרת:</p>
+                  <p className="text-slate-300">"{userInput}"</p>
+                </div>
+                
+                {/* Strengths */}
+                {feedback.strengths?.length > 0 && (
+                  <div className="p-4 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
+                    <div className="flex items-center gap-2 mb-2">
+                      <ThumbsUp className="w-4 h-4 text-emerald-400" />
+                      <h4 className="font-semibold text-emerald-400">מה היה טוב</h4>
+                    </div>
+                    <ul className="space-y-1">
+                      {feedback.strengths.map((s, i) => (
+                        <li key={i} className="text-sm text-slate-300 flex items-start gap-2">
+                          <span className="text-emerald-400">✓</span>
+                          {s}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                
+                {/* Improvements */}
+                {feedback.improvements?.length > 0 && (
+                  <div className="p-4 bg-amber-500/10 rounded-xl border border-amber-500/20">
+                    <div className="flex items-center gap-2 mb-2">
+                      <TrendingUp className="w-4 h-4 text-amber-400" />
+                      <h4 className="font-semibold text-amber-400">מה לשפר</h4>
+                    </div>
+                    <ul className="space-y-1">
+                      {feedback.improvements.map((s, i) => (
+                        <li key={i} className="text-sm text-slate-300 flex items-start gap-2">
+                          <span className="text-amber-400">→</span>
+                          {s}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                
+                {/* Specific Feedback */}
+                {feedback.specific_feedback && (
+                  <div className="p-4 bg-slate-800/50 rounded-xl">
+                    <p className="text-sm text-slate-300 leading-relaxed">{feedback.specific_feedback}</p>
+                  </div>
+                )}
+                
+                {/* Suggested Revision */}
+                {feedback.suggested_revision && (
+                  <div className="p-4 bg-violet-500/10 rounded-xl border border-violet-500/20">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Sparkles className="w-4 h-4 text-violet-400" />
+                      <h4 className="font-semibold text-violet-400">הצעה לתשובה משופרת</h4>
+                    </div>
+                    <p className="text-sm text-slate-200 leading-relaxed">{feedback.suggested_revision}</p>
+                    {TTSButton && (
+                      <div className="mt-2">
+                        <TTSButton text={feedback.suggested_revision} label="🔊 האזן" />
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                {/* Coaching Tip */}
+                {feedback.coaching_tip && (
+                  <div className="p-4 bg-blue-500/10 rounded-xl border border-blue-500/20">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Lightbulb className="w-4 h-4 text-blue-400" />
+                      <h4 className="font-semibold text-blue-400">טיפ לפעם הבאה</h4>
+                    </div>
+                    <p className="text-sm text-slate-300">{feedback.coaching_tip}</p>
+                  </div>
+                )}
+                
+                {/* Encouragement */}
+                {feedback.encouragement && (
+                  <div className="text-center p-4 bg-gradient-to-r from-violet-500/10 to-fuchsia-500/10 rounded-xl border border-violet-500/20">
+                    <p className="text-lg font-medium text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-fuchsia-400">
+                      {feedback.encouragement}
+                    </p>
+                  </div>
+                )}
+                
+                {/* Actions */}
+                <div className="flex gap-3 pt-4">
+                  <button
+                    onClick={resetPractice}
+                    className="flex-1 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    תרגל שוב
+                  </button>
+                  <button
+                    onClick={() => setMode('guide')}
+                    className="flex-1 py-3 bg-violet-500 hover:bg-violet-600 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
+                  >
+                    <BookOpen className="w-4 h-4" />
+                    חזור למדריך
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
 
 // Priority Badge Component
 function PriorityBadge({ priority }) {
@@ -919,69 +1596,43 @@ export default function PracticeOnTab({ analysisResult, result, TTSButton }) {
             <span className="text-sm font-normal text-slate-500">({practiceData.practice_areas.length})</span>
           </h3>
           
-          <div className="grid gap-4">
-            {practiceData.practice_areas.map((area, i) => (
-              <div key={i} className="bg-slate-800/50 rounded-xl border border-slate-700/50 overflow-hidden">
-                <div className="p-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <PriorityBadge priority={area.priority} />
-                        <h4 className="text-lg font-semibold text-slate-200">{area.skill_name}</h4>
-                      </div>
-                      <p className="text-sm text-slate-400">{area.weakness_summary}</p>
-                      
-                      {area.specific_issues && area.specific_issues.length > 0 && (
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          {area.specific_issues.map((issue, j) => (
-                            <span key={j} className="px-2 py-1 bg-slate-700/50 text-slate-300 text-xs rounded-lg">
-                              {issue}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div className="flex items-center gap-3">
-                      <ScoreRing current={area.current_score} target={area.target_score} />
-                      <div className="text-right">
-                        <p className="text-xs text-slate-500">יעד</p>
-                        <p className="text-lg font-bold text-emerald-400">{area.target_score}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Exercises for this area */}
-                {area.practice_exercises && area.practice_exercises.length > 0 && (
-                  <div className="border-t border-slate-700/50 p-4 bg-slate-900/30">
-                    <p className="text-sm text-slate-400 mb-3">
-                      {area.practice_exercises.length} תרגילים לשיפור
-                    </p>
-                    <div className="space-y-2">
-                      {area.practice_exercises.slice(0, 2).map((ex, j) => (
-                        <ExerciseCard 
-                          key={j}
-                          exercise={ex}
-                          index={j}
-                          TTSButton={TTSButton}
-                          isCompleted={completedExercises.has(`${i}-${j}`)}
-                          onComplete={() => toggleExercise(`${i}-${j}`)}
-                        />
-                      ))}
-                      {area.practice_exercises.length > 2 && (
-                        <button
-                          onClick={() => setActiveSection('exercises')}
-                          className="w-full p-3 text-center text-sm text-violet-400 hover:text-violet-300 hover:bg-violet-500/10 rounded-xl transition-colors"
-                        >
-                          הצג עוד {area.practice_exercises.length - 2} תרגילים →
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
+          <div className="grid gap-6">
+            {practiceData.practice_areas.map((area, i) => {
+              // Determine guide key based on skill name
+              const guideKeyMap = {
+                'טכניקות מכירה': 'closing',
+                'טיפול בהתנגדויות': 'objection_handling',
+                'גילוי צרכים': 'discovery',
+                'Discovery': 'discovery',
+                'סיפורים': 'storytelling',
+                'סגירה': 'closing'
+              }
+              const guideKey = guideKeyMap[area.skill_name] || 'objection_handling'
+              
+              // Get exercise context from first exercise if available
+              const exerciseContext = area.practice_exercises?.[0] ? {
+                scenario: area.practice_exercises[0].description,
+                customer_statement: area.practice_exercises[0].example_scenario,
+                ideal_response: area.practice_exercises[0].ideal_response,
+                technique: area.practice_exercises[0].technique
+              } : null
+              
+              return (
+                <InteractivePracticeCard
+                  key={i}
+                  weakness={{
+                    ...area,
+                    guide_key: guideKey
+                  }}
+                  exerciseContext={exerciseContext}
+                  TTSButton={TTSButton}
+                  onFeedbackReceived={(feedback) => {
+                    console.log('Feedback received:', feedback)
+                    // Could save to database or update progress here
+                  }}
+                />
+              )
+            })}
           </div>
         </div>
       )}

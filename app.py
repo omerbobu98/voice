@@ -978,6 +978,136 @@ def generate_practice_recommendations():
         return jsonify({'error': str(e)}), 500
 
 
+# ============ Practice Feedback API ============
+
+@app.route('/api/practice-feedback', methods=['POST'])
+def get_practice_feedback():
+    """Get AI feedback on a practice attempt (text or transcribed audio)"""
+    
+    data = request.get_json()
+    user_response = data.get('user_response', '')
+    exercise_context = data.get('exercise_context', {})
+    exercise_type = data.get('exercise_type', 'objection_handling')
+    
+    if not user_response:
+        return jsonify({'error': 'User response is required'}), 400
+    
+    if not openai_client:
+        return jsonify({'error': 'OpenAI not configured'}), 500
+    
+    try:
+        # Build the feedback prompt based on exercise type
+        feedback_prompt = f"""You are an expert sales coach for home improvement sales. 
+Analyze this practice attempt and provide detailed, encouraging feedback in Hebrew.
+
+## Exercise Context:
+- Type: {exercise_type}
+- Scenario: {exercise_context.get('scenario', 'General practice')}
+- Customer said: "{exercise_context.get('customer_statement', 'N/A')}"
+- Ideal response: "{exercise_context.get('ideal_response', 'N/A')}"
+- Technique to use: {exercise_context.get('technique', 'N/A')}
+
+## User's Response:
+"{user_response}"
+
+## Your Task:
+Analyze the response and provide feedback in this EXACT JSON format:
+{{
+    "overall_score": <number 1-10>,
+    "strengths": ["<strength 1>", "<strength 2>"],
+    "improvements": ["<improvement 1>", "<improvement 2>"],
+    "specific_feedback": "<detailed paragraph explaining what was good and what can be improved>",
+    "technique_used_correctly": <true/false>,
+    "emotional_connection": <number 1-10>,
+    "objection_addressed": <true/false>,
+    "suggested_revision": "<an improved version of their response>",
+    "coaching_tip": "<one actionable tip for next time>",
+    "encouragement": "<motivational message in Hebrew>"
+}}
+
+Be encouraging but honest. Focus on actionable improvements.
+Respond ONLY with the JSON, no other text."""
+
+        response = openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "You are an expert sales coach. Respond ONLY with valid JSON in Hebrew."},
+                {"role": "user", "content": feedback_prompt}
+            ],
+            temperature=0.7,
+            max_tokens=1500
+        )
+        
+        result_text = response.choices[0].message.content.strip()
+        
+        # Clean up JSON if wrapped in markdown
+        if '```' in result_text:
+            parts = result_text.split('```')
+            if len(parts) >= 2:
+                result_text = parts[1]
+                if result_text.startswith('json'):
+                    result_text = result_text[4:]
+                result_text = result_text.strip()
+        
+        feedback_data = json.loads(result_text)
+        
+        return jsonify({
+            'success': True,
+            'feedback': feedback_data
+        })
+        
+    except json.JSONDecodeError as e:
+        print(f"[practice_feedback] JSON parse error: {e}")
+        return jsonify({'error': 'Failed to parse feedback'}), 500
+    except Exception as e:
+        print(f"[practice_feedback] Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/transcribe-practice', methods=['POST'])
+def transcribe_practice_audio():
+    """Transcribe audio recording from practice session"""
+    
+    if 'audio' not in request.files:
+        return jsonify({'error': 'No audio file provided'}), 400
+    
+    audio_file = request.files['audio']
+    
+    if not aai_client:
+        return jsonify({'error': 'AssemblyAI not configured'}), 500
+    
+    try:
+        # Save temp file
+        import tempfile
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.webm') as temp_file:
+            audio_file.save(temp_file.name)
+            temp_path = temp_file.name
+        
+        # Transcribe with AssemblyAI
+        config = aai.TranscriptionConfig(
+            language_code="he",
+            speech_model=aai.SpeechModel.best
+        )
+        
+        transcript = aai_client.transcribe(temp_path, config=config)
+        
+        # Clean up temp file
+        os.unlink(temp_path)
+        
+        if transcript.status == aai.TranscriptStatus.error:
+            return jsonify({'error': transcript.error}), 500
+        
+        return jsonify({
+            'success': True,
+            'text': transcript.text,
+            'confidence': transcript.confidence
+        })
+        
+    except Exception as e:
+        print(f"[transcribe_practice] Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
 # ============ Practice Sessions API ============
 
 @app.route('/api/practice-sessions', methods=['GET'])
