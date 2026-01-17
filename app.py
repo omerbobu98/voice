@@ -1365,6 +1365,389 @@ def get_calls_for_practice():
         return jsonify({'error': str(e)}), 500
 
 
+# ============ Story Bank API ============
+
+STORY_GENERATION_PROMPT = """אתה מומחה עילית לסטוריטלינג במכירות בתעשיית ה-Outdoor Living (Cool Life, דשא סינטטי, פייברס, פרגולות).
+התפקיד שלך הוא ליצור סיפורי מכירות משכנעים ואותנטיים שגורמים ללקוחות לסגור עסקאות.
+
+## 🎯 6 האלמנטים של סיפור מכירות מנצח:
+
+### 1. דמות שקל להזדהות איתה (Relatable Character)
+- שם מלא (David ו-Sarah מ-Scottsdale, לא סתם "לקוח")
+- מקום ספציפי (Fountain Hills, Paradise Valley, Gilbert)
+- מצב דומה ללקוח הנוכחי (משפחה עם ילדים, גמלאים, עסק)
+- פרט אחד ייחודי שהופך אותם לאמיתיים
+
+### 2. אותו היסוס בדיוק (Same Hesitation)
+- הם אמרו את אותן המילים בדיוק שהלקוח אומר עכשיו
+- "גם הם חשבו שזה יקר..."
+- "גם הם רצו לבדוק עוד הצעות..."
+- זה יוצר תחושת "הוא מבין אותי"
+
+### 3. רגע ההחלטה (Decision Moment)
+- מה בדיוק גרם להם לסגור?
+- אירוע ספציפי, לא כללי
+- "כשראו את החצר של השכנים..." / "כשחישבו כמה כסף הם מבזבזים על..."
+
+### 4. מחיר ההמתנה (Cost of Waiting)
+- מה הם הפסידו / כמעט הפסידו בגלל ההיסוס?
+- מספרים ספציפיים: "$3,000 יותר כי המחירים עלו"
+- זמן: "עוד קיץ שרוף בלי ליהנות"
+- הזדמנויות שפספסו
+
+### 5. הטרנספורמציה (Transformation)
+- תוצאות מדידות ומספרים ספציפיים:
+  - "חסכו $400 בחודש על חשבון המים"
+  - "הוסיפו $45,000 לערך הבית"
+  - "הילדים בחוץ 3 שעות ביום במקום לשבת על המסכים"
+- השוואת לפני/אחרי ויזואלית
+
+### 6. הרגש הסופי (Emotional Payoff)
+- ציטוט ישיר מהלקוח
+- "Sarah אמרה לי: 'זו ההחלטה הכי טובה שעשינו...'"
+- תחושת גאווה, שקט נפשי, שמחה
+
+## 🎭 רגשות לעורר:
+- **trust (אמון)** - "אנחנו עובדים רק עם הטובים ביותר, יש לנו 500 פרויקטים באזור"
+- **urgency (דחיפות)** - "המחירים עולים ב-15% בינואר, יש לנו 3 מקומות פנויים"
+- **value (ערך)** - "ההשקעה מחזירה את עצמה תוך 3 שנים בחיסכון במים"
+- **fomo (פחד מהפסד)** - "עוד קיץ שעובר בלי שהילדים יכולים לשחק בחוץ"
+- **peace (שקט נפשי)** - "עכשיו הם לא דואגים לתחזוקה, לעשבים, לחשבון מים"
+- **pride (גאווה)** - "כל השכנים מתקנאים, הם קיבלו הכי הרבה מחמאות"
+- **social_proof (הוכחה חברתית)** - "70% מהלקוחות שלנו מגיעים מהמלצות"
+
+## 📋 דרישות טכניות:
+- אורך: 60-90 שניות כשמדברים (150-200 מילים)
+- שפה: עברית טבעית ושוטפת
+- סגנון: כאילו אתה מספר על מישהו שאתה מכיר אישית
+- הימנע מ: ז'רגון, הגזמות לא מציאותיות, מילות מילוי
+
+## 📍 אזורי פעילות לשימוש בסיפורים:
+Phoenix, Scottsdale, Paradise Valley, Fountain Hills, Gilbert, Chandler, Mesa, Tempe, Ahwatukee, Cave Creek, Carefree
+
+## 🔧 מוצרים ותועלות:
+- **Cool Life**: הורדת 20-30 מעלות, חיסכון בחשמל, שימוש בחצר כל השנה
+- **Turf (דשא סינטטי)**: חיסכון $200-400/חודש במים, אפס תחזוקה, ירוק 365 יום
+- **Pavers**: עלייה בערך הבית 10-15%, עמידות 25+ שנים, אפס תחזוקה
+- **Pergola**: הרחבת שטח מגורים, הגנה מהשמש, שדרוג ויזואלי
+
+החזר JSON בלבד בפורמט הבא:
+{
+  "title": "כותרת קצרה וקליטה (עברית)",
+  "setup_line": "משפט פתיחה טבעי שמוביל לסיפור (עברית)",
+  "story_content": "הסיפור המלא עם 6 האלמנטים (עברית)",
+  "closing_bridge": "שאלה/משפט שמוביל לסגירה (עברית)",
+  "structure": {
+    "character": "תיאור הדמות",
+    "hesitation": "ההיסוס שלהם",
+    "decision_moment": "מה גרם להם להחליט",
+    "cost_of_waiting": "מה הם הפסידו/כמעט הפסידו",
+    "transformation": "התוצאות הספציפיות",
+    "emotional_payoff": "הציטוט הסופי"
+  },
+  "explanation": "הסבר קצר למה הסיפור הזה עובד (עברית)",
+  "tags": ["רגש1", "סוג_התנגדות", "מוצר"]
+}"""
+
+STORY_IMPROVEMENT_PROMPT = """אתה מומחה לשיפור סיפורי מכירות. קיבלת סיפור גולמי מאיש מכירות ותפקידך לשפר אותו באמצעות 6 האלמנטים של סיפור מכירות מנצח.
+
+## הסיפור המקורי שצריך לשפר:
+{raw_story}
+
+## מה לעשות:
+1. **שמור על הליבה** - אל תמציא סיפור חדש, שפר את מה שיש
+2. **הוסף פרטים** - שמות ספציפיים, מקומות, מספרים
+3. **חזק את האלמנטים החסרים** - בדוק מה חסר מ-6 האלמנטים והוסף
+4. **הוסף ציטוט** - אם אין ציטוט מהלקוח, הוסף אחד משכנע
+5. **חדד את הרגש** - ודא שהסיפור מעורר את הרגש הרצוי
+
+## 6 האלמנטים לבדוק:
+1. ✅ דמות שקל להזדהות איתה (שם, מקום, מצב)
+2. ✅ אותו היסוס בדיוק כמו הלקוח הנוכחי
+3. ✅ רגע ההחלטה - מה שגרם להם לסגור
+4. ✅ מחיר ההמתנה - מה הפסידו או כמעט הפסידו
+5. ✅ טרנספורמציה - תוצאות ומספרים ספציפיים
+6. ✅ רגש סופי - ציטוט שמשאיר רושם
+
+החזר JSON בלבד:
+{
+  "title": "כותרת קצרה וקליטה",
+  "setup_line": "משפט פתיחה טבעי",
+  "story_content": "הסיפור המשופר (שמור על הרעיון המקורי!)",
+  "closing_bridge": "שאלה שמובילה לסגירה",
+  "structure": {
+    "character": "הדמות בסיפור",
+    "hesitation": "ההיסוס",
+    "decision_moment": "רגע ההחלטה",
+    "cost_of_waiting": "מחיר ההמתנה",
+    "transformation": "התוצאות",
+    "emotional_payoff": "הציטוט הסופי"
+  },
+  "improvements_made": ["שיפור 1", "שיפור 2", "שיפור 3"],
+  "explanation": "למה הגרסה המשופרת טובה יותר",
+  "tags": ["רגש", "התנגדות", "מוצר"]
+}"""
+
+
+@app.route('/api/story-bank', methods=['GET'])
+def get_user_stories():
+    """Get all stories for the current user"""
+    user_id = get_user_id_from_token()
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    client = get_supabase()
+    if not client:
+        return jsonify({'error': 'Database not available'}), 500
+    
+    try:
+        result = client.table('story_bank').select('*').eq('user_id', user_id).order('created_at', desc=True).execute()
+        return jsonify({'stories': result.data or []})
+    except Exception as e:
+        print(f"[get_user_stories] Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/story-bank', methods=['POST'])
+def save_story():
+    """Save a new story to the user's story bank"""
+    user_id = get_user_id_from_token()
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    client = get_supabase()
+    if not client:
+        return jsonify({'error': 'Database not available'}), 500
+    
+    data = request.get_json()
+    
+    try:
+        story_data = {
+            'user_id': user_id,
+            'title': data.get('title', 'סיפור ללא שם'),
+            'content': data.get('content', data.get('story_content', '')),
+            'target_emotions': data.get('target_emotions', []),
+            'target_message': data.get('target_message'),
+            'objection_type': data.get('objection_type'),
+            'product': data.get('product', data.get('product_type')),
+            'structure': data.get('structure', data.get('story_structure')),
+            'setup_line': data.get('setup_line'),
+            'closing_bridge': data.get('closing_bridge'),
+            'explanation': data.get('explanation'),
+            'tags': data.get('tags', []),
+            'is_favorite': data.get('is_favorite', False),
+            'usage_count': 0
+        }
+        
+        result = client.table('story_bank').insert(story_data).execute()
+        return jsonify({'story': result.data[0] if result.data else {}}), 201
+    except Exception as e:
+        print(f"[save_story] Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/story-bank/<story_id>', methods=['PUT'])
+def update_story(story_id):
+    """Update an existing story"""
+    user_id = get_user_id_from_token()
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    client = get_supabase()
+    if not client:
+        return jsonify({'error': 'Database not available'}), 500
+    
+    data = request.get_json()
+    
+    try:
+        # Only allow updating certain fields
+        update_data = {}
+        allowed_fields = ['title', 'content', 'target_emotions', 'target_message', 
+                         'objection_type', 'product', 'structure', 'tags', 
+                         'is_favorite', 'setup_line', 'closing_bridge', 'explanation']
+        
+        for field in allowed_fields:
+            if field in data:
+                update_data[field] = data[field]
+        
+        if update_data:
+            result = client.table('story_bank').update(update_data).eq('id', story_id).eq('user_id', user_id).execute()
+            return jsonify({'story': result.data[0] if result.data else {}})
+        return jsonify({'story': {}})
+    except Exception as e:
+        print(f"[update_story] Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/story-bank/<story_id>', methods=['DELETE'])
+def delete_story(story_id):
+    """Delete a story"""
+    user_id = get_user_id_from_token()
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    client = get_supabase()
+    if not client:
+        return jsonify({'error': 'Database not available'}), 500
+    
+    try:
+        client.table('story_bank').delete().eq('id', story_id).eq('user_id', user_id).execute()
+        return jsonify({'success': True})
+    except Exception as e:
+        print(f"[delete_story] Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/story-bank/<story_id>/use', methods=['POST'])
+def increment_story_usage(story_id):
+    """Increment the usage count when a story is used"""
+    user_id = get_user_id_from_token()
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    client = get_supabase()
+    if not client:
+        return jsonify({'error': 'Database not available'}), 500
+    
+    try:
+        # Get current count
+        story = client.table('story_bank').select('usage_count').eq('id', story_id).eq('user_id', user_id).execute()
+        if not story.data:
+            return jsonify({'error': 'Story not found'}), 404
+        
+        current_count = story.data[0].get('usage_count', 0) or 0
+        
+        # Increment
+        result = client.table('story_bank').update({
+            'usage_count': current_count + 1,
+            'updated_at': 'now()'
+        }).eq('id', story_id).eq('user_id', user_id).execute()
+        
+        return jsonify(result.data[0] if result.data else {})
+    except Exception as e:
+        print(f"[increment_story_usage] Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/story-bank/generate', methods=['POST'])
+def generate_story():
+    """Generate or improve a story using AI based on emotion and message"""
+    user_id = get_user_id_from_token()
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    data = request.get_json()
+    mode = data.get('mode', 'create')  # 'create' or 'improve'
+    raw_story = data.get('raw_story', '')
+    target_message = data.get('target_message', '')
+    target_emotions = data.get('target_emotions', ['trust'])
+    objection_type = data.get('objection_type', '')
+    product = data.get('product', '')
+    
+    if not target_message:
+        return jsonify({'error': 'target_message is required'}), 400
+    
+    if mode == 'improve' and not raw_story:
+        return jsonify({'error': 'raw_story is required for improve mode'}), 400
+    
+    # Map emotion IDs to Hebrew labels
+    emotion_labels = {
+        'trust': 'אמון',
+        'urgency': 'דחיפות',
+        'value': 'ערך',
+        'fomo': 'פחד מהפסד',
+        'peace': 'שקט נפשי',
+        'pride': 'גאווה',
+        'social_proof': 'הוכחה חברתית'
+    }
+    
+    objection_labels = {
+        'think': 'צריך לחשוב על זה',
+        'price': 'יקר לי',
+        'spouse': 'צריך להתייעץ עם בן/בת זוג',
+        'offers': 'בודק עוד הצעות',
+        'timing': 'לא עכשיו',
+        'trust': 'לא מכיר אתכם'
+    }
+    
+    product_labels = {
+        'cool_life': 'Cool Life (מיזוג חיצוני)',
+        'turf': 'דשא סינטטי',
+        'pavers': 'Pavers (ריצוף)',
+        'pergola': 'פרגולה',
+        'general': 'כללי'
+    }
+    
+    try:
+        emotions_text = ', '.join([emotion_labels.get(e, e) for e in target_emotions])
+        objection_text = objection_labels.get(objection_type, objection_type) if objection_type else ''
+        product_text = product_labels.get(product, product) if product else ''
+        
+        if mode == 'improve':
+            # Use improvement prompt
+            system_prompt = STORY_IMPROVEMENT_PROMPT.replace('{raw_story}', raw_story)
+            user_prompt = f"""שפר את הסיפור הזה כך שיעביר את המסר ויעורר את הרגשות הנכונים.
+
+**המסר שצריך להעביר:** {target_message}
+**הרגשות לעורר:** {emotions_text}
+"""
+            if objection_text:
+                user_prompt += f"**התנגדות לטפל בה:** {objection_text}\n"
+            if product_text:
+                user_prompt += f"**מוצר:** {product_text}\n"
+            
+            user_prompt += "\nשפר את הסיפור תוך שמירה על הרעיון המקורי, אבל הוסף את 6 האלמנטים שחסרים."
+        else:
+            # Use creation prompt
+            system_prompt = STORY_GENERATION_PROMPT
+            user_prompt = f"""צור סיפור מכירות חדש בעברית.
+
+**המסר שצריך להעביר:** {target_message}
+**הרגשות לעורר:** {emotions_text}
+"""
+            if objection_text:
+                user_prompt += f"**התנגדות למנוע/לטפל:** {objection_text}\n"
+            if product_text:
+                user_prompt += f"**מוצר רלוונטי:** {product_text}\n"
+            
+            user_prompt += """
+צור סיפור מכירות מנצח שמשתמש בכל 6 האלמנטים.
+הסיפור צריך להיות אותנטי, רגשי, עם מספרים ספציפיים וציטוט מהלקוח.
+"""
+        
+        response = openai_client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            temperature=0.8,
+            max_tokens=2000
+        )
+        
+        response_text = response.choices[0].message.content.strip()
+        
+        # Parse JSON from response
+        import re
+        json_match = re.search(r'\{[\s\S]*\}', response_text)
+        if json_match:
+            story_data = json.loads(json_match.group())
+            # Add metadata
+            story_data['target_emotions'] = target_emotions
+            story_data['target_message'] = target_message
+            story_data['objection_type'] = objection_type
+            story_data['product'] = product
+            story_data['mode'] = mode
+            return jsonify({'story': story_data})
+        else:
+            print(f"[generate_story] Failed to parse response: {response_text[:500]}")
+            return jsonify({'error': 'Failed to parse AI response'}), 500
+            
+    except Exception as e:
+        print(f"[generate_story] Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
 # ============ Admin API Endpoints ============
 
 @app.route('/api/admin/check', methods=['GET'])

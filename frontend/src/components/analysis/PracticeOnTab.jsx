@@ -5,7 +5,8 @@ import {
   Star, Trophy, ArrowRight, Lightbulb, AlertTriangle, Sparkles,
   RotateCcw, Copy, Check, Users, Brain, TrendingUp, Award, Send,
   Square, Loader2, ThumbsUp, ThumbsDown, HelpCircle, GraduationCap,
-  FileText, Headphones, PenTool, RefreshCw
+  FileText, Headphones, PenTool, RefreshCw, BookMarked, Heart, Trash2,
+  Plus, Wand2, Save, X, Hash
 } from 'lucide-react'
 import axios from 'axios'
 import { API_URL } from '../../lib/config'
@@ -1123,6 +1124,35 @@ function DailyDrillCard({ drill }) {
     </div>
   )
 }
+
+// ============ STORIES SECTION COMPONENT ============
+const EMOTION_OPTIONS = [
+  { value: 'trust', label: 'אמון', icon: '🤝', color: 'text-blue-400' },
+  { value: 'urgency', label: 'דחיפות', icon: '⏰', color: 'text-red-400' },
+  { value: 'value', label: 'ערך', icon: '💎', color: 'text-emerald-400' },
+  { value: 'fear_of_loss', label: 'פחד מהפסד', icon: '😰', color: 'text-orange-400' },
+  { value: 'peace_of_mind', label: 'שקט נפשי', icon: '😌', color: 'text-cyan-400' },
+  { value: 'pride', label: 'גאווה', icon: '🦁', color: 'text-amber-400' },
+  { value: 'social_proof', label: 'הוכחה חברתית', icon: '👥', color: 'text-violet-400' }
+]
+
+const OBJECTION_OPTIONS = [
+  { value: '', label: 'ללא התנגדות ספציפית' },
+  { value: 'need_to_think', label: 'צריך לחשוב על זה' },
+  { value: 'too_expensive', label: 'יקר לי' },
+  { value: 'spouse_decision', label: 'צריך לדבר עם בן/בת זוג' },
+  { value: 'getting_quotes', label: 'בודק עוד הצעות' },
+  { value: 'bad_timing', label: 'לא עכשיו' }
+]
+
+const PRODUCT_OPTIONS = [
+  { value: '', label: 'כללי' },
+  { value: 'cool_life', label: 'Cool Life Paint' },
+  { value: 'turf', label: 'דשא סינטטי' },
+  { value: 'pavers', label: 'ריצוף' },
+  { value: 'concrete', label: 'בטון' },
+  { value: 'fence', label: 'גדר' }
+]
 
 // Main Practice On Tab Component
 export default function PracticeOnTab({ analysisResult, result, TTSButton }) {

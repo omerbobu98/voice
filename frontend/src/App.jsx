@@ -4,7 +4,7 @@ import {
   Upload, Users, MessageSquare, Clock, FileAudio, CheckCircle2, Mic, Brain, UserCheck,
   BarChart3, TrendingUp, AlertTriangle, Target, Zap, Phone, PlayCircle, PauseCircle,
   ChevronRight, Sparkles, Shield, Award, PieChart, Activity, Volume2, Home, History,
-  Settings, User, Menu, X, ChevronDown, Calendar, Hash, LogOut, FileDown, Edit3, Dumbbell
+  Settings, User, Menu, X, ChevronDown, Calendar, Hash, LogOut, FileDown, Edit3, Dumbbell, BookMarked
 } from 'lucide-react'
 import axios from 'axios'
 import { useAuth } from './contexts/AuthContext'
@@ -19,6 +19,7 @@ import AdminCallView from './pages/AdminCallView'
 import LiveCallPageMobile from './pages/LiveCallPageMobile'
 import AIAgentPage from './pages/AIAgentPage'
 import PracticePage from './pages/PracticePage'
+import StoryBankPage from './pages/StoryBankPage'
 import { API_URL } from './lib/config'
 import { AnalysisInsights } from './components/analysis'
 import AIAssistant from './components/AIAssistant'
@@ -35,6 +36,7 @@ const stages = [
 const navItems = [
   { id: 'dashboard', label: 'Dashboard', icon: Home },
   { id: 'ai-agent', label: 'AI Agent', icon: Brain, highlight: true, isRoute: true },
+  { id: 'story-bank', label: 'Story Bank', icon: BookMarked, isRoute: true },
   { id: 'upload', label: 'New Call', icon: Upload },
   { id: 'calls', label: 'Call History', icon: History },
   { id: 'settings', label: 'Settings', icon: Settings },
@@ -1929,6 +1931,12 @@ function App() {
       <Route path="/ai-agent" element={
         <ProtectedRoute>
           <AIAgentPage />
+        </ProtectedRoute>
+      } />
+      {/* Story Bank Route */}
+      <Route path="/story-bank" element={
+        <ProtectedRoute>
+          <StoryBankPage />
         </ProtectedRoute>
       } />
       <Route path="*" element={<Navigate to="/" replace />} />
