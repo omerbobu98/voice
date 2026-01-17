@@ -272,6 +272,26 @@ def save_analysis(call_id: str, metrics: dict, analysis: dict, user_id: str = No
         return None
 
 
+def update_call_name(call_id: str, new_name: str, user_id: str = None) -> dict:
+    """Update the file_name of a call"""
+    client = get_supabase()
+    if not client:
+        return None
+    
+    try:
+        query = client.table('calls').update({'file_name': new_name}).eq('id', call_id)
+        if user_id:
+            query = query.eq('user_id', user_id)
+        result = query.execute()
+        if result.data:
+            print(f"[update_call_name] SUCCESS: Updated call {call_id} name to '{new_name}'")
+            return result.data[0]
+        return None
+    except Exception as e:
+        print(f"[update_call_name] ERROR: {e}")
+        return None
+
+
 def get_all_calls(user_id: str = None, limit: int = 50) -> list:
     """Get all calls, optionally filtered by user"""
     client = get_supabase()

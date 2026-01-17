@@ -704,6 +704,126 @@ def get_call(call_id):
         return jsonify({'error': 'Call not found'}), 404
     return jsonify(data)
 
+@app.route('/api/calls/<call_id>/rename', methods=['POST', 'PUT'])
+def rename_call(call_id):
+    """Rename a call"""
+    user_id = get_user_id_from_token()
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    data = request.get_json()
+    new_name = data.get('name') if data else None
+    
+    if not new_name or not new_name.strip():
+        return jsonify({'error': 'Name is required'}), 400
+    
+    from database import update_call_name
+    result = update_call_name(call_id, new_name.strip(), user_id=user_id)
+    
+    if result:
+        return jsonify({'success': True, 'call': result})
+    return jsonify({'error': 'Failed to rename call'}), 500
+
+@app.route('/api/calls/<call_id>/generate-name', methods=['POST'])
+def generate_call_name(call_id):
+    """Auto-generate a smart name based on analysis (customer + project type)"""
+    user_id = get_user_id_from_token()
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    # Get call with analysis
+    call_data = get_call_with_analysis(call_id, user_id=user_id)
+    if not call_data or not call_data.get('call'):
+        return jsonify({'error': 'Call not found'}), 404
+    
+    analysis = call_data.get('analysis')
+    call = call_data.get('call')
+    
+    # Extract customer name and project type from analysis
+    customer_name = None
+    project_type = None
+    
+    if analysis:
+        full_analysis = analysis.get('full_analysis', {})
+        
+        # Try to get customer info from various places in analysis
+        if isinstance(full_analysis, dict):
+            # Check deal_context
+            deal_context = full_analysis.get('deal_context', {})
+            if isinstance(deal_context, dict):
+                customer_name = deal_context.get('customer_name') or deal_context.get('prospect_name')
+                project_type = deal_context.get('project_type') or deal_context.get('product_interest')
+            
+            # Check key_info
+            key_info = full_analysis.get('key_info', {})
+            if isinstance(key_info, dict):
+                if not customer_name:
+                    customer_name = key_info.get('customer_name') or key_info.get('prospect_name')
+                if not project_type:
+                    project_type = key_info.get('project_type') or key_info.get('product')
+    
+    # If not found in analysis, try to extract from transcript
+    if not customer_name or not project_type:
+        utterances = call.get('utterances', [])
+        transcript_sample = ' '.join([u.get('text', '') for u in utterances[:20]])
+        
+        # Use GPT to extract customer name and project type
+        try:
+            extract_prompt = f"""Extract the customer's name and the project/product type from this sales call transcript.
+
+Transcript sample:
+{transcript_sample[:2000]}
+
+Return ONLY a JSON object like this:
+{{"customer_name": "John Smith", "project_type": "Roof Replacement"}}
+
+If you can't find a name, use "Unknown Customer".
+If you can't find a project type, use "Sales Call".
+"""
+            response = openai_client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[{"role": "user", "content": extract_prompt}],
+                temperature=0.3,
+                max_tokens=100
+            )
+            
+            import json
+            result_text = response.choices[0].message.content.strip()
+            # Clean up JSON if wrapped in markdown
+            if '```' in result_text:
+                result_text = result_text.split('```')[1]
+                if result_text.startswith('json'):
+                    result_text = result_text[4:]
+            
+            extracted = json.loads(result_text)
+            if not customer_name:
+                customer_name = extracted.get('customer_name', 'Unknown Customer')
+            if not project_type:
+                project_type = extracted.get('project_type', 'Sales Call')
+        except Exception as e:
+            print(f"[generate_call_name] Error extracting info: {e}")
+            if not customer_name:
+                customer_name = "Unknown Customer"
+            if not project_type:
+                project_type = "Sales Call"
+    
+    # Generate the smart name
+    smart_name = f"{customer_name} - {project_type}"
+    
+    # Update the call name
+    from database import update_call_name
+    result = update_call_name(call_id, smart_name, user_id=user_id)
+    
+    if result:
+        return jsonify({
+            'success': True, 
+            'name': smart_name,
+            'customer_name': customer_name,
+            'project_type': project_type,
+            'call': result
+        })
+    return jsonify({'error': 'Failed to update call name'}), 500
+
 # ============ Admin API Endpoints ============
 
 @app.route('/api/admin/check', methods=['GET'])

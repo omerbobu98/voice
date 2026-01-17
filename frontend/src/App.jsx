@@ -4,7 +4,7 @@ import {
   Upload, Users, MessageSquare, Clock, FileAudio, CheckCircle2, Mic, Brain, UserCheck,
   BarChart3, TrendingUp, AlertTriangle, Target, Zap, Phone, PlayCircle, PauseCircle,
   ChevronRight, Sparkles, Shield, Award, PieChart, Activity, Volume2, Home, History,
-  Settings, User, Menu, X, ChevronDown, Calendar, Hash, LogOut, FileDown
+  Settings, User, Menu, X, ChevronDown, Calendar, Hash, LogOut, FileDown, Edit3
 } from 'lucide-react'
 import axios from 'axios'
 import { useAuth } from './contexts/AuthContext'
@@ -380,6 +380,9 @@ function MainApp() {
   const [audioCurrentTime, setAudioCurrentTime] = useState(0)
   const [audioDuration, setAudioDuration] = useState(0)
   const [selectedText, setSelectedText] = useState('')
+  const [showRenameModal, setShowRenameModal] = useState(false)
+  const [renameValue, setRenameValue] = useState('')
+  const [renaming, setRenaming] = useState(false)
   const timerRef = useRef(null)
   const pollRef = useRef(null)
   const audioRef = useRef(null)
@@ -428,6 +431,53 @@ function MainApp() {
     const mins = Math.floor(seconds / 60)
     const secs = Math.floor(seconds % 60)
     return `${mins}:${secs.toString().padStart(2, '0')}`
+  }
+
+  // Rename call functions
+  const openRenameModal = () => {
+    setRenameValue(result?.file_name || '')
+    setShowRenameModal(true)
+  }
+
+  const handleRename = async () => {
+    if (!renameValue.trim() || !result?.call_id) return
+    setRenaming(true)
+    try {
+      const headers = await getAuthHeaders()
+      const response = await axios.post(
+        `${API_URL}/api/calls/${result.call_id}/rename`,
+        { name: renameValue.trim() },
+        { headers }
+      )
+      if (response.data.success) {
+        setResult(prev => ({ ...prev, file_name: renameValue.trim() }))
+        setShowRenameModal(false)
+        fetchCalls() // Refresh calls list
+      }
+    } catch (err) {
+      console.error('Error renaming call:', err)
+    }
+    setRenaming(false)
+  }
+
+  const handleAutoGenerateName = async () => {
+    if (!result?.call_id) return
+    setRenaming(true)
+    try {
+      const headers = await getAuthHeaders()
+      const response = await axios.post(
+        `${API_URL}/api/calls/${result.call_id}/generate-name`,
+        {},
+        { headers }
+      )
+      if (response.data.success) {
+        setResult(prev => ({ ...prev, file_name: response.data.name }))
+        fetchCalls() // Refresh calls list
+      }
+    } catch (err) {
+      console.error('Error auto-generating name:', err)
+    }
+    setRenaming(false)
   }
 
   // Check if user is admin on mount
@@ -1371,7 +1421,24 @@ function MainApp() {
                   >
                     ← Back to History
                   </button>
-                  <h1 className="text-lg sm:text-xl font-bold text-white truncate max-w-full">{result.file_name}</h1>
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <h1 className="text-lg sm:text-xl font-bold text-white truncate">{result.file_name}</h1>
+                    <button
+                      onClick={openRenameModal}
+                      className="p-2 hover:bg-white/10 rounded-lg transition-colors flex-shrink-0"
+                      title="Rename"
+                    >
+                      <Edit3 className="w-4 h-4 text-gray-400 hover:text-white" />
+                    </button>
+                    <button
+                      onClick={handleAutoGenerateName}
+                      disabled={renaming}
+                      className="p-2 hover:bg-white/10 rounded-lg transition-colors flex-shrink-0 disabled:opacity-50"
+                      title="Auto-generate name from analysis"
+                    >
+                      <Sparkles className="w-4 h-4 text-violet-400 hover:text-violet-300" />
+                    </button>
+                  </div>
                 </div>
               )}
               
@@ -1782,6 +1849,38 @@ function MainApp() {
           selectedText={selectedText}
           onClearSelection={() => setSelectedText('')}
         />
+      )}
+
+      {/* Rename Modal */}
+      {showRenameModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-gradient-to-b from-gray-800 to-gray-900 rounded-2xl p-6 w-full max-w-md border border-white/10">
+            <h3 className="text-xl font-bold text-white mb-4">שנה שם שיחה</h3>
+            <input
+              type="text"
+              value={renameValue}
+              onChange={(e) => setRenameValue(e.target.value)}
+              placeholder="הזן שם חדש..."
+              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-violet-500 mb-4"
+              autoFocus
+            />
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowRenameModal(false)}
+                className="flex-1 px-4 py-2.5 bg-white/10 hover:bg-white/20 text-gray-300 rounded-xl transition-colors"
+              >
+                ביטול
+              </button>
+              <button
+                onClick={handleRename}
+                disabled={renaming || !renameValue.trim()}
+                className="flex-1 px-4 py-2.5 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white rounded-xl transition-colors disabled:opacity-50"
+              >
+                {renaming ? 'שומר...' : 'שמור'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
