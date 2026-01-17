@@ -346,51 +346,18 @@ function PDFDownloadButton({ analysisResult, fileName = 'call_analysis' }) {
   )
 }
 
-// Story Bank Content Component - matches app design
+// Story Bank Content Component - Clean design focused on story analysis
 function StoryBankContent() {
   const [stories, setStories] = useState([])
   const [loading, setLoading] = useState(true)
-  const [activeView, setActiveView] = useState('library') // 'library' | 'builder'
+  const [step, setStep] = useState('input') // 'input' | 'analysis' | 'library'
   const [selectedStory, setSelectedStory] = useState(null)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [filterEmotion, setFilterEmotion] = useState('')
   
-  // Builder state
-  const [builderMode, setBuilderMode] = useState('create')
-  const [rawStory, setRawStory] = useState('')
-  const [targetMessage, setTargetMessage] = useState('')
-  const [selectedEmotions, setSelectedEmotions] = useState([])
-  const [selectedObjection, setSelectedObjection] = useState('')
-  const [selectedProduct, setSelectedProduct] = useState('')
-  const [generating, setGenerating] = useState(false)
-  const [generatedStory, setGeneratedStory] = useState(null)
+  // Input state
+  const [myStory, setMyStory] = useState('')
+  const [analyzing, setAnalyzing] = useState(false)
+  const [analysis, setAnalysis] = useState(null)
   const [saving, setSaving] = useState(false)
-
-  const EMOTIONS = [
-    { id: 'trust', label: 'אמון', icon: '🤝', color: 'from-blue-500 to-blue-600' },
-    { id: 'urgency', label: 'דחיפות', icon: '⚡', color: 'from-orange-500 to-red-500' },
-    { id: 'value', label: 'ערך', icon: '💎', color: 'from-emerald-500 to-teal-500' },
-    { id: 'fomo', label: 'פחד מהפסד', icon: '😰', color: 'from-red-500 to-pink-500' },
-    { id: 'peace', label: 'שקט נפשי', icon: '🧘', color: 'from-cyan-500 to-blue-400' },
-    { id: 'pride', label: 'גאווה', icon: '🏆', color: 'from-amber-500 to-yellow-500' },
-    { id: 'social_proof', label: 'הוכחה חברתית', icon: '👥', color: 'from-violet-500 to-purple-500' },
-  ]
-
-  const OBJECTIONS = [
-    { id: 'think', label: 'צריך לחשוב', icon: '🤔' },
-    { id: 'price', label: 'יקר לי', icon: '💰' },
-    { id: 'spouse', label: 'צריך להתייעץ', icon: '👫' },
-    { id: 'offers', label: 'בודק הצעות', icon: '📊' },
-    { id: 'timing', label: 'לא עכשיו', icon: '⏰' },
-  ]
-
-  const PRODUCTS = [
-    { id: 'cool_life', label: 'Cool Life', icon: '❄️' },
-    { id: 'turf', label: 'Turf', icon: '🌿' },
-    { id: 'pavers', label: 'Pavers', icon: '🧱' },
-    { id: 'pergola', label: 'פרגולה', icon: '🏠' },
-    { id: 'general', label: 'כללי', icon: '📦' },
-  ]
 
   useEffect(() => {
     loadStories()
@@ -400,9 +367,8 @@ function StoryBankContent() {
     setLoading(true)
     try {
       const { data: { session } } = await supabase.auth.getSession()
-      const token = session?.access_token
       const res = await axios.get(`${API_URL}/api/story-bank`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${session?.access_token}` }
       })
       setStories(res.data.stories || [])
     } catch (err) {
@@ -411,49 +377,42 @@ function StoryBankContent() {
     setLoading(false)
   }
 
-  const toggleEmotion = (id) => {
-    setSelectedEmotions(prev => prev.includes(id) ? prev.filter(e => e !== id) : [...prev, id])
-  }
-
-  const generateStory = async () => {
-    if (selectedEmotions.length === 0 || !targetMessage.trim()) return
-    setGenerating(true)
+  const analyzeStory = async () => {
+    if (!myStory.trim()) return
+    setAnalyzing(true)
     try {
       const { data: { session } } = await supabase.auth.getSession()
       const res = await axios.post(`${API_URL}/api/story-bank/generate`, {
-        mode: builderMode,
-        raw_story: rawStory,
-        target_emotions: selectedEmotions,
-        target_message: targetMessage,
-        objection_type: selectedObjection,
-        product: selectedProduct,
+        mode: 'improve',
+        raw_story: myStory,
+        target_emotions: ['trust'],
+        target_message: 'לשפר את הסיפור',
       }, { headers: { Authorization: `Bearer ${session?.access_token}` } })
-      setGeneratedStory(res.data.story)
+      setAnalysis(res.data.story)
+      setStep('analysis')
     } catch (err) {
-      console.error('Error generating story:', err)
+      console.error('Error analyzing story:', err)
     }
-    setGenerating(false)
+    setAnalyzing(false)
   }
 
   const saveStory = async () => {
-    if (!generatedStory) return
+    if (!analysis) return
     setSaving(true)
     try {
       const { data: { session } } = await supabase.auth.getSession()
       await axios.post(`${API_URL}/api/story-bank`, {
-        title: generatedStory.title,
-        content: generatedStory.story_content,
-        setup_line: generatedStory.setup_line,
-        closing_bridge: generatedStory.closing_bridge,
-        target_emotions: selectedEmotions,
-        target_message: targetMessage,
-        objection_type: selectedObjection,
-        product: selectedProduct,
-        structure: generatedStory.structure,
-        explanation: generatedStory.explanation,
+        title: analysis.title,
+        content: analysis.story_content,
+        setup_line: analysis.setup_line,
+        closing_bridge: analysis.closing_bridge,
+        target_emotions: analysis.tags || [],
+        structure: analysis.structure,
+        explanation: analysis.explanation,
       }, { headers: { Authorization: `Bearer ${session?.access_token}` } })
-      setGeneratedStory(null)
-      setActiveView('library')
+      setAnalysis(null)
+      setMyStory('')
+      setStep('library')
       loadStories()
     } catch (err) {
       console.error('Error saving story:', err)
@@ -462,328 +421,230 @@ function StoryBankContent() {
   }
 
   const deleteStory = async (id) => {
-    if (!confirm('האם למחוק את הסיפור?')) return
+    if (!confirm('למחוק?')) return
     try {
       const { data: { session } } = await supabase.auth.getSession()
       await axios.delete(`${API_URL}/api/story-bank/${id}`, {
         headers: { Authorization: `Bearer ${session?.access_token}` }
       })
       setStories(prev => prev.filter(s => s.id !== id))
+      if (selectedStory?.id === id) setSelectedStory(null)
     } catch (err) {
-      console.error('Error deleting story:', err)
+      console.error('Error:', err)
     }
   }
-
-  const toggleFavorite = async (story) => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      await axios.put(`${API_URL}/api/story-bank/${story.id}`, {
-        is_favorite: !story.is_favorite
-      }, { headers: { Authorization: `Bearer ${session?.access_token}` } })
-      setStories(prev => prev.map(s => s.id === story.id ? { ...s, is_favorite: !s.is_favorite } : s))
-    } catch (err) {
-      console.error('Error updating story:', err)
-    }
-  }
-
-  const filteredStories = stories.filter(s => {
-    const matchesSearch = !searchQuery || s.title?.toLowerCase().includes(searchQuery.toLowerCase()) || s.content?.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesEmotion = !filterEmotion || (s.target_emotions || []).includes(filterEmotion)
-    return matchesSearch && matchesEmotion
-  }).sort((a, b) => {
-    if (a.is_favorite && !b.is_favorite) return -1
-    if (!a.is_favorite && b.is_favorite) return 1
-    return new Date(b.created_at) - new Date(a.created_at)
-  })
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-          <BookMarked className="w-7 h-7 text-amber-400" />
-          בנק סיפורים
-        </h2>
-        <div className="flex items-center gap-2 bg-white/5 rounded-xl p-1">
-          <button
-            onClick={() => { setActiveView('library'); setSelectedStory(null); }}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeView === 'library' ? 'bg-amber-500 text-white' : 'text-gray-400 hover:text-white'}`}
-          >📚 ספריה</button>
-          <button
-            onClick={() => { setActiveView('builder'); setGeneratedStory(null); }}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeView === 'builder' ? 'bg-amber-500 text-white' : 'text-gray-400 hover:text-white'}`}
-          >✨ בנה סיפור</button>
-        </div>
+    <div className="max-w-4xl mx-auto">
+      {/* Navigation */}
+      <div className="flex items-center gap-4 mb-8">
+        <button
+          onClick={() => { setStep('input'); setAnalysis(null); setSelectedStory(null); }}
+          className={`px-5 py-2.5 rounded-xl font-medium transition-all ${step === 'input' || step === 'analysis' ? 'bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white shadow-lg' : 'bg-white/5 text-gray-400 hover:text-white'}`}
+        >
+          <span className="flex items-center gap-2"><Sparkles className="w-4 h-4" /> נתח סיפור</span>
+        </button>
+        <button
+          onClick={() => { setStep('library'); setSelectedStory(null); }}
+          className={`px-5 py-2.5 rounded-xl font-medium transition-all ${step === 'library' ? 'bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white shadow-lg' : 'bg-white/5 text-gray-400 hover:text-white'}`}
+        >
+          <span className="flex items-center gap-2"><BookMarked className="w-4 h-4" /> הסיפורים שלי ({stories.length})</span>
+        </button>
       </div>
 
-      {/* Library View */}
-      {activeView === 'library' && !selectedStory && (
-        <>
-          {/* Stats */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] rounded-2xl p-4 border border-white/10">
-              <div className="flex items-center gap-2 text-amber-400 mb-1"><BookMarked className="w-4 h-4" /><span className="text-sm">סה״כ</span></div>
-              <p className="text-2xl font-bold text-white">{stories.length}</p>
-            </div>
-            <div className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] rounded-2xl p-4 border border-white/10">
-              <div className="flex items-center gap-2 text-pink-400 mb-1"><Heart className="w-4 h-4" /><span className="text-sm">מועדפים</span></div>
-              <p className="text-2xl font-bold text-white">{stories.filter(s => s.is_favorite).length}</p>
-            </div>
-            <div className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] rounded-2xl p-4 border border-white/10">
-              <div className="flex items-center gap-2 text-emerald-400 mb-1"><TrendingUp className="w-4 h-4" /><span className="text-sm">שימושים</span></div>
-              <p className="text-2xl font-bold text-white">{stories.reduce((acc, s) => acc + (s.usage_count || 0), 0)}</p>
-            </div>
-            <div className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] rounded-2xl p-4 border border-white/10">
-              <div className="flex items-center gap-2 text-violet-400 mb-1"><Award className="w-4 h-4" /><span className="text-sm">השבוע</span></div>
-              <p className="text-2xl font-bold text-white">{stories.filter(s => new Date(s.created_at) > new Date(Date.now() - 7*24*60*60*1000)).length}</p>
-            </div>
+      {/* Step 1: Input Story */}
+      {step === 'input' && (
+        <div className="space-y-6">
+          <div className="text-center mb-8">
+            <h2 className="text-2xl font-bold text-white mb-2">ספר לי את הסיפור שלך</h2>
+            <p className="text-gray-400">אני אנתח אותו ואעזור לך לשפר אותו</p>
           </div>
 
-          {/* Search */}
-          <div className="flex gap-4">
-            <input
-              type="text"
-              placeholder="חפש סיפור..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="flex-1 px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-amber-500/50"
+          <div className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] rounded-2xl border border-white/10 p-6">
+            <textarea
+              value={myStory}
+              onChange={(e) => setMyStory(e.target.value)}
+              placeholder="כתוב כאן את הסיפור שלך כמו שאתה מספר אותו ללקוחות היום...
+
+לדוגמה:
+'היה לי לקוח שגם הוא אמר שזה יקר לו, אבל אחרי שהוא ראה את התוצאות הוא אמר לי שזו ההשקעה הכי טובה שהוא עשה...'"
+              rows={8}
+              className="w-full p-4 bg-transparent border-0 text-white text-lg placeholder-gray-500 focus:outline-none resize-none"
+              dir="rtl"
             />
-            <select
-              value={filterEmotion}
-              onChange={(e) => setFilterEmotion(e.target.value)}
-              className="px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none"
-            >
-              <option value="">כל הרגשות</option>
-              {EMOTIONS.map(e => <option key={e.id} value={e.id}>{e.icon} {e.label}</option>)}
-            </select>
           </div>
 
-          {/* Stories Grid */}
+          <button
+            onClick={analyzeStory}
+            disabled={analyzing || !myStory.trim()}
+            className="w-full py-4 bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-600 hover:to-fuchsia-600 disabled:from-gray-700 disabled:to-gray-700 text-white rounded-xl font-semibold text-lg transition-all flex items-center justify-center gap-3"
+          >
+            {analyzing ? (
+              <><div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> מנתח את הסיפור...</>
+            ) : (
+              <><Brain className="w-5 h-5" /> נתח ושפר את הסיפור</>
+            )}
+          </button>
+        </div>
+      )}
+
+      {/* Step 2: Analysis Results */}
+      {step === 'analysis' && analysis && (
+        <div className="space-y-6">
+          <button onClick={() => setStep('input')} className="flex items-center gap-2 text-gray-400 hover:text-white text-sm">
+            <ChevronRight className="w-4 h-4 rotate-180" /> חזור לעריכה
+          </button>
+
+          {/* Original vs Improved */}
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* Original */}
+            <div className="bg-white/5 rounded-2xl border border-white/10 p-5">
+              <h3 className="text-sm font-medium text-gray-400 mb-3 flex items-center gap-2">
+                <span className="w-2 h-2 bg-gray-400 rounded-full"></span>
+                הסיפור המקורי
+              </h3>
+              <p className="text-gray-300 leading-relaxed whitespace-pre-wrap">{myStory}</p>
+            </div>
+
+            {/* Improved */}
+            <div className="bg-gradient-to-b from-violet-500/10 to-fuchsia-500/10 rounded-2xl border border-violet-500/30 p-5">
+              <h3 className="text-sm font-medium text-violet-400 mb-3 flex items-center gap-2">
+                <span className="w-2 h-2 bg-violet-400 rounded-full"></span>
+                הסיפור המשופר
+              </h3>
+              <p className="text-white leading-relaxed whitespace-pre-wrap">{analysis.story_content}</p>
+            </div>
+          </div>
+
+          {/* Story Components */}
+          <div className="grid sm:grid-cols-2 gap-4">
+            {analysis.setup_line && (
+              <div className="bg-amber-500/10 rounded-xl border border-amber-500/20 p-4">
+                <p className="text-xs text-amber-400 mb-1">🎯 משפט פתיחה</p>
+                <p className="text-white">{analysis.setup_line}</p>
+              </div>
+            )}
+            {analysis.closing_bridge && (
+              <div className="bg-emerald-500/10 rounded-xl border border-emerald-500/20 p-4">
+                <p className="text-xs text-emerald-400 mb-1">🌉 גשר סגירה</p>
+                <p className="text-white">{analysis.closing_bridge}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Structure Analysis */}
+          {analysis.structure && (
+            <div className="bg-white/5 rounded-2xl border border-white/10 p-5">
+              <h3 className="text-sm font-medium text-gray-300 mb-4">📊 ניתוח מבנה הסיפור</h3>
+              <div className="grid sm:grid-cols-3 gap-3">
+                {Object.entries(analysis.structure).map(([key, value]) => (
+                  <div key={key} className="bg-white/5 rounded-lg p-3">
+                    <p className="text-xs text-violet-400 mb-1">{key}</p>
+                    <p className="text-sm text-gray-300">{value}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Why it works */}
+          {analysis.explanation && (
+            <div className="bg-blue-500/10 rounded-xl border border-blue-500/20 p-4">
+              <p className="text-xs text-blue-400 mb-1">💡 למה הסיפור המשופר עובד יותר טוב</p>
+              <p className="text-gray-300">{analysis.explanation}</p>
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="flex gap-4">
+            <button
+              onClick={analyzeStory}
+              className="flex-1 py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl font-medium flex items-center justify-center gap-2"
+            >
+              <Zap className="w-4 h-4" /> נסה שוב
+            </button>
+            <button
+              onClick={saveStory}
+              disabled={saving}
+              className="flex-1 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-xl font-medium flex items-center justify-center gap-2"
+            >
+              {saving ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /></> : <><CheckCircle2 className="w-4 h-4" /> שמור לבנק</>}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Library View */}
+      {step === 'library' && !selectedStory && (
+        <div className="space-y-6">
           {loading ? (
             <div className="flex items-center justify-center py-20">
-              <div className="w-8 h-8 border-4 border-amber-500 border-t-transparent rounded-full animate-spin" />
+              <div className="w-8 h-8 border-4 border-violet-500 border-t-transparent rounded-full animate-spin" />
             </div>
-          ) : filteredStories.length > 0 ? (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {filteredStories.map(story => (
+          ) : stories.length > 0 ? (
+            <div className="space-y-4">
+              {stories.map(story => (
                 <div
                   key={story.id}
                   onClick={() => setSelectedStory(story)}
-                  className="group bg-gradient-to-b from-white/[0.08] to-white/[0.02] rounded-2xl p-5 border border-white/10 hover:border-amber-500/50 transition-all cursor-pointer"
+                  className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] rounded-2xl border border-white/10 hover:border-violet-500/50 p-5 cursor-pointer transition-all group"
                 >
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      {story.is_favorite && <Heart className="w-4 h-4 text-pink-400 fill-pink-400" />}
-                      <h3 className="font-semibold text-white line-clamp-1">{story.title}</h3>
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-white mb-2 group-hover:text-violet-400 transition-colors">{story.title || 'סיפור ללא שם'}</h3>
+                      <p className="text-sm text-gray-400 line-clamp-2">{story.content}</p>
                     </div>
-                    <ChevronRight className="w-5 h-5 text-gray-500 group-hover:text-amber-400" />
-                  </div>
-                  <p className="text-sm text-gray-400 line-clamp-2 mb-4">{story.content}</p>
-                  <div className="flex gap-1">
-                    {(story.target_emotions || []).slice(0, 3).map(eid => {
-                      const em = EMOTIONS.find(e => e.id === eid)
-                      return em ? <span key={eid} className="text-lg" title={em.label}>{em.icon}</span> : null
-                    })}
+                    <ChevronRight className="w-5 h-5 text-gray-500 group-hover:text-violet-400 transition-colors" />
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="text-center py-20 bg-gradient-to-b from-white/[0.05] to-transparent rounded-3xl border border-white/10">
+            <div className="text-center py-16">
               <BookMarked className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-white mb-2">אין סיפורים עדיין</h3>
-              <p className="text-gray-500 mb-6">התחל לבנות את בנק הסיפורים שלך</p>
-              <button onClick={() => setActiveView('builder')} className="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl font-medium">
-                ✨ צור סיפור ראשון
+              <h3 className="text-xl font-semibold text-white mb-2">אין לך סיפורים עדיין</h3>
+              <p className="text-gray-500 mb-6">נתח את הסיפורים שלך ושמור את הגרסאות המשופרות</p>
+              <button onClick={() => setStep('input')} className="px-6 py-3 bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white rounded-xl font-medium">
+                נתח סיפור ראשון
               </button>
             </div>
           )}
-        </>
-      )}
-
-      {/* Story Detail */}
-      {activeView === 'library' && selectedStory && (
-        <div className="space-y-6">
-          <button onClick={() => setSelectedStory(null)} className="flex items-center gap-2 text-gray-400 hover:text-white">
-            <ChevronRight className="w-5 h-5 rotate-180" /> חזרה
-          </button>
-          <div className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] rounded-2xl border border-white/10 p-6 space-y-6">
-            <div className="flex items-start justify-between">
-              <div>
-                <h2 className="text-2xl font-bold text-white mb-2">{selectedStory.title}</h2>
-                <div className="flex gap-2">
-                  {(selectedStory.target_emotions || []).map(eid => {
-                    const em = EMOTIONS.find(e => e.id === eid)
-                    return em ? <span key={eid} className={`px-3 py-1 bg-gradient-to-r ${em.color} rounded-full text-white text-sm`}>{em.icon} {em.label}</span> : null
-                  })}
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <button onClick={() => toggleFavorite(selectedStory)} className="p-2 hover:bg-white/10 rounded-lg">
-                  <Heart className={`w-5 h-5 ${selectedStory.is_favorite ? 'text-pink-400 fill-pink-400' : 'text-gray-400'}`} />
-                </button>
-                <button onClick={() => { deleteStory(selectedStory.id); setSelectedStory(null); }} className="p-2 bg-red-500/20 hover:bg-red-500/30 rounded-lg">
-                  <Trash2 className="w-5 h-5 text-red-400" />
-                </button>
-              </div>
-            </div>
-            {selectedStory.setup_line && (
-              <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4">
-                <p className="text-sm text-amber-400 mb-1">משפט פתיחה</p>
-                <p className="text-white text-lg">{selectedStory.setup_line}</p>
-              </div>
-            )}
-            <div className="bg-white/5 rounded-xl p-5">
-              <p className="text-gray-200 text-lg leading-relaxed whitespace-pre-wrap">{selectedStory.content}</p>
-            </div>
-            {selectedStory.closing_bridge && (
-              <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-4">
-                <p className="text-sm text-emerald-400 mb-1">גשר סגירה</p>
-                <p className="text-white text-lg">{selectedStory.closing_bridge}</p>
-              </div>
-            )}
-          </div>
         </div>
       )}
 
-      {/* Builder View */}
-      {activeView === 'builder' && (
-        <div className="max-w-3xl mx-auto space-y-6">
-          {/* Mode Selection */}
-          <div className="flex gap-4">
-            <button onClick={() => setBuilderMode('create')} className={`flex-1 p-5 rounded-2xl border-2 transition-all ${builderMode === 'create' ? 'bg-amber-500/20 border-amber-500' : 'bg-white/5 border-white/10 hover:border-white/20'}`}>
-              <div className="flex items-center gap-3 mb-2">
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${builderMode === 'create' ? 'bg-amber-500' : 'bg-white/10'}`}>
-                  <Sparkles className="w-5 h-5 text-white" />
-                </div>
-                <h3 className="text-lg font-semibold text-white">צור סיפור חדש</h3>
-              </div>
-              <p className="text-sm text-gray-400">ה-AI יבנה סיפור מאפס</p>
-            </button>
-            <button onClick={() => setBuilderMode('improve')} className={`flex-1 p-5 rounded-2xl border-2 transition-all ${builderMode === 'improve' ? 'bg-violet-500/20 border-violet-500' : 'bg-white/5 border-white/10 hover:border-white/20'}`}>
-              <div className="flex items-center gap-3 mb-2">
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${builderMode === 'improve' ? 'bg-violet-500' : 'bg-white/10'}`}>
-                  <Zap className="w-5 h-5 text-white" />
-                </div>
-                <h3 className="text-lg font-semibold text-white">שפר סיפור קיים</h3>
-              </div>
-              <p className="text-sm text-gray-400">הכנס סיפור שלך וה-AI ישפר</p>
-            </button>
-          </div>
-
-          {/* Raw Story Input (improve mode) */}
-          {builderMode === 'improve' && (
-            <div>
-              <label className="block text-white font-medium mb-2">הסיפור שלך (הגרסה הנוכחית)</label>
-              <textarea
-                value={rawStory}
-                onChange={(e) => setRawStory(e.target.value)}
-                placeholder="ספר את הסיפור שלך כמו שאתה מספר אותו היום..."
-                rows={5}
-                className="w-full p-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-violet-500/50 resize-none"
-              />
-            </div>
-          )}
-
-          {/* Target Message */}
-          <div>
-            <label className="block text-white font-medium mb-2">מה המסר שאתה רוצה להעביר?</label>
-            <textarea
-              value={targetMessage}
-              onChange={(e) => setTargetMessage(e.target.value)}
-              placeholder="לדוגמה: לא לחכות יותר מדי כי המחירים עולים..."
-              rows={3}
-              className="w-full p-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-amber-500/50 resize-none"
-            />
-          </div>
-
-          {/* Emotions */}
-          <div>
-            <label className="block text-white font-medium mb-2">אילו רגשות לעורר? (בחר לפחות אחד)</label>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {EMOTIONS.map(em => (
-                <button
-                  key={em.id}
-                  onClick={() => toggleEmotion(em.id)}
-                  className={`p-3 rounded-xl border-2 transition-all ${selectedEmotions.includes(em.id) ? `bg-gradient-to-r ${em.color} border-transparent` : 'bg-white/5 border-white/10 hover:border-white/20'}`}
-                >
-                  <span className="text-xl">{em.icon}</span>
-                  <span className="block text-sm text-white mt-1">{em.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Objection & Product */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-white font-medium mb-2">התנגדות (אופציונלי)</label>
-              <select value={selectedObjection} onChange={(e) => setSelectedObjection(e.target.value)} className="w-full p-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none">
-                <option value="">בחר</option>
-                {OBJECTIONS.map(o => <option key={o.id} value={o.id}>{o.icon} {o.label}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-white font-medium mb-2">מוצר (אופציונלי)</label>
-              <select value={selectedProduct} onChange={(e) => setSelectedProduct(e.target.value)} className="w-full p-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none">
-                <option value="">בחר</option>
-                {PRODUCTS.map(p => <option key={p.id} value={p.id}>{p.icon} {p.label}</option>)}
-              </select>
-            </div>
-          </div>
-
-          {/* Generate Button */}
-          <button
-            onClick={generateStory}
-            disabled={generating || selectedEmotions.length === 0 || !targetMessage.trim()}
-            className="w-full py-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 disabled:from-gray-700 disabled:to-gray-700 text-white rounded-xl font-semibold text-lg transition-all flex items-center justify-center gap-3 disabled:cursor-not-allowed"
-          >
-            {generating ? (
-              <><div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> יוצר סיפור...</>
-            ) : (
-              <><Sparkles className="w-5 h-5" /> {builderMode === 'improve' ? 'שפר את הסיפור' : 'צור סיפור'}</>
-            )}
+      {/* Story Detail */}
+      {step === 'library' && selectedStory && (
+        <div className="space-y-6">
+          <button onClick={() => setSelectedStory(null)} className="flex items-center gap-2 text-gray-400 hover:text-white text-sm">
+            <ChevronRight className="w-4 h-4 rotate-180" /> חזרה לרשימה
           </button>
-
-          {/* Generated Story Preview */}
-          {generatedStory && (
-            <div className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] rounded-2xl border border-amber-500/30 p-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xl font-bold text-white">{generatedStory.title}</h3>
-                <button onClick={generateStory} className="p-2 bg-white/10 hover:bg-white/20 rounded-lg" title="נסה שוב">
-                  <Zap className="w-4 h-4 text-gray-400" />
-                </button>
-              </div>
-              {generatedStory.setup_line && (
-                <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4">
-                  <p className="text-sm text-amber-400 mb-1">משפט פתיחה</p>
-                  <p className="text-white">{generatedStory.setup_line}</p>
-                </div>
-              )}
-              <div className="bg-white/5 rounded-xl p-4">
-                <p className="text-gray-200 leading-relaxed whitespace-pre-wrap">{generatedStory.story_content}</p>
-              </div>
-              {generatedStory.closing_bridge && (
-                <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-4">
-                  <p className="text-sm text-emerald-400 mb-1">גשר סגירה</p>
-                  <p className="text-white">{generatedStory.closing_bridge}</p>
-                </div>
-              )}
-              {generatedStory.explanation && (
-                <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
-                  <p className="text-sm text-blue-400 mb-1">למה זה עובד</p>
-                  <p className="text-gray-300 text-sm">{generatedStory.explanation}</p>
-                </div>
-              )}
-              <button
-                onClick={saveStory}
-                disabled={saving}
-                className="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-xl font-medium flex items-center justify-center gap-2"
-              >
-                {saving ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> שומר...</> : <><CheckCircle2 className="w-5 h-5" /> שמור לבנק</>}
+          
+          <div className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] rounded-2xl border border-white/10 p-6 space-y-5">
+            <div className="flex items-start justify-between">
+              <h2 className="text-xl font-bold text-white">{selectedStory.title || 'סיפור'}</h2>
+              <button onClick={() => deleteStory(selectedStory.id)} className="p-2 bg-red-500/20 hover:bg-red-500/30 rounded-lg">
+                <Trash2 className="w-4 h-4 text-red-400" />
               </button>
             </div>
-          )}
+
+            {selectedStory.setup_line && (
+              <div className="bg-amber-500/10 rounded-xl border border-amber-500/20 p-4">
+                <p className="text-xs text-amber-400 mb-1">משפט פתיחה</p>
+                <p className="text-white">{selectedStory.setup_line}</p>
+              </div>
+            )}
+
+            <div className="bg-white/5 rounded-xl p-4">
+              <p className="text-gray-200 leading-relaxed whitespace-pre-wrap">{selectedStory.content}</p>
+            </div>
+
+            {selectedStory.closing_bridge && (
+              <div className="bg-emerald-500/10 rounded-xl border border-emerald-500/20 p-4">
+                <p className="text-xs text-emerald-400 mb-1">גשר סגירה</p>
+                <p className="text-white">{selectedStory.closing_bridge}</p>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
