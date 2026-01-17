@@ -35,7 +35,6 @@ const stages = [
 const navItems = [
   { id: 'dashboard', label: 'Dashboard', icon: Home },
   { id: 'ai-agent', label: 'AI Agent', icon: Brain, highlight: true, isRoute: true },
-  { id: 'practice', label: 'תרגול', icon: Dumbbell, highlight: true },
   { id: 'upload', label: 'New Call', icon: Upload },
   { id: 'calls', label: 'Call History', icon: History },
   { id: 'settings', label: 'Settings', icon: Settings },
@@ -1169,15 +1168,6 @@ function MainApp() {
         <div className="p-4 sm:p-6">
           {activeTab === 'dashboard' && renderDashboard()}
           {activeTab === 'calls' && renderCallsHistory()}
-          {activeTab === 'practice' && (
-            <PracticePage 
-              onViewCall={(callId) => {
-                viewCall(callId)
-                setActiveTab('upload')
-              }}
-              callsList={callsList}
-            />
-          )}
           {activeTab === 'settings' && (
             <div className="text-center py-20">
               <Settings className="w-12 h-12 text-gray-600 mx-auto mb-4" />
@@ -1694,16 +1684,6 @@ function MainApp() {
                       ← Back
                     </button>
                     <PDFDownloadButton analysisResult={analysisResult} fileName={result?.file_name} />
-                    <button
-                      onClick={() => {
-                        setShowAnalysis(false)
-                        setActiveTab('practice')
-                      }}
-                      className="px-3 py-2 bg-gradient-to-r from-fuchsia-500/20 to-violet-500/20 hover:from-fuchsia-500/30 hover:to-violet-500/30 text-fuchsia-300 rounded-xl transition-all text-sm border border-fuchsia-500/30 flex items-center gap-1.5"
-                    >
-                      <Dumbbell className="w-4 h-4" />
-                      תרגול
-                    </button>
                     <button
                       onClick={() => {
                         setResult(null)
