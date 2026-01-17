@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { BarChart3, MessageSquare, Target, Activity, BookOpen, Zap, Volume2, PlayCircle, PauseCircle, X, ChevronDown, ChevronUp, Copy, Check, Clock, Shield, Mic, UserCheck } from 'lucide-react'
+import { BarChart3, MessageSquare, Target, Activity, BookOpen, Zap, Volume2, PlayCircle, PauseCircle, X, ChevronDown, ChevronUp, Copy, Check, Clock, Shield, Mic, UserCheck, Dumbbell } from 'lucide-react'
 import axios from 'axios'
 import { API_URL } from '../../lib/config'
 import SkillRadarChart from '../charts/SkillRadarChart'
@@ -10,6 +10,7 @@ import StoryLibrary from './StoryLibrary'
 import DeepInsightsTab from './DeepInsightsTab'
 import TopicDetailModal from './TopicDetailModal'
 import SkillDetailModal from './SkillDetailModal'
+import PracticeOnTab from './PracticeOnTab'
 
 // Prevention Story Card Component
 function PreventionStoryCard({ story, TTSButton }) {
@@ -117,6 +118,7 @@ const tabs = [
   { id: 'transcript', label: 'Transcript', shortLabel: 'תמלול', icon: Mic },
   { id: 'insights', label: 'Deep Insights', shortLabel: 'תובנות', icon: Zap },
   { id: 'stories', label: 'Stories', shortLabel: 'סיפורים', icon: BookOpen },
+  { id: 'practice', label: 'Practice On', shortLabel: 'תרגול', icon: Dumbbell },
 ]
 
 export default function AnalysisInsights({ 
@@ -343,9 +345,10 @@ export default function AnalysisInsights({
       <div className="flex items-center gap-1 p-1 bg-slate-800/30 rounded-xl border border-slate-700/30">
         {tabs.map(tab => {
           // Hide tabs based on available data
-          if (tab.id === 'stories' && !hasStories) return null
+          if (tab.id === 'stories' && !hasStories && !analysisResult?.analysis?.objection_prevention_stories?.length) return null
           if (tab.id === 'insights' && !hasDeepInsights) return null
           if (tab.id === 'transcript' && (!result?.utterances || result.utterances.length === 0)) return null
+          if (tab.id === 'practice' && !analysisResult) return null  // Show practice tab only when analysis exists
           
           const Icon = tab.icon
           const isActive = activeTab === tab.id
@@ -608,6 +611,14 @@ export default function AnalysisInsights({
               </div>
             )}
           </div>
+        )}
+
+        {activeTab === 'practice' && (
+          <PracticeOnTab 
+            analysisResult={analysisResult}
+            result={result}
+            TTSButton={TTSButton}
+          />
         )}
       </div>
       

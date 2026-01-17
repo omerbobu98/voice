@@ -824,6 +824,160 @@ If you can't find a project type, use "Sales Call".
         })
     return jsonify({'error': 'Failed to update call name'}), 500
 
+
+# ============ Practice On Feature ============
+
+PRACTICE_COACH_PROMPT = """You are an ELITE SALES TRAINING COACH. Based on the call analysis provided, create a PERSONALIZED PRACTICE PLAN to help the salesperson improve.
+
+## YOUR GOAL:
+Create specific, actionable practice exercises that address the weaknesses identified in this call.
+Focus on the areas with the lowest scores and the most critical issues.
+
+## ANALYSIS DATA:
+{analysis_json}
+
+## RESPOND IN THIS EXACT JSON FORMAT:
+
+{{
+    "practice_areas": [
+        {{
+            "skill_name": "שם המיומנות (בעברית)",
+            "priority": "critical|high|medium|low",
+            "current_score": 0-100,
+            "target_score": 80-95,
+            "weakness_summary": "תיאור קצר של החולשה",
+            "specific_issues": ["בעיה ספציפית 1", "בעיה ספציפית 2"],
+            "practice_exercises": [
+                {{
+                    "exercise_type": "script_practice|roleplay|listen_and_repeat|technique_drill",
+                    "title": "כותרת התרגיל",
+                    "description": "מה צריך לתרגל",
+                    "example_scenario": "תרחיש לדוגמה מהשיחה",
+                    "your_response": "מה המוכר אמר בפועל",
+                    "ideal_response": "מה היה צריך לומר",
+                    "technique": "שם הטכניקה (Feel-Felt-Found, LAER, etc.)",
+                    "practice_script": "סקריפט מלא לתרגול - מה לומר בדיוק",
+                    "tips": ["טיפ 1", "טיפ 2", "טיפ 3"]
+                }}
+            ]
+        }}
+    ],
+    "daily_drills": [
+        {{
+            "drill_name": "תרגול בוקר - 5 דקות",
+            "focus": "על מה מתמקד התרגול",
+            "exercises": ["תרגיל 1", "תרגיל 2", "תרגיל 3"]
+        }}
+    ],
+    "action_items": [
+        {{
+            "priority": 1,
+            "action": "מה לעשות",
+            "why": "למה זה חשוב",
+            "deadline": "לפני השיחה הבאה"
+        }}
+    ],
+    "roleplay_scenarios": [
+        {{
+            "scenario_name": "שם התרחיש",
+            "customer_opening": "מה הלקוח אומר",
+            "context": "הקשר התרחיש",
+            "goal": "המטרה שלך",
+            "techniques_to_use": ["טכניקה 1", "טכניקה 2"],
+            "sample_dialogue": [
+                {{"speaker": "לקוח", "text": "מה הלקוח אומר"}},
+                {{"speaker": "אתה", "text": "מה אתה צריך לענות"}}
+            ]
+        }}
+    ],
+    "improvement_metrics": {{
+        "weakest_area": "האזור הכי חלש",
+        "quick_wins": ["שיפור מהיר 1", "שיפור מהיר 2"],
+        "long_term_focus": ["מיקוד ארוך טווח 1", "מיקוד ארוך טווח 2"]
+    }}
+}}
+
+## IMPORTANT RULES:
+1. ALL text should be in HEBREW (except technique names like "Feel-Felt-Found")
+2. Create at least 3 practice exercises based on REAL issues from the call
+3. Each exercise should have a COMPLETE practice script ready to speak out loud
+4. Focus on the objections that were handled poorly
+5. Include roleplay scenarios for the most important situations
+6. Be SPECIFIC - use examples from THIS call, not generic advice
+7. If price was revealed too early, create a specific exercise for that
+8. If storytelling was weak, create exercises to improve stories"""
+
+
+@app.route('/api/generate-practice', methods=['POST'])
+def generate_practice_recommendations():
+    """Generate personalized practice recommendations based on call analysis"""
+    
+    data = request.get_json()
+    analysis = data.get('analysis')
+    
+    if not analysis:
+        return jsonify({'error': 'Analysis data required'}), 400
+    
+    if not openai_client:
+        return jsonify({'error': 'OpenAI not configured'}), 500
+    
+    try:
+        # Build compact analysis JSON for the prompt
+        analysis_summary = {
+            'call_summary': analysis.get('analysis', {}).get('call_summary', {}),
+            'methodology_score': analysis.get('analysis', {}).get('methodology_score', {}),
+            'objections': analysis.get('analysis', {}).get('objections', []),
+            'better_responses': analysis.get('analysis', {}).get('better_responses', []),
+            'storytelling_analysis': analysis.get('analysis', {}).get('storytelling_analysis', []),
+            'price_timing_analysis': analysis.get('analysis', {}).get('price_timing_analysis', {}),
+            'trial_closes_analysis': analysis.get('analysis', {}).get('trial_closes_analysis', {}),
+            'buying_signals_detected': analysis.get('analysis', {}).get('buying_signals_detected', {}),
+            'call_structure_analysis': analysis.get('analysis', {}).get('call_structure_analysis', {}),
+            'seller_performance': analysis.get('analysis', {}).get('seller_performance', {}),
+            'metrics': analysis.get('metrics', {})
+        }
+        
+        prompt = PRACTICE_COACH_PROMPT.format(
+            analysis_json=json.dumps(analysis_summary, ensure_ascii=False, indent=2)
+        )
+        
+        response = openai_client.chat.completions.create(
+            model="gpt-5.2",
+            messages=[
+                {"role": "system", "content": "You are an expert sales coach. Respond ONLY with valid JSON."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.7,
+            max_tokens=4000
+        )
+        
+        result_text = response.choices[0].message.content.strip()
+        
+        # Clean up JSON if wrapped in markdown
+        if '```' in result_text:
+            result_text = result_text.split('```')[1]
+            if result_text.startswith('json'):
+                result_text = result_text[4:]
+            result_text = result_text.strip()
+        
+        practice_data = json.loads(result_text)
+        
+        return jsonify({
+            'success': True,
+            'practice_recommendations': practice_data
+        })
+        
+    except json.JSONDecodeError as e:
+        print(f"[generate_practice] JSON parse error: {e}")
+        print(f"[generate_practice] Raw response: {result_text[:500] if 'result_text' in dir() else 'N/A'}")
+        return jsonify({'error': 'Failed to parse practice recommendations'}), 500
+    except Exception as e:
+        import traceback
+        print(f"[generate_practice] Error: {e}")
+        print(traceback.format_exc())
+        return jsonify({'error': str(e)}), 500
+
+
 # ============ Admin API Endpoints ============
 
 @app.route('/api/admin/check', methods=['GET'])
