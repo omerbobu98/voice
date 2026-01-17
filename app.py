@@ -978,6 +978,263 @@ def generate_practice_recommendations():
         return jsonify({'error': str(e)}), 500
 
 
+# ============ Practice Sessions API ============
+
+@app.route('/api/practice-sessions', methods=['GET'])
+def get_practice_sessions():
+    """Get all practice sessions for the current user"""
+    user_id = get_user_id_from_token()
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    client = get_supabase()
+    if not client:
+        return jsonify({'error': 'Database not available'}), 500
+    
+    try:
+        result = client.table('practice_sessions').select('*').eq('user_id', user_id).order('created_at', desc=True).execute()
+        return jsonify(result.data or [])
+    except Exception as e:
+        print(f"[get_practice_sessions] Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/practice-sessions/<session_id>', methods=['GET'])
+def get_practice_session(session_id):
+    """Get a specific practice session"""
+    user_id = get_user_id_from_token()
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    client = get_supabase()
+    if not client:
+        return jsonify({'error': 'Database not available'}), 500
+    
+    try:
+        result = client.table('practice_sessions').select('*').eq('id', session_id).eq('user_id', user_id).maybe_single().execute()
+        if not result.data:
+            return jsonify({'error': 'Practice session not found'}), 404
+        return jsonify(result.data)
+    except Exception as e:
+        print(f"[get_practice_session] Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/practice-sessions', methods=['POST'])
+def create_practice_session():
+    """Create a new practice session from a call analysis"""
+    user_id = get_user_id_from_token()
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    data = request.get_json()
+    call_id = data.get('call_id')
+    call_name = data.get('call_name', 'Unnamed Call')
+    practice_data = data.get('practice_data')
+    
+    if not call_id or not practice_data:
+        return jsonify({'error': 'call_id and practice_data are required'}), 400
+    
+    client = get_supabase()
+    if not client:
+        return jsonify({'error': 'Database not available'}), 500
+    
+    try:
+        # Check if session already exists for this call
+        existing = client.table('practice_sessions').select('id').eq('call_id', call_id).eq('user_id', user_id).maybe_single().execute()
+        
+        if existing.data:
+            # Update existing session
+            result = client.table('practice_sessions').update({
+                'practice_data': practice_data,
+                'call_name': call_name,
+                'total_exercises': count_exercises(practice_data),
+                'updated_at': 'now()'
+            }).eq('id', existing.data['id']).execute()
+            return jsonify({'success': True, 'session_id': existing.data['id'], 'updated': True})
+        
+        # Create new session
+        total_exercises = count_exercises(practice_data)
+        result = client.table('practice_sessions').insert({
+            'user_id': user_id,
+            'call_id': call_id,
+            'call_name': call_name,
+            'practice_data': practice_data,
+            'total_exercises': total_exercises,
+            'completed_count': 0,
+            'progress_percent': 0
+        }).execute()
+        
+        return jsonify({'success': True, 'session_id': result.data[0]['id'] if result.data else None})
+    except Exception as e:
+        print(f"[create_practice_session] Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+def count_exercises(practice_data):
+    """Count total exercises in practice data"""
+    count = 0
+    for area in practice_data.get('practice_areas', []):
+        count += len(area.get('practice_exercises', []))
+    return count
+
+
+@app.route('/api/practice-sessions/<session_id>', methods=['PUT'])
+def update_practice_session(session_id):
+    """Update practice session progress"""
+    user_id = get_user_id_from_token()
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    data = request.get_json()
+    completed_exercises = data.get('completed_exercises', [])
+    completed_actions = data.get('completed_actions', [])
+    
+    client = get_supabase()
+    if not client:
+        return jsonify({'error': 'Database not available'}), 500
+    
+    try:
+        # Get current session to calculate progress
+        session = client.table('practice_sessions').select('total_exercises').eq('id', session_id).eq('user_id', user_id).maybe_single().execute()
+        
+        if not session.data:
+            return jsonify({'error': 'Practice session not found'}), 404
+        
+        total = session.data.get('total_exercises', 1)
+        completed_count = len(completed_exercises)
+        progress = int((completed_count / total) * 100) if total > 0 else 0
+        
+        result = client.table('practice_sessions').update({
+            'completed_exercises': completed_exercises,
+            'completed_actions': completed_actions,
+            'completed_count': completed_count,
+            'progress_percent': progress,
+            'updated_at': 'now()'
+        }).eq('id', session_id).eq('user_id', user_id).execute()
+        
+        return jsonify({'success': True, 'progress_percent': progress})
+    except Exception as e:
+        print(f"[update_practice_session] Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/practice-sessions/<session_id>', methods=['DELETE'])
+def delete_practice_session(session_id):
+    """Delete a practice session"""
+    user_id = get_user_id_from_token()
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    client = get_supabase()
+    if not client:
+        return jsonify({'error': 'Database not available'}), 500
+    
+    try:
+        client.table('practice_sessions').delete().eq('id', session_id).eq('user_id', user_id).execute()
+        return jsonify({'success': True})
+    except Exception as e:
+        print(f"[delete_practice_session] Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/practice-sessions/stats', methods=['GET'])
+def get_practice_stats():
+    """Get aggregated practice statistics for the user"""
+    user_id = get_user_id_from_token()
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    client = get_supabase()
+    if not client:
+        return jsonify({'error': 'Database not available'}), 500
+    
+    try:
+        result = client.table('practice_sessions').select('*').eq('user_id', user_id).execute()
+        sessions = result.data or []
+        
+        total_sessions = len(sessions)
+        total_exercises = sum(s.get('total_exercises', 0) for s in sessions)
+        completed_exercises = sum(s.get('completed_count', 0) for s in sessions)
+        avg_progress = int(sum(s.get('progress_percent', 0) for s in sessions) / total_sessions) if total_sessions > 0 else 0
+        
+        # Aggregate weakest areas across all sessions
+        weakness_counts = {}
+        for session in sessions:
+            practice_data = session.get('practice_data', {})
+            for area in practice_data.get('practice_areas', []):
+                skill = area.get('skill_name', 'Unknown')
+                if skill not in weakness_counts:
+                    weakness_counts[skill] = {'count': 0, 'total_score': 0}
+                weakness_counts[skill]['count'] += 1
+                weakness_counts[skill]['total_score'] += area.get('current_score', 50)
+        
+        top_weaknesses = sorted(
+            [{'skill': k, 'count': v['count'], 'avg_score': int(v['total_score'] / v['count'])} 
+             for k, v in weakness_counts.items()],
+            key=lambda x: x['avg_score']
+        )[:5]
+        
+        return jsonify({
+            'total_sessions': total_sessions,
+            'total_exercises': total_exercises,
+            'completed_exercises': completed_exercises,
+            'avg_progress': avg_progress,
+            'top_weaknesses': top_weaknesses
+        })
+    except Exception as e:
+        print(f"[get_practice_stats] Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/calls-for-practice', methods=['GET'])
+def get_calls_for_practice():
+    """Get calls that have analysis but may not have practice sessions yet"""
+    user_id = get_user_id_from_token()
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    client = get_supabase()
+    if not client:
+        return jsonify({'error': 'Database not available'}), 500
+    
+    try:
+        # Get calls with analyses
+        calls = client.table('calls').select('id, file_name, created_at, duration_seconds').eq('user_id', user_id).order('created_at', desc=True).limit(50).execute()
+        
+        # Get existing practice sessions
+        practice_sessions = client.table('practice_sessions').select('call_id, id, progress_percent').eq('user_id', user_id).execute()
+        practice_map = {p['call_id']: p for p in (practice_sessions.data or [])}
+        
+        # Get analyses
+        analyses = client.table('analyses').select('call_id, overall_score').execute()
+        analysis_map = {a['call_id']: a for a in (analyses.data or [])}
+        
+        # Build response
+        result = []
+        for call in (calls.data or []):
+            call_id = call['id']
+            has_analysis = call_id in analysis_map
+            practice_info = practice_map.get(call_id)
+            
+            if has_analysis:  # Only include calls with analysis
+                result.append({
+                    'id': call_id,
+                    'file_name': call['file_name'],
+                    'created_at': call['created_at'],
+                    'duration_seconds': call['duration_seconds'],
+                    'overall_score': analysis_map[call_id].get('overall_score'),
+                    'has_practice': practice_info is not None,
+                    'practice_session_id': practice_info['id'] if practice_info else None,
+                    'practice_progress': practice_info['progress_percent'] if practice_info else 0
+                })
+        
+        return jsonify(result)
+    except Exception as e:
+        print(f"[get_calls_for_practice] Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
 # ============ Admin API Endpoints ============
 
 @app.route('/api/admin/check', methods=['GET'])
