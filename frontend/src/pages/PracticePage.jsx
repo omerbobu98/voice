@@ -431,145 +431,144 @@ export default function PracticePage({ onBack }) {
       
       {/* Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          <StatsCard
-            icon={Dumbbell}
-            label="מפגשי תרגול"
-            value={stats?.total_sessions || 0}
-            color="violet"
-          />
-          <StatsCard
-            icon={Target}
-            label="תרגילים"
-            value={stats?.total_exercises || 0}
-            subValue={`${stats?.completed_exercises || 0} הושלמו`}
-            color="emerald"
-          />
-          <StatsCard
-            icon={TrendingUp}
-            label="התקדמות ממוצעת"
-            value={`${stats?.avg_progress || 0}%`}
-            color="amber"
-          />
-          <StatsCard
-            icon={Trophy}
-            label="שיחות עם תרגול"
-            value={calls.filter(c => c.has_practice).length}
-            subValue={`מתוך ${calls.length} שיחות`}
-            color="pink"
-          />
+        <StatsCard
+          icon={Dumbbell}
+          label="מפגשי תרגול"
+          value={stats?.total_sessions || 0}
+          color="violet"
+        />
+        <StatsCard
+          icon={Target}
+          label="תרגילים"
+          value={stats?.total_exercises || 0}
+          subValue={`${stats?.completed_exercises || 0} הושלמו`}
+          color="emerald"
+        />
+        <StatsCard
+          icon={TrendingUp}
+          label="התקדמות ממוצעת"
+          value={`${stats?.avg_progress || 0}%`}
+          color="amber"
+        />
+        <StatsCard
+          icon={Trophy}
+          label="שיחות עם תרגול"
+          value={calls.filter(c => c.has_practice).length}
+          subValue={`מתוך ${calls.length} שיחות`}
+          color="pink"
+        />
+      </div>
+
+      {/* Top Weaknesses */}
+      {stats?.top_weaknesses && stats.top_weaknesses.length > 0 && (
+        <div className="bg-gradient-to-br from-red-500/5 to-orange-500/5 rounded-2xl border border-red-500/20 p-4 sm:p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <AlertTriangle className="w-5 h-5 text-red-400" />
+            <h2 className="text-lg font-semibold text-white">אזורים לשיפור דחוף</h2>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {stats.top_weaknesses.map((w, i) => (
+              <WeaknessSummaryCard key={i} weakness={w} />
+            ))}
+          </div>
         </div>
-        
-        {/* Top Weaknesses */}
-        {stats?.top_weaknesses && stats.top_weaknesses.length > 0 && (
-          <div className="bg-gradient-to-br from-red-500/5 to-orange-500/5 rounded-2xl border border-red-500/20 p-4 sm:p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <AlertTriangle className="w-5 h-5 text-red-400" />
-              <h2 className="text-lg font-semibold text-slate-200">אזורים לשיפור דחוף</h2>
+      )}
+
+      {/* Tabs */}
+      <div className="flex gap-2 p-1 bg-white/5 rounded-xl border border-white/10 w-fit">
+        <button
+          onClick={() => setActiveTab('sessions')}
+          className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
+            activeTab === 'sessions'
+              ? 'bg-violet-500 text-white shadow-lg shadow-violet-500/20'
+              : 'text-gray-400 hover:text-white'
+          }`}
+        >
+          <Dumbbell className="w-4 h-4" />
+          מפגשי תרגול ({sessions.length})
+        </button>
+        <button
+          onClick={() => setActiveTab('calls')}
+          className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
+            activeTab === 'calls'
+              ? 'bg-violet-500 text-white shadow-lg shadow-violet-500/20'
+              : 'text-gray-400 hover:text-white'
+          }`}
+        >
+          <Phone className="w-4 h-4" />
+          שיחות לתרגול ({calls.length})
+        </button>
+      </div>
+
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+        <input
+          type="text"
+          placeholder="חיפוש..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full pr-11 pl-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-gray-500 focus:outline-none focus:border-violet-500/50"
+        />
+      </div>
+
+      {/* Content */}
+      {activeTab === 'sessions' ? (
+        <div>
+          {filteredSessions.length === 0 ? (
+            <div className="text-center py-16 bg-white/5 rounded-2xl border border-white/10">
+              <div className="w-20 h-20 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Dumbbell className="w-10 h-10 text-gray-500" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-300 mb-2">אין מפגשי תרגול</h3>
+              <p className="text-gray-500 mb-4">צור תרגול מותאם אישית משיחות שעברו ניתוח</p>
+              <button
+                onClick={() => setActiveTab('calls')}
+                className="px-5 py-2.5 bg-violet-500 hover:bg-violet-600 text-white rounded-xl transition-colors inline-flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                צור תרגול חדש
+              </button>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {stats.top_weaknesses.map((w, i) => (
-                <WeaknessSummaryCard key={i} weakness={w} />
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredSessions.map(session => (
+                <PracticeSessionCard
+                  key={session.id}
+                  session={session}
+                  onView={viewPractice}
+                  onDelete={deletePractice}
+                />
               ))}
             </div>
-          </div>
-        )}
-        
-        {/* Tabs */}
-        <div className="flex gap-2 p-1 bg-slate-800/30 rounded-xl border border-slate-700/30 w-fit">
-          <button
-            onClick={() => setActiveTab('sessions')}
-            className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
-              activeTab === 'sessions'
-                ? 'bg-violet-500 text-white shadow-lg shadow-violet-500/20'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <Dumbbell className="w-4 h-4" />
-            מפגשי תרגול ({sessions.length})
-          </button>
-          <button
-            onClick={() => setActiveTab('calls')}
-            className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
-              activeTab === 'calls'
-                ? 'bg-violet-500 text-white shadow-lg shadow-violet-500/20'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <Phone className="w-4 h-4" />
-            שיחות לתרגול ({calls.length})
-          </button>
+          )}
         </div>
-        
-        {/* Search */}
-        <div className="relative">
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
-          <input
-            type="text"
-            placeholder="חיפוש..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pr-11 pl-4 py-3 bg-slate-800/50 border border-slate-700/50 rounded-xl text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-violet-500/50"
-          />
+      ) : (
+        <div className="space-y-3">
+          {filteredCalls.length === 0 ? (
+            <div className="text-center py-16 bg-white/5 rounded-2xl border border-white/10">
+              <div className="w-20 h-20 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Phone className="w-10 h-10 text-gray-500" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-300 mb-2">אין שיחות לתרגול</h3>
+              <p className="text-gray-500">העלה שיחות ונתח אותן כדי ליצור תרגולים</p>
+            </div>
+          ) : (
+            filteredCalls.map(call => (
+              <CallPracticeCard
+                key={call.id}
+                call={call}
+                onGeneratePractice={generatePractice}
+                onViewPractice={(c) => {
+                  const session = sessions.find(s => s.call_id === c.id)
+                  if (session) viewPractice(session)
+                }}
+                generating={generating}
+              />
+            ))
+          )}
         </div>
-        
-        {/* Content */}
-        {activeTab === 'sessions' ? (
-          <div>
-            {filteredSessions.length === 0 ? (
-              <div className="text-center py-16 bg-slate-800/30 rounded-2xl border border-slate-700/30">
-                <div className="w-20 h-20 bg-slate-700/50 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Dumbbell className="w-10 h-10 text-slate-500" />
-                </div>
-                <h3 className="text-lg font-semibold text-slate-300 mb-2">אין מפגשי תרגול</h3>
-                <p className="text-slate-500 mb-4">צור תרגול מותאם אישית משיחות שעברו ניתוח</p>
-                <button
-                  onClick={() => setActiveTab('calls')}
-                  className="px-5 py-2.5 bg-violet-500 hover:bg-violet-600 text-white rounded-xl transition-colors inline-flex items-center gap-2"
-                >
-                  <Plus className="w-4 h-4" />
-                  צור תרגול חדש
-                </button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredSessions.map(session => (
-                  <PracticeSessionCard
-                    key={session.id}
-                    session={session}
-                    onView={viewPractice}
-                    onDelete={deletePractice}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {filteredCalls.length === 0 ? (
-              <div className="text-center py-16 bg-slate-800/30 rounded-2xl border border-slate-700/30">
-                <div className="w-20 h-20 bg-slate-700/50 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Phone className="w-10 h-10 text-slate-500" />
-                </div>
-                <h3 className="text-lg font-semibold text-slate-300 mb-2">אין שיחות לתרגול</h3>
-                <p className="text-slate-500">העלה שיחות ונתח אותן כדי ליצור תרגולים</p>
-              </div>
-            ) : (
-              filteredCalls.map(call => (
-                <CallPracticeCard
-                  key={call.id}
-                  call={call}
-                  onGeneratePractice={generatePractice}
-                  onViewPractice={(c) => {
-                    const session = sessions.find(s => s.call_id === c.id)
-                    if (session) viewPractice(session)
-                  }}
-                  generating={generating}
-                />
-              ))
-            )}
-          </div>
-        )}
-      </div>
+      )}
     </div>
   )
 }
@@ -675,208 +674,190 @@ function PracticeSessionView({ session, onBack }) {
           style={{ width: `${progressPercent}%` }}
         />
       </div>
-        {/* Section Navigation */}
-        <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0">
-          {sections.map(section => {
-            const Icon = section.icon
-            const isActive = activeSection === section.id
-            return (
-              <button
-                key={section.id}
-                onClick={() => setActiveSection(section.id)}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl whitespace-nowrap transition-all ${
-                  isActive
-                    ? 'bg-violet-500 text-white shadow-lg shadow-violet-500/20'
-                    : 'bg-slate-800/50 text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
-                }`}
-              >
-                <Icon className="w-4 h-4" />
-                <span className="text-sm font-medium">{section.label}</span>
-              </button>
-            )
-          })}
+
+      {/* Section Navigation */}
+      <div className="flex gap-2 overflow-x-auto pb-2">
+        {sections.map(section => {
+          const Icon = section.icon
+          const isActive = activeSection === section.id
+          return (
+            <button
+              key={section.id}
+              onClick={() => setActiveSection(section.id)}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl whitespace-nowrap transition-all ${
+                isActive
+                  ? 'bg-violet-500 text-white shadow-lg shadow-violet-500/20'
+                  : 'bg-white/5 text-gray-400 hover:text-white hover:bg-white/10'
+              }`}
+            >
+              <Icon className="w-4 h-4" />
+              <span className="text-sm font-medium">{section.label}</span>
+            </button>
+          )
+        })}
+      </div>
+
+      {/* Weaknesses Section */}
+      {activeSection === 'weaknesses' && (
+        <div className="space-y-4">
+          {practiceData.practice_areas?.map((area, i) => (
+            <div key={i} className="bg-white/5 rounded-xl border border-white/10 p-4 sm:p-5">
+              <div className="flex items-start justify-between gap-4 mb-3">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className={`px-2 py-0.5 rounded-lg text-xs font-medium ${
+                      area.priority === 'critical' ? 'bg-red-500/20 text-red-400' :
+                      area.priority === 'high' ? 'bg-orange-500/20 text-orange-400' :
+                      area.priority === 'medium' ? 'bg-amber-500/20 text-amber-400' :
+                      'bg-blue-500/20 text-blue-400'
+                    }`}>
+                      {area.priority === 'critical' ? 'קריטי' :
+                       area.priority === 'high' ? 'גבוה' :
+                       area.priority === 'medium' ? 'בינוני' : 'נמוך'}
+                    </span>
+                    <h3 className="text-lg font-semibold text-white">{area.skill_name}</h3>
+                  </div>
+                  <p className="text-sm text-gray-400">{area.weakness_summary}</p>
+                </div>
+                <div className="text-left flex-shrink-0">
+                  <p className="text-2xl font-bold text-white">{area.current_score}</p>
+                  <p className="text-xs text-gray-500">יעד: {area.target_score}</p>
+                </div>
+              </div>
+              {area.specific_issues?.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {area.specific_issues.map((issue, j) => (
+                    <span key={j} className="px-2 py-1 bg-white/10 text-gray-300 text-xs rounded-lg">
+                      {issue}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
         </div>
-        
-        {/* Weaknesses Section */}
-        {activeSection === 'weaknesses' && (
-          <div className="space-y-4">
-            {practiceData.practice_areas?.map((area, i) => (
-              <div key={i} className="bg-slate-800/50 rounded-xl border border-slate-700/50 p-4 sm:p-5">
-                <div className="flex items-start justify-between gap-4 mb-3">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className={`px-2 py-0.5 rounded-lg text-xs font-medium ${
-                        area.priority === 'critical' ? 'bg-red-500/20 text-red-400' :
-                        area.priority === 'high' ? 'bg-orange-500/20 text-orange-400' :
-                        area.priority === 'medium' ? 'bg-amber-500/20 text-amber-400' :
-                        'bg-blue-500/20 text-blue-400'
-                      }`}>
-                        {area.priority === 'critical' ? 'קריטי' :
-                         area.priority === 'high' ? 'גבוה' :
-                         area.priority === 'medium' ? 'בינוני' : 'נמוך'}
-                      </span>
-                      <h3 className="text-lg font-semibold text-slate-200">{area.skill_name}</h3>
-                    </div>
-                    <p className="text-sm text-slate-400">{area.weakness_summary}</p>
-                  </div>
-                  <div className="text-left flex-shrink-0">
-                    <p className="text-2xl font-bold text-slate-200">{area.current_score}</p>
-                    <p className="text-xs text-slate-500">יעד: {area.target_score}</p>
-                  </div>
-                </div>
-                
-                {area.specific_issues?.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-3">
-                    {area.specific_issues.map((issue, j) => (
-                      <span key={j} className="px-2 py-1 bg-slate-700/50 text-slate-300 text-xs rounded-lg">
-                        {issue}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-        
-        {/* Exercises Section */}
-        {activeSection === 'exercises' && (
-          <div className="space-y-3">
-            {practiceData.practice_areas?.flatMap((area, areaIdx) =>
-              area.practice_exercises?.map((ex, exIdx) => {
-                const id = `${areaIdx}-${exIdx}`
-                const isCompleted = completedExercises.has(id)
-                
-                return (
-                  <div 
-                    key={id}
-                    className={`bg-slate-800/50 rounded-xl border p-4 transition-all ${
-                      isCompleted ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-slate-700/50'
-                    }`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <button
-                        onClick={() => toggleExercise(id)}
-                        className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 transition-all ${
-                          isCompleted
-                            ? 'bg-emerald-500 text-white'
-                            : 'border-2 border-slate-600 hover:border-emerald-500'
-                        }`}
-                      >
-                        {isCompleted && <CheckCircle2 className="w-4 h-4" />}
-                      </button>
-                      
-                      <div className="flex-1 min-w-0">
-                        <h4 className={`font-medium mb-1 ${isCompleted ? 'text-slate-400 line-through' : 'text-slate-200'}`}>
-                          {ex.title}
-                        </h4>
-                        <p className="text-sm text-slate-400 mb-3">{ex.description}</p>
-                        
-                        {ex.practice_script && (
-                          <div className="p-3 bg-violet-500/10 rounded-xl border border-violet-500/20 mb-3">
-                            <p className="text-xs text-violet-400 mb-2 flex items-center gap-1">
-                              <Mic className="w-3 h-3" />
-                              תרגל:
-                            </p>
-                            <p className="text-slate-200 text-sm whitespace-pre-line">{ex.practice_script}</p>
-                          </div>
-                        )}
-                        
-                        {ex.technique && (
-                          <span className="px-2 py-1 bg-indigo-500/20 text-indigo-400 text-xs rounded-lg">
-                            {ex.technique}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )
-              })
-            )}
-          </div>
-        )}
-        
-        {/* Roleplay Section */}
-        {activeSection === 'roleplay' && (
-          <div className="space-y-4">
-            {practiceData.roleplay_scenarios?.length > 0 ? (
-              practiceData.roleplay_scenarios.map((scenario, i) => (
-                <div key={i} className="bg-gradient-to-br from-pink-500/5 to-violet-500/5 rounded-xl border border-pink-500/20 p-4 sm:p-5">
-                  <h3 className="text-lg font-semibold text-slate-200 mb-2">{scenario.scenario_name}</h3>
-                  <p className="text-sm text-slate-400 mb-4">{scenario.context}</p>
-                  
-                  <div className="p-3 bg-slate-900/50 rounded-xl mb-4">
-                    <p className="text-xs text-pink-400 mb-1">הלקוח אומר:</p>
-                    <p className="text-slate-200">"{scenario.customer_opening}"</p>
-                  </div>
-                  
-                  <div className="p-3 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
-                    <p className="text-xs text-emerald-400 mb-1">המטרה שלך:</p>
-                    <p className="text-slate-300 text-sm">{scenario.goal}</p>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="text-center py-12 bg-slate-800/30 rounded-xl">
-                <Users className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-                <p className="text-slate-400">אין תרחישים לתרגול</p>
-              </div>
-            )}
-          </div>
-        )}
-        
-        {/* Actions Section */}
-        {activeSection === 'actions' && (
-          <div className="space-y-3">
-            {practiceData.action_items?.map((item, i) => {
-              const isCompleted = completedActions.has(i)
-              
+      )}
+
+      {/* Exercises Section */}
+      {activeSection === 'exercises' && (
+        <div className="space-y-3">
+          {practiceData.practice_areas?.flatMap((area, areaIdx) =>
+            area.practice_exercises?.map((ex, exIdx) => {
+              const id = `${areaIdx}-${exIdx}`
+              const isCompleted = completedExercises.has(id)
               return (
                 <div 
-                  key={i}
-                  className={`flex items-start gap-3 p-4 rounded-xl transition-all ${
-                    isCompleted
-                      ? 'bg-emerald-500/10 border border-emerald-500/20'
-                      : 'bg-slate-800/50 border border-slate-700/50'
+                  key={id}
+                  className={`bg-white/5 rounded-xl border p-4 transition-all ${
+                    isCompleted ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-white/10'
                   }`}
                 >
-                  <button
-                    onClick={() => toggleAction(i)}
-                    className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${
-                      isCompleted
-                        ? 'bg-emerald-500 text-white'
-                        : 'border-2 border-slate-600 hover:border-emerald-500'
-                    }`}
-                  >
-                    {isCompleted && <CheckCircle2 className="w-4 h-4" />}
-                  </button>
-                  
-                  <div className="flex-1">
-                    <p className={`font-medium ${isCompleted ? 'text-slate-400 line-through' : 'text-slate-200'}`}>
-                      {item.action}
-                    </p>
-                    {item.why && (
-                      <p className="text-sm text-slate-500 mt-1">{item.why}</p>
-                    )}
-                    {item.deadline && (
-                      <span className="inline-block mt-2 px-2 py-0.5 bg-amber-500/20 text-amber-400 text-xs rounded-lg">
-                        {item.deadline}
-                      </span>
-                    )}
+                  <div className="flex items-start gap-3">
+                    <button
+                      onClick={() => toggleExercise(id)}
+                      className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 transition-all ${
+                        isCompleted ? 'bg-emerald-500 text-white' : 'border-2 border-gray-600 hover:border-emerald-500'
+                      }`}
+                    >
+                      {isCompleted && <CheckCircle2 className="w-4 h-4" />}
+                    </button>
+                    <div className="flex-1 min-w-0">
+                      <h4 className={`font-medium mb-1 ${isCompleted ? 'text-gray-500 line-through' : 'text-white'}`}>
+                        {ex.title}
+                      </h4>
+                      <p className="text-sm text-gray-400 mb-3">{ex.description}</p>
+                      {ex.practice_script && (
+                        <div className="p-3 bg-violet-500/10 rounded-xl border border-violet-500/20 mb-3">
+                          <p className="text-xs text-violet-400 mb-2 flex items-center gap-1">
+                            <Mic className="w-3 h-3" />
+                            תרגל:
+                          </p>
+                          <p className="text-white text-sm whitespace-pre-line">{ex.practice_script}</p>
+                        </div>
+                      )}
+                      {ex.technique && (
+                        <span className="px-2 py-1 bg-indigo-500/20 text-indigo-400 text-xs rounded-lg">
+                          {ex.technique}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               )
-            })}
-            
-            {(!practiceData.action_items || practiceData.action_items.length === 0) && (
-              <div className="text-center py-12 bg-slate-800/30 rounded-xl">
-                <CheckCircle2 className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-                <p className="text-slate-400">אין משימות</p>
+            })
+          )}
+        </div>
+      )}
+
+      {/* Roleplay Section */}
+      {activeSection === 'roleplay' && (
+        <div className="space-y-4">
+          {practiceData.roleplay_scenarios?.length > 0 ? (
+            practiceData.roleplay_scenarios.map((scenario, i) => (
+              <div key={i} className="bg-gradient-to-br from-pink-500/5 to-violet-500/5 rounded-xl border border-pink-500/20 p-4 sm:p-5">
+                <h3 className="text-lg font-semibold text-white mb-2">{scenario.scenario_name}</h3>
+                <p className="text-sm text-gray-400 mb-4">{scenario.context}</p>
+                <div className="p-3 bg-black/20 rounded-xl mb-4">
+                  <p className="text-xs text-pink-400 mb-1">הלקוח אומר:</p>
+                  <p className="text-white">"{scenario.customer_opening}"</p>
+                </div>
+                <div className="p-3 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
+                  <p className="text-xs text-emerald-400 mb-1">המטרה שלך:</p>
+                  <p className="text-gray-300 text-sm">{scenario.goal}</p>
+                </div>
               </div>
-            )}
-          </div>
-        )}
-      </div>
+            ))
+          ) : (
+            <div className="text-center py-12 bg-white/5 rounded-xl">
+              <Users className="w-12 h-12 text-gray-600 mx-auto mb-3" />
+              <p className="text-gray-400">אין תרחישים לתרגול</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Actions Section */}
+      {activeSection === 'actions' && (
+        <div className="space-y-3">
+          {practiceData.action_items?.map((item, i) => {
+            const isCompleted = completedActions.has(i)
+            return (
+              <div 
+                key={i}
+                className={`flex items-start gap-3 p-4 rounded-xl transition-all ${
+                  isCompleted ? 'bg-emerald-500/10 border border-emerald-500/20' : 'bg-white/5 border border-white/10'
+                }`}
+              >
+                <button
+                  onClick={() => toggleAction(i)}
+                  className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${
+                    isCompleted ? 'bg-emerald-500 text-white' : 'border-2 border-gray-600 hover:border-emerald-500'
+                  }`}
+                >
+                  {isCompleted && <CheckCircle2 className="w-4 h-4" />}
+                </button>
+                <div className="flex-1">
+                  <p className={`font-medium ${isCompleted ? 'text-gray-500 line-through' : 'text-white'}`}>
+                    {item.action}
+                  </p>
+                  {item.why && <p className="text-sm text-gray-500 mt-1">{item.why}</p>}
+                  {item.deadline && (
+                    <span className="inline-block mt-2 px-2 py-0.5 bg-amber-500/20 text-amber-400 text-xs rounded-lg">
+                      {item.deadline}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+          {(!practiceData.action_items || practiceData.action_items.length === 0) && (
+            <div className="text-center py-12 bg-white/5 rounded-xl">
+              <CheckCircle2 className="w-12 h-12 text-gray-600 mx-auto mb-3" />
+              <p className="text-gray-400">אין משימות</p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
