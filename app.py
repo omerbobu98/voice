@@ -1534,9 +1534,12 @@ def save_story():
             'setup_line': data.get('setup_line'),
             'closing_bridge': data.get('closing_bridge'),
             'explanation': data.get('explanation'),
+            'original_story': data.get('original_story'),
             'tags': data.get('tags', []),
             'is_favorite': data.get('is_favorite', False),
-            'usage_count': 0
+            'used_count': 0,
+            'success_count': 0,
+            'fail_count': 0
         }
         
         result = client.table('story_bank').insert(story_data).execute()
@@ -1600,7 +1603,7 @@ def delete_story(story_id):
 
 @app.route('/api/story-bank/<story_id>/use', methods=['POST'])
 def increment_story_usage(story_id):
-    """Increment the usage count when a story is used"""
+    """Track story usage and whether it worked"""
     user_id = get_user_id_from_token()
     if not user_id:
         return jsonify({'error': 'Authentication required'}), 401
@@ -1610,16 +1613,29 @@ def increment_story_usage(story_id):
         return jsonify({'error': 'Database not available'}), 500
     
     try:
-        # Get current count
-        story = client.table('story_bank').select('usage_count').eq('id', story_id).eq('user_id', user_id).execute()
+        data = request.get_json() or {}
+        worked = data.get('worked', None)  # True = worked, False = didn't work, None = just used
+        
+        # Get current counts
+        story = client.table('story_bank').select('used_count, success_count, fail_count').eq('id', story_id).eq('user_id', user_id).execute()
         if not story.data:
             return jsonify({'error': 'Story not found'}), 404
         
-        current_count = story.data[0].get('usage_count', 0) or 0
+        current = story.data[0]
+        used_count = (current.get('used_count') or 0) + 1
+        success_count = current.get('success_count') or 0
+        fail_count = current.get('fail_count') or 0
         
-        # Increment
+        if worked is True:
+            success_count += 1
+        elif worked is False:
+            fail_count += 1
+        
+        # Update counts
         result = client.table('story_bank').update({
-            'usage_count': current_count + 1,
+            'used_count': used_count,
+            'success_count': success_count,
+            'fail_count': fail_count,
             'updated_at': 'now()'
         }).eq('id', story_id).eq('user_id', user_id).execute()
         

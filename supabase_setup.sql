@@ -144,3 +144,82 @@ CREATE TRIGGER update_calls_updated_at
 -- VALUES ('audio', 'audio', true)
 -- ON CONFLICT (id) DO NOTHING;
 
+-- ============================================
+-- STORY BANK TABLE
+-- ============================================
+
+-- Create the 'story_bank' table
+CREATE TABLE IF NOT EXISTS story_bank (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+    title TEXT DEFAULT 'סיפור ללא שם',
+    content TEXT NOT NULL,
+    original_story TEXT,
+    target_emotions TEXT[] DEFAULT '{}',
+    target_message TEXT,
+    objection_type TEXT,
+    product TEXT,
+    structure JSONB DEFAULT '{}'::jsonb,
+    setup_line TEXT,
+    closing_bridge TEXT,
+    explanation TEXT,
+    tags TEXT[] DEFAULT '{}',
+    is_favorite BOOLEAN DEFAULT FALSE,
+    used_count INTEGER DEFAULT 0,
+    success_count INTEGER DEFAULT 0,
+    fail_count INTEGER DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Create indexes for story_bank
+CREATE INDEX IF NOT EXISTS idx_story_bank_user_id ON story_bank(user_id);
+CREATE INDEX IF NOT EXISTS idx_story_bank_objection_type ON story_bank(objection_type);
+CREATE INDEX IF NOT EXISTS idx_story_bank_product ON story_bank(product);
+
+-- Enable RLS on story_bank
+ALTER TABLE story_bank ENABLE ROW LEVEL SECURITY;
+
+-- Drop existing policies if any
+DROP POLICY IF EXISTS "Service role can do anything on story_bank" ON story_bank;
+DROP POLICY IF EXISTS "Users can view their own stories" ON story_bank;
+DROP POLICY IF EXISTS "Users can insert their own stories" ON story_bank;
+DROP POLICY IF EXISTS "Users can update their own stories" ON story_bank;
+DROP POLICY IF EXISTS "Users can delete their own stories" ON story_bank;
+
+-- Create RLS policies for story_bank
+CREATE POLICY "Service role can do anything on story_bank" ON story_bank
+    FOR ALL
+    USING (auth.role() = 'service_role')
+    WITH CHECK (auth.role() = 'service_role');
+
+CREATE POLICY "Users can view their own stories" ON story_bank
+    FOR SELECT
+    USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own stories" ON story_bank
+    FOR INSERT
+    WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own stories" ON story_bank
+    FOR UPDATE
+    USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own stories" ON story_bank
+    FOR DELETE
+    USING (auth.uid() = user_id);
+
+-- Create updated_at trigger for story_bank
+DROP TRIGGER IF EXISTS update_story_bank_updated_at ON story_bank;
+CREATE TRIGGER update_story_bank_updated_at
+    BEFORE UPDATE ON story_bank
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Migration: Add new columns if table already exists
+-- Run these individually if needed:
+-- ALTER TABLE story_bank ADD COLUMN IF NOT EXISTS original_story TEXT;
+-- ALTER TABLE story_bank ADD COLUMN IF NOT EXISTS used_count INTEGER DEFAULT 0;
+-- ALTER TABLE story_bank ADD COLUMN IF NOT EXISTS success_count INTEGER DEFAULT 0;
+-- ALTER TABLE story_bank ADD COLUMN IF NOT EXISTS fail_count INTEGER DEFAULT 0;
+
