@@ -1,17 +1,13 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { 
-  Dumbbell, Target, TrendingUp, Trophy, Flame, Zap, BookOpen, 
-  ChevronRight, ChevronDown, ChevronUp, Clock, Calendar, Phone,
-  CheckCircle2, Circle, Plus, Play, Sparkles, ArrowLeft, Search,
-  Filter, BarChart3, Users, AlertTriangle, Lightbulb, RefreshCw,
-  FileAudio, Timer, Award, Brain, Mic, Volume2, X, Menu
+  Dumbbell, Target, TrendingUp, Trophy, Clock, Calendar, Phone,
+  CheckCircle2, Plus, Play, Sparkles, ArrowLeft, Search,
+  Users, AlertTriangle, RefreshCw, FileAudio, Mic, X
 } from 'lucide-react'
 import axios from 'axios'
 import { API_URL } from '../lib/config'
 import { supabase } from '../lib/supabase'
 
-// Helper to get auth headers
 const getAuthHeaders = async () => {
   const { data: { session } } = await supabase.auth.getSession()
   return session?.access_token 
@@ -385,14 +381,14 @@ export default function PracticePage({ onBack }) {
   
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+      <div className="flex items-center justify-center py-20">
         <div className="text-center">
           <div className="w-16 h-16 mx-auto mb-4 relative">
             <div className="absolute inset-0 rounded-full border-4 border-violet-500/20" />
             <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-violet-500 animate-spin" />
             <Dumbbell className="absolute inset-0 m-auto w-6 h-6 text-violet-400" />
           </div>
-          <p className="text-slate-300 font-medium">טוען מרכז תרגול...</p>
+          <p className="text-gray-300 font-medium">טוען מרכז תרגול...</p>
         </div>
       </div>
     )
@@ -412,42 +408,29 @@ export default function PracticePage({ onBack }) {
   }
   
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900" dir="rtl">
-      {/* Header */}
-      <div className="sticky top-0 z-40 bg-slate-900/80 backdrop-blur-xl border-b border-slate-700/50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              {onBack && (
-                <button
-                  onClick={onBack}
-                  className="p-2 hover:bg-slate-800 rounded-xl transition-colors"
-                >
-                  <ArrowLeft className="w-5 h-5 text-slate-400" />
-                </button>
-              )}
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-violet-500 to-fuchsia-500 rounded-xl flex items-center justify-center shadow-lg shadow-violet-500/20">
-                <Dumbbell className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-xl sm:text-2xl font-bold text-white">מרכז תרגול</h1>
-                <p className="text-xs sm:text-sm text-slate-400">שפר את מיומנויות המכירה שלך</p>
-              </div>
-            </div>
-            
-            <button
-              onClick={fetchData}
-              className="p-2.5 bg-slate-800/50 hover:bg-slate-700/50 rounded-xl transition-colors"
-            >
-              <RefreshCw className="w-5 h-5 text-slate-400" />
-            </button>
+    <div className="space-y-6" dir="rtl">
+      {/* Page Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-violet-500 to-fuchsia-500 rounded-xl flex items-center justify-center shadow-lg shadow-violet-500/20">
+            <Dumbbell className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+          </div>
+          <div>
+            <h2 className="text-xl sm:text-2xl font-bold text-white">מרכז תרגול</h2>
+            <p className="text-xs sm:text-sm text-gray-400">שפר את מיומנויות המכירה שלך</p>
           </div>
         </div>
+        
+        <button
+          onClick={fetchData}
+          className="p-2.5 bg-white/5 hover:bg-white/10 rounded-xl transition-colors border border-white/10"
+        >
+          <RefreshCw className="w-5 h-5 text-gray-400" />
+        </button>
       </div>
       
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      {/* Stats Grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <StatsCard
             icon={Dumbbell}
             label="מפגשי תרגול"
@@ -656,48 +639,42 @@ function PracticeSessionView({ session, onBack }) {
   ]
   
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900" dir="rtl">
-      {/* Header */}
-      <div className="sticky top-0 z-40 bg-slate-900/80 backdrop-blur-xl border-b border-slate-700/50">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={onBack}
-                className="p-2 hover:bg-slate-800 rounded-xl transition-colors"
-              >
-                <ArrowLeft className="w-5 h-5 text-slate-400" />
-              </button>
-              <div>
-                <h1 className="text-lg sm:text-xl font-bold text-white truncate max-w-[200px] sm:max-w-none">
-                  {session.call_name}
-                </h1>
-                <p className="text-xs text-slate-400">מפגש תרגול</p>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-3">
-              <div className="text-left">
-                <p className="text-lg font-bold text-white">{progressPercent}%</p>
-                <p className="text-xs text-slate-500">{completedExercises.size}/{totalExercises}</p>
-              </div>
-              {saving && (
-                <RefreshCw className="w-4 h-4 text-violet-400 animate-spin" />
-              )}
-            </div>
+    <div className="space-y-6" dir="rtl">
+      {/* Header with Back Button */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={onBack}
+            className="p-2 hover:bg-white/10 rounded-xl transition-colors border border-white/10"
+          >
+            <ArrowLeft className="w-5 h-5 text-gray-400" />
+          </button>
+          <div>
+            <h2 className="text-lg sm:text-xl font-bold text-white truncate max-w-[200px] sm:max-w-none">
+              {session.call_name}
+            </h2>
+            <p className="text-xs text-gray-400">מפגש תרגול</p>
           </div>
-          
-          {/* Progress Bar */}
-          <div className="mt-3 h-2 bg-slate-700/50 rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-gradient-to-r from-violet-500 via-fuchsia-500 to-pink-500 rounded-full transition-all duration-300"
-              style={{ width: `${progressPercent}%` }}
-            />
+        </div>
+        
+        <div className="flex items-center gap-3">
+          <div className="text-left">
+            <p className="text-lg font-bold text-white">{progressPercent}%</p>
+            <p className="text-xs text-gray-500">{completedExercises.size}/{totalExercises}</p>
           </div>
+          {saving && (
+            <RefreshCw className="w-4 h-4 text-violet-400 animate-spin" />
+          )}
         </div>
       </div>
       
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+      {/* Progress Bar */}
+      <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+        <div 
+          className="h-full bg-gradient-to-r from-violet-500 via-fuchsia-500 to-pink-500 rounded-full transition-all duration-300"
+          style={{ width: `${progressPercent}%` }}
+        />
+      </div>
         {/* Section Navigation */}
         <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0">
           {sections.map(section => {
