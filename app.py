@@ -24,7 +24,9 @@ from database import (
     # Live session functions
     create_live_session, get_live_session, update_live_session, end_live_session,
     get_user_live_sessions, save_live_insight, get_session_insights,
-    save_transcript_chunk, get_session_transcript, get_active_session
+    save_transcript_chunk, get_session_transcript, get_active_session,
+    # Supabase client
+    get_supabase
 )
 from functools import wraps
 
@@ -784,7 +786,7 @@ If you can't find a project type, use "Sales Call".
                 model="gpt-4o-mini",
                 messages=[{"role": "user", "content": extract_prompt}],
                 temperature=0.3,
-                max_tokens=100
+                max_completion_tokens=100
             )
             
             import json
@@ -948,7 +950,7 @@ def generate_practice_recommendations():
                 {"role": "user", "content": prompt}
             ],
             temperature=0.7,
-            max_tokens=4000
+            max_completion_tokens=4000
         )
         
         result_text = response.choices[0].message.content.strip()
@@ -1029,13 +1031,13 @@ Be encouraging but honest. Focus on actionable improvements.
 Respond ONLY with the JSON, no other text."""
 
         response = openai_client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="gpt-5.2",
             messages=[
                 {"role": "system", "content": "You are an expert sales coach. Respond ONLY with valid JSON in Hebrew."},
                 {"role": "user", "content": feedback_prompt}
             ],
             temperature=0.7,
-            max_tokens=1500
+            max_completion_tokens=1500
         )
         
         result_text = response.choices[0].message.content.strip()
@@ -1444,7 +1446,7 @@ RESPOND IN JSON:
 }}"""
 
         response = openai_client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="gpt-5.2",
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": f"Conversation so far:\n{conv_history}\n\nGenerate your next customer response."}
@@ -1511,7 +1513,7 @@ Score guide:
 - Below 60: Needs practice - missed key techniques or made significant mistakes"""
 
         response = openai_client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="gpt-5.2",
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": f"Analyze this roleplay conversation:\n\n{conv_history}"}
@@ -1555,6 +1557,105 @@ def transcribe_quick():
     except Exception as e:
         print(f"[transcribe_quick] Error: {e}")
         return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/roleplay/generate-full-conversation', methods=['POST'])
+def generate_full_conversation():
+    """Generate a full AI vs AI roleplay conversation demonstrating proper sales techniques"""
+    try:
+        data = request.get_json()
+        scenario = data.get('scenario', {})
+        techniques = data.get('techniques_to_use', [])
+        language = data.get('language', 'en')
+        max_turns = data.get('max_turns', 8)
+        
+        system_prompt = f"""You are a MASTER SALES TRAINER creating a TRAINING CONVERSATION that demonstrates how to handle objections perfectly.
+
+## SCENARIO:
+- **Situation**: {scenario.get('context', 'Customer considering outdoor home improvement')}
+- **Customer Opening**: {scenario.get('customer_opening', 'I need to think about it')}
+- **Objection Type**: {scenario.get('objection_type', 'need to think about it')}
+- **Sales Techniques to Demonstrate**: {', '.join(techniques) if techniques else 'storytelling, 4 Yes questions, feel-felt-found, urgency, social proof'}
+
+## YOUR TASK:
+Create a COMPLETE conversation ({max_turns} turns) between a SKILLED SALES REP and a RESISTANT CUSTOMER.
+
+## CONVERSATION STRUCTURE:
+1. **Turns 1-2**: Customer states objection firmly. Rep LISTENS and EMPATHIZES (doesn't push).
+2. **Turns 3-4**: Rep asks ISOLATING QUESTIONS (4 Yes technique). Customer reveals real concern.
+3. **Turns 5-6**: Rep tells a POWERFUL STORY with all 6 elements. Customer shows cracks.
+4. **Turns 7-8**: Rep creates URGENCY and uses TAKEAWAY. Customer agrees to move forward.
+
+## SALES TECHNIQUES TO DEMONSTRATE:
+1. **Empathy First**: "I totally understand..." / "That makes complete sense..."
+2. **4 Yes Questions**: Isolate the REAL objection (not the surface one)
+3. **Storytelling**: Use specific names, locations, numbers, quotes
+4. **Feel-Felt-Found**: "I understand how you feel... other customers felt the same... what they found was..."
+5. **Social Proof**: "Most of my customers in your neighborhood..."
+6. **Urgency/Scarcity**: Prices increasing, booking calendar filling up
+7. **Takeaway**: "Maybe this isn't right for you..." (reverse psychology)
+
+## RULES:
+- Customer should be REALISTICALLY RESISTANT early on
+- Customer should gradually warm up as rep uses good techniques
+- Rep should NEVER be pushy or salesy - always consultative
+- Include SPECIFIC details: names, Arizona locations, dollar amounts
+- End with customer agreeing to move forward
+
+LANGUAGE: {'Hebrew' if language == 'he' else 'English'}
+
+RESPOND IN JSON:
+{{
+  "conversation": [
+    {{
+      "role": "customer",
+      "text": "Customer's opening objection",
+      "emotion": "resistant"
+    }},
+    {{
+      "role": "sales_rep",
+      "text": "Sales rep's response using proper technique",
+      "technique_used": "empathy",
+      "coaching_note": "Why this response works"
+    }},
+    // ... continue for {max_turns} turns total
+  ],
+  "techniques_demonstrated": ["list of techniques used"],
+  "key_learning_points": ["What makes this conversation effective", "Key takeaways for the learner"]
+}}"""
+
+        response = openai_client.chat.completions.create(
+            model="gpt-5.2",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": f"Generate a complete training conversation demonstrating expert objection handling for: {scenario.get('name', 'Objection Handling')}"}
+            ],
+            temperature=0.8,
+            response_format={"type": "json_object"}
+        )
+        
+        result = json.loads(response.choices[0].message.content)
+        return jsonify(result)
+        
+    except Exception as e:
+        print(f"[generate_full_conversation] Error: {e}")
+        import traceback
+        traceback.print_exc()
+        # Fallback conversation
+        return jsonify({
+            "conversation": [
+                {"role": "customer", "text": "I need to think about it.", "emotion": "resistant"},
+                {"role": "sales_rep", "text": "I completely understand. This is a big decision. Can I ask what specifically you want to think about?", "technique_used": "empathy + question", "coaching_note": "Empathize first, then isolate the objection"},
+                {"role": "customer", "text": "It's just a lot of money.", "emotion": "skeptical"},
+                {"role": "sales_rep", "text": "I hear you. Let me ask - do you like what you've seen so far?", "technique_used": "4 Yes Questions", "coaching_note": "Start isolating the real objection"},
+                {"role": "customer", "text": "Yes, I do like it.", "emotion": "warming_up"},
+                {"role": "sales_rep", "text": "Great! And do you trust that we'll do quality work?", "technique_used": "4 Yes Questions", "coaching_note": "Continue building yes momentum"},
+                {"role": "customer", "text": "Yes, you seem professional.", "emotion": "warming_up"},
+                {"role": "sales_rep", "text": "So it's really about the investment, right? Let me tell you about David from Scottsdale who said the exact same thing...", "technique_used": "Storytelling", "coaching_note": "Transition to a relevant story"}
+            ],
+            "techniques_demonstrated": ["Empathy", "4 Yes Questions", "Storytelling"],
+            "key_learning_points": ["Always empathize before handling objection", "Use questions to isolate real concern", "Stories are more powerful than facts"]
+        })
 
 
 # ============ Story Bank API ============
@@ -1797,27 +1898,29 @@ def save_story():
         # Get story content - try multiple field names
         story_content = data.get('content') or data.get('story_content') or ''
         
-        # Build story data matching database schema
+        if not story_content:
+            return jsonify({'error': 'Story content is required'}), 400
+        
+        # Build story data - story_content is REQUIRED (NOT NULL in database)
         story_data = {
             'user_id': user_id,
             'title': data.get('title', 'Untitled Story'),
-            'story_content': story_content,  # Required field
-            'content': story_content,  # Also set content for compatibility
+            'story_content': story_content,  # Required column (NOT NULL)
+            'content': story_content,  # Also set for compatibility
             'target_emotions': data.get('target_emotions', []),
-            'target_emotion': data.get('target_emotions', ['trust'])[0] if data.get('target_emotions') else 'trust',
             'target_message': data.get('target_message'),
             'objection_type': data.get('objection_type'),
             'product': data.get('product') or data.get('product_type'),
-            'product_type': data.get('product') or data.get('product_type'),
-            'structure': data.get('structure') or data.get('story_structure'),
-            'story_structure': data.get('structure') or data.get('story_structure'),
             'setup_line': data.get('setup_line'),
             'closing_bridge': data.get('closing_bridge'),
             'explanation': data.get('explanation'),
             'tags': data.get('tags', []),
-            'is_favorite': data.get('is_favorite', False),
-            'usage_count': 0
+            'is_favorite': data.get('is_favorite', False)
         }
+        
+        # Add structure if provided
+        if data.get('structure') or data.get('story_structure'):
+            story_data['structure'] = data.get('structure') or data.get('story_structure')
         
         print(f"[save_story] Inserting story_data: {story_data}")
         result = client.table('story_bank').insert(story_data).execute()
@@ -2027,13 +2130,13 @@ Make it vivid, visual, and impossible to resist.
 """
         
         response = openai_client.chat.completions.create(
-            model="gpt-4o",
+            model="gpt-5.2",
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
             ],
             temperature=0.8,
-            max_tokens=2000
+            max_completion_tokens=2000
         )
         
         response_text = response.choices[0].message.content.strip()

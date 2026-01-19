@@ -3,7 +3,8 @@ import {
   Users, ChevronDown, ChevronUp, Target, Zap, MessageCircle,
   Volume2, Play, Mic, Clock, Star, Sparkles, ArrowRight, Send,
   Square, Loader2, RotateCcw, Trophy, CheckCircle2, X, Pause,
-  Brain, ThumbsUp, ThumbsDown, Award, Lightbulb
+  Brain, ThumbsUp, ThumbsDown, Award, Lightbulb, Wand2, PlayCircle,
+  StopCircle, BookOpen, GraduationCap
 } from 'lucide-react'
 import axios from 'axios'
 import { API_URL } from '../../../lib/config'
@@ -13,7 +14,7 @@ export default function InteractiveRoleplay({ scenario, lang = 'en', TTSButton, 
   const pt = PRACTICE_TRANSLATIONS[lang] || PRACTICE_TRANSLATIONS.en
   
   // Conversation state
-  const [conversationMode, setConversationMode] = useState('preview') // preview, active, completed
+  const [conversationMode, setConversationMode] = useState('preview') // preview, active, completed, ai_demo
   const [messages, setMessages] = useState([])
   const [userInput, setUserInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -22,6 +23,14 @@ export default function InteractiveRoleplay({ scenario, lang = 'en', TTSButton, 
   const [score, setScore] = useState(null)
   const [turnCount, setTurnCount] = useState(0)
   const [showTips, setShowTips] = useState(false)
+  
+  // AI Demo conversation state
+  const [aiConversation, setAiConversation] = useState(null)
+  const [generatingDemo, setGeneratingDemo] = useState(false)
+  const [playingAudio, setPlayingAudio] = useState(false)
+  const [currentPlayingIndex, setCurrentPlayingIndex] = useState(-1)
+  const [autoPlayMode, setAutoPlayMode] = useState(false)
+  const speechSynthRef = useRef(null)
   
   // Audio recording
   const mediaRecorderRef = useRef(null)
@@ -221,6 +230,99 @@ export default function InteractiveRoleplay({ scenario, lang = 'en', TTSButton, 
     setFeedback(null)
     setScore(null)
     setTurnCount(0)
+    setAiConversation(null)
+    setCurrentPlayingIndex(-1)
+    setAutoPlayMode(false)
+    stopAudio()
+  }
+  
+  // Generate full AI conversation demo
+  const generateAIDemo = async () => {
+    setGeneratingDemo(true)
+    try {
+      const response = await axios.post(`${API_URL}/api/roleplay/generate-full-conversation`, {
+        scenario: {
+          name: scenario.scenario_name,
+          context: scenario.context,
+          customer_opening: scenario.customer_opening,
+          objection_type: scenario.objection_type || 'general'
+        },
+        techniques_to_use: scenario.techniques_to_use,
+        language: lang,
+        max_turns: 10
+      })
+      
+      if (response.data.conversation) {
+        setAiConversation(response.data)
+        setConversationMode('ai_demo')
+      }
+    } catch (error) {
+      console.error('Error generating AI demo:', error)
+      alert(lang === 'en' ? 'Error generating demo conversation' : 'שגיאה ביצירת שיחה לדוגמה')
+    } finally {
+      setGeneratingDemo(false)
+    }
+  }
+  
+  // Text-to-Speech functions
+  const speakText = (text, index, voiceType = 'customer') => {
+    stopAudio()
+    
+    const utterance = new SpeechSynthesisUtterance(text)
+    utterance.lang = lang === 'he' ? 'he-IL' : 'en-US'
+    utterance.rate = 0.9
+    
+    // Different pitch for customer vs sales rep
+    utterance.pitch = voiceType === 'customer' ? 1.1 : 0.9
+    
+    const voices = window.speechSynthesis.getVoices()
+    const targetVoice = voices.find(v => v.lang.includes(lang === 'he' ? 'he' : 'en-US'))
+    if (targetVoice) utterance.voice = targetVoice
+    
+    utterance.onstart = () => {
+      setPlayingAudio(true)
+      setCurrentPlayingIndex(index)
+    }
+    
+    utterance.onend = () => {
+      setPlayingAudio(false)
+      setCurrentPlayingIndex(-1)
+      
+      // Auto-play next message if in autoplay mode
+      if (autoPlayMode && aiConversation?.conversation) {
+        const nextIndex = index + 1
+        if (nextIndex < aiConversation.conversation.length) {
+          setTimeout(() => {
+            const nextMsg = aiConversation.conversation[nextIndex]
+            speakText(nextMsg.text, nextIndex, nextMsg.role)
+          }, 800) // Small pause between messages
+        } else {
+          setAutoPlayMode(false)
+        }
+      }
+    }
+    
+    utterance.onerror = () => {
+      setPlayingAudio(false)
+      setCurrentPlayingIndex(-1)
+      setAutoPlayMode(false)
+    }
+    
+    speechSynthRef.current = utterance
+    window.speechSynthesis.speak(utterance)
+  }
+  
+  const stopAudio = () => {
+    window.speechSynthesis.cancel()
+    setPlayingAudio(false)
+    setCurrentPlayingIndex(-1)
+    setAutoPlayMode(false)
+  }
+  
+  const playAllAudio = () => {
+    if (!aiConversation?.conversation?.length) return
+    setAutoPlayMode(true)
+    speakText(aiConversation.conversation[0].text, 0, aiConversation.conversation[0].role)
   }
   
   // Get emotion color
@@ -355,14 +457,41 @@ export default function InteractiveRoleplay({ scenario, lang = 'en', TTSButton, 
             </div>
           )}
           
-          {/* Start Button */}
-          <button
-            onClick={startRoleplay}
-            className="w-full py-4 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white rounded-xl font-bold text-lg transition-all flex items-center justify-center gap-3 shadow-lg shadow-pink-500/30 hover:shadow-xl hover:shadow-pink-500/40"
-          >
-            <Play className="w-6 h-6" />
-            {lang === 'en' ? 'Start Interactive Practice' : 'התחל תרגול אינטראקטיבי'}
-          </button>
+          {/* Action Buttons */}
+          <div className="space-y-3">
+            <button
+              onClick={startRoleplay}
+              className="w-full py-4 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white rounded-xl font-bold text-lg transition-all flex items-center justify-center gap-3 shadow-lg shadow-pink-500/30 hover:shadow-xl hover:shadow-pink-500/40"
+            >
+              <Play className="w-6 h-6" />
+              {lang === 'en' ? 'Start Interactive Practice' : 'התחל תרגול אינטראקטיבי'}
+            </button>
+            
+            {/* AI Demo Button */}
+            <button
+              onClick={generateAIDemo}
+              disabled={generatingDemo}
+              className="w-full py-4 bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600 disabled:from-slate-600 disabled:to-slate-600 text-white rounded-xl font-bold text-lg transition-all flex items-center justify-center gap-3 shadow-lg shadow-violet-500/30"
+            >
+              {generatingDemo ? (
+                <>
+                  <Loader2 className="w-6 h-6 animate-spin" />
+                  {lang === 'en' ? 'Generating Demo...' : 'יוצר דמו...'}
+                </>
+              ) : (
+                <>
+                  <Wand2 className="w-6 h-6" />
+                  {lang === 'en' ? 'Watch AI Demo Conversation' : 'צפה בשיחה לדוגמה'}
+                </>
+              )}
+            </button>
+            <p className="text-xs text-slate-500 text-center">
+              {lang === 'en' 
+                ? 'See how a pro handles this objection with perfect technique'
+                : 'צפה איך מקצוען מטפל בהתנגדות הזו עם טכניקה מושלמת'
+              }
+            </p>
+          </div>
         </div>
       )}
       
@@ -498,6 +627,168 @@ export default function InteractiveRoleplay({ scenario, lang = 'en', TTSButton, 
               className="w-full mt-3 py-2 text-sm text-slate-400 hover:text-slate-300 transition-colors"
             >
               {lang === 'en' ? 'End practice and get feedback' : 'סיים תרגול וקבל משוב'}
+            </button>
+          </div>
+        </div>
+      )}
+      
+      {/* AI Demo Mode */}
+      {conversationMode === 'ai_demo' && aiConversation && (
+        <div className="flex flex-col">
+          {/* Header with controls */}
+          <div className="px-5 py-3 border-b border-violet-500/20 bg-gradient-to-r from-violet-500/10 to-purple-500/10">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <GraduationCap className="w-5 h-5 text-violet-400" />
+                <span className="text-sm font-semibold text-violet-300">
+                  {lang === 'en' ? 'AI Training Demo' : 'דמו אימון AI'}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                {autoPlayMode ? (
+                  <button
+                    onClick={stopAudio}
+                    className="flex items-center gap-2 px-4 py-2 bg-red-500/20 text-red-400 rounded-lg text-sm font-medium hover:bg-red-500/30 transition-colors"
+                  >
+                    <StopCircle className="w-4 h-4" />
+                    {lang === 'en' ? 'Stop' : 'עצור'}
+                  </button>
+                ) : (
+                  <button
+                    onClick={playAllAudio}
+                    className="flex items-center gap-2 px-4 py-2 bg-violet-500/20 text-violet-400 rounded-lg text-sm font-medium hover:bg-violet-500/30 transition-colors"
+                  >
+                    <PlayCircle className="w-4 h-4" />
+                    {lang === 'en' ? 'Play All' : 'נגן הכל'}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+          
+          {/* Conversation Messages */}
+          <div className="flex-1 p-5 space-y-4 overflow-y-auto max-h-[450px]">
+            {aiConversation.conversation.map((msg, i) => (
+              <div 
+                key={i}
+                className={`flex gap-3 ${msg.role === 'sales_rep' ? 'flex-row-reverse' : ''}`}
+              >
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+                  msg.role === 'customer'
+                    ? 'bg-gradient-to-br from-emerald-500 to-teal-500'
+                    : 'bg-gradient-to-br from-violet-500 to-pink-500'
+                }`}>
+                  <span className="text-white text-sm font-bold">
+                    {msg.role === 'customer' ? 'C' : 'S'}
+                  </span>
+                </div>
+                
+                <div className={`max-w-[80%] ${msg.role === 'sales_rep' ? 'text-right' : ''}`}>
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
+                    <p className={`text-xs font-medium ${
+                      msg.role === 'customer' ? 'text-emerald-400' : 'text-violet-400'
+                    }`}>
+                      {msg.role === 'customer' 
+                        ? (lang === 'en' ? 'Customer' : 'לקוח')
+                        : (lang === 'en' ? 'Sales Rep' : 'איש מכירות')
+                      }
+                    </p>
+                    {msg.emotion && (
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${getEmotionColor(msg.emotion)} bg-slate-800/50`}>
+                        {msg.emotion}
+                      </span>
+                    )}
+                    {msg.technique_used && (
+                      <span className="text-xs px-2 py-0.5 rounded-full text-amber-400 bg-amber-500/20">
+                        {msg.technique_used}
+                      </span>
+                    )}
+                  </div>
+                  
+                  <div className={`p-4 rounded-2xl ${
+                    msg.role === 'customer'
+                      ? 'bg-emerald-500/10 border border-emerald-500/20 rounded-tl-none'
+                      : 'bg-violet-500/10 border border-violet-500/20 rounded-tr-none'
+                  } ${currentPlayingIndex === i ? 'ring-2 ring-violet-500' : ''}`}>
+                    <p className="text-slate-200">{msg.text}</p>
+                  </div>
+                  
+                  {/* Audio & Coaching Note */}
+                  <div className="flex items-center gap-2 mt-2">
+                    <button
+                      onClick={() => speakText(msg.text, i, msg.role)}
+                      disabled={playingAudio && currentPlayingIndex !== i}
+                      className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs transition-all ${
+                        currentPlayingIndex === i
+                          ? 'bg-violet-500 text-white'
+                          : 'bg-slate-700/50 text-slate-400 hover:bg-slate-700'
+                      }`}
+                    >
+                      {currentPlayingIndex === i ? <Pause className="w-3 h-3" /> : <Volume2 className="w-3 h-3" />}
+                      {lang === 'en' ? 'Listen' : 'האזן'}
+                    </button>
+                    
+                    {msg.coaching_note && (
+                      <div className="flex items-center gap-1 text-xs text-amber-400/70">
+                        <Lightbulb className="w-3 h-3" />
+                        <span>{msg.coaching_note}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          
+          {/* Learning Points */}
+          {aiConversation.key_learning_points?.length > 0 && (
+            <div className="p-4 border-t border-violet-500/20 bg-slate-800/30">
+              <div className="flex items-center gap-2 mb-3">
+                <BookOpen className="w-4 h-4 text-amber-400" />
+                <span className="text-sm font-semibold text-amber-400">
+                  {lang === 'en' ? 'Key Takeaways' : 'נקודות מפתח'}
+                </span>
+              </div>
+              <div className="space-y-2">
+                {aiConversation.key_learning_points.map((point, i) => (
+                  <div key={i} className="flex items-start gap-2 text-sm text-slate-300">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+                    <span>{point}</span>
+                  </div>
+                ))}
+              </div>
+              
+              {/* Techniques demonstrated */}
+              {aiConversation.techniques_demonstrated?.length > 0 && (
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {aiConversation.techniques_demonstrated.map((tech, i) => (
+                    <span key={i} className="px-3 py-1 bg-violet-500/20 text-violet-300 rounded-full text-xs">
+                      ✓ {tech}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          
+          {/* Action Buttons */}
+          <div className="p-4 border-t border-violet-500/20 flex gap-3">
+            <button
+              onClick={resetRoleplay}
+              className="flex-1 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
+            >
+              <ArrowRight className="w-5 h-5" />
+              {lang === 'en' ? 'Back to Preview' : 'חזרה'}
+            </button>
+            <button
+              onClick={() => {
+                resetRoleplay()
+                setTimeout(startRoleplay, 100)
+              }}
+              className="flex-1 py-3 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
+            >
+              <Play className="w-5 h-5" />
+              {lang === 'en' ? 'Try It Yourself' : 'נסה בעצמך'}
             </button>
           </div>
         </div>

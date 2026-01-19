@@ -155,44 +155,73 @@ const PRODUCT_OPTIONS = [
   { value: 'fence', labelEn: 'Fencing', labelHe: 'גדר' }
 ]
 
-// ============ TEXT TO SPEECH HOOK ============
+// ============ TEXT TO SPEECH HOOK (OpenAI TTS) ============
 const useTextToSpeech = () => {
   const [speaking, setSpeaking] = useState(false)
   const [currentId, setCurrentId] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const audioRef = useRef(null)
 
-  const speak = (text, id, lang = 'en') => {
-    window.speechSynthesis.cancel()
-    
+  const speak = async (text, id, lang = 'en') => {
+    // Stop current audio if playing same id
     if (speaking && currentId === id) {
-      setSpeaking(false)
-      setCurrentId(null)
+      stop()
       return
     }
-
-    const utterance = new SpeechSynthesisUtterance(text)
-    utterance.lang = lang === 'he' ? 'he-IL' : 'en-US'
-    utterance.rate = 0.9
     
-    const voices = window.speechSynthesis.getVoices()
-    const targetVoice = lang === 'he' 
-      ? voices.find(v => v.lang.includes('he')) 
-      : voices.find(v => v.lang.includes('en-US'))
-    if (targetVoice) utterance.voice = targetVoice
-
-    utterance.onstart = () => { setSpeaking(true); setCurrentId(id) }
-    utterance.onend = () => { setSpeaking(false); setCurrentId(null) }
-    utterance.onerror = () => { setSpeaking(false); setCurrentId(null) }
-
-    window.speechSynthesis.speak(utterance)
+    // Stop any existing audio
+    stop()
+    
+    setLoading(true)
+    setCurrentId(id)
+    
+    try {
+      // Call OpenAI TTS API via backend
+      const response = await axios.post(`${API_URL}/api/tts`, {
+        text: text,
+        voice: 'nova',  // Natural, warm voice
+        hd: true,       // High quality
+        speed: 1.0
+      })
+      
+      if (response.data.audio_url) {
+        const audioUrl = `${API_URL}${response.data.audio_url}`
+        const audio = new Audio(audioUrl)
+        audioRef.current = audio
+        
+        audio.onplay = () => { setSpeaking(true); setLoading(false) }
+        audio.onended = () => { setSpeaking(false); setCurrentId(null) }
+        audio.onerror = () => { setSpeaking(false); setCurrentId(null); setLoading(false) }
+        
+        await audio.play()
+      }
+    } catch (error) {
+      console.error('TTS error:', error)
+      setLoading(false)
+      setCurrentId(null)
+      // Fallback to browser TTS if API fails
+      const utterance = new SpeechSynthesisUtterance(text)
+      utterance.lang = lang === 'he' ? 'he-IL' : 'en-US'
+      utterance.rate = 0.9
+      utterance.onstart = () => setSpeaking(true)
+      utterance.onend = () => { setSpeaking(false); setCurrentId(null) }
+      window.speechSynthesis.speak(utterance)
+    }
   }
 
   const stop = () => {
+    if (audioRef.current) {
+      audioRef.current.pause()
+      audioRef.current.currentTime = 0
+      audioRef.current = null
+    }
     window.speechSynthesis.cancel()
     setSpeaking(false)
     setCurrentId(null)
+    setLoading(false)
   }
 
-  return { speak, stop, speaking, currentId }
+  return { speak, stop, speaking, currentId, loading }
 }
 
 // ============ LANGUAGE TOGGLE ============
@@ -330,7 +359,7 @@ export default function StoryEnhancer({ story, analysisResult, onSaveToBank }) {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [copied, setCopied] = useState(false)
-  const { speak, speaking, currentId } = useTextToSpeech()
+  const { speak, speaking, currentId, loading: ttsLoading } = useTextToSpeech()
 
   // Detect story intent
   const detectMessage = () => {
@@ -519,13 +548,16 @@ export default function StoryEnhancer({ story, analysisResult, onSaveToBank }) {
                   </h3>
                   <button
                     onClick={() => speak(story.original_story, 'original', lang)}
+                    disabled={ttsLoading && currentId === 'original'}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                       speaking && currentId === 'original'
                         ? 'bg-amber-500 text-white'
+                        : ttsLoading && currentId === 'original'
+                        ? 'bg-slate-700/50 text-slate-400 cursor-wait'
                         : 'bg-slate-700/50 text-slate-300 hover:bg-slate-700'
                     }`}
                   >
-                    {speaking && currentId === 'original' ? <Pause className="w-3 h-3" /> : <Volume2 className="w-3 h-3" />}
+                    {ttsLoading && currentId === 'original' ? <Loader2 className="w-3 h-3 animate-spin" /> : speaking && currentId === 'original' ? <Pause className="w-3 h-3" /> : <Volume2 className="w-3 h-3" />}
                     {lang === 'en' ? 'Listen' : 'האזן'}
                   </button>
                 </div>
@@ -566,13 +598,16 @@ export default function StoryEnhancer({ story, analysisResult, onSaveToBank }) {
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => speak(improvedStory.story_content, 'improved', lang)}
+                        disabled={ttsLoading && currentId === 'improved'}
                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                           speaking && currentId === 'improved'
                             ? 'bg-emerald-500 text-white'
+                            : ttsLoading && currentId === 'improved'
+                            ? 'bg-emerald-500/20 text-emerald-400 cursor-wait'
                             : 'bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30'
                         }`}
                       >
-                        {speaking && currentId === 'improved' ? <Pause className="w-3 h-3" /> : <Volume2 className="w-3 h-3" />}
+                        {ttsLoading && currentId === 'improved' ? <Loader2 className="w-3 h-3 animate-spin" /> : speaking && currentId === 'improved' ? <Pause className="w-3 h-3" /> : <Volume2 className="w-3 h-3" />}
                       </button>
                       <button
                         onClick={() => copyToClipboard(improvedStory.story_content)}

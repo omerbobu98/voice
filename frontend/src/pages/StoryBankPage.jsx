@@ -1,11 +1,12 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { 
   BookMarked, Plus, Wand2, Save, X, Heart, Trash2, ChevronLeft, 
   Sparkles, Volume2, Play, Pause, Edit3, Copy, Check, Filter,
   MessageSquare, Target, Zap, Clock, Star, TrendingUp, RefreshCw,
-  ChevronRight, Search, Tag, ArrowRight, Lightbulb, PenTool
+  ChevronRight, Search, Tag, ArrowRight, Lightbulb, PenTool,
+  Mic, Square, StopCircle, FileText, Loader2, Globe, Type
 } from 'lucide-react'
 import { API_URL } from '../lib/config'
 import { supabase } from '../lib/supabase'
@@ -50,13 +51,13 @@ export default function StoryBankPage() {
   const navigate = useNavigate()
   const [stories, setStories] = useState([])
   const [loading, setLoading] = useState(true)
-  const [activeView, setActiveView] = useState('library') // 'library' | 'builder' | 'improve'
+  const [activeView, setActiveView] = useState('library') // 'library' | 'builder' | 'manual'
   const [selectedStory, setSelectedStory] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [filterEmotion, setFilterEmotion] = useState('')
   const [filterObjection, setFilterObjection] = useState('')
   
-  // Story Builder State
+  // Story Builder State (AI Generated)
   const [builderMode, setBuilderMode] = useState('create') // 'create' | 'improve'
   const [rawStory, setRawStory] = useState('')
   const [targetMessage, setTargetMessage] = useState('')
@@ -67,9 +68,28 @@ export default function StoryBankPage() {
   const [generatedStory, setGeneratedStory] = useState(null)
   const [saving, setSaving] = useState(false)
   
+  // Manual Story Creation State
+  const [manualStoryName, setManualStoryName] = useState('')
+  const [manualStoryContent, setManualStoryContent] = useState('')
+  const [manualSetupLine, setManualSetupLine] = useState('')
+  const [manualClosingBridge, setManualClosingBridge] = useState('')
+  const [manualEmotions, setManualEmotions] = useState([])
+  const [manualObjection, setManualObjection] = useState('')
+  const [manualProduct, setManualProduct] = useState('')
+  const [savingManual, setSavingManual] = useState(false)
+  
+  // Recording State
+  const [isRecording, setIsRecording] = useState(false)
+  const [recordingTime, setRecordingTime] = useState(0)
+  const [transcribing, setTranscribing] = useState(false)
+  const mediaRecorderRef = useRef(null)
+  const audioChunksRef = useRef([])
+  const recordingIntervalRef = useRef(null)
+  
   // TTS State
   const [playingStoryId, setPlayingStoryId] = useState(null)
   const [audioLoading, setAudioLoading] = useState(false)
+  const [speaking, setSpeaking] = useState(false)
 
   // Load stories on mount
   useEffect(() => {
@@ -135,6 +155,7 @@ export default function StoryBankPage() {
       await axios.post(`${API_URL}/api/story-bank`, {
         title: generatedStory.title,
         content: generatedStory.story_content,
+        story_content: generatedStory.story_content,  // Required by DB
         setup_line: generatedStory.setup_line,
         closing_bridge: generatedStory.closing_bridge,
         target_emotions: selectedEmotions,
@@ -199,9 +220,147 @@ export default function StoryBankPage() {
     setSelectedProduct('')
     setGeneratedStory(null)
   }
+  
+  const resetManualBuilder = () => {
+    setManualStoryName('')
+    setManualStoryContent('')
+    setManualSetupLine('')
+    setManualClosingBridge('')
+    setManualEmotions([])
+    setManualObjection('')
+    setManualProduct('')
+  }
 
   const copyToClipboard = async (text) => {
     await navigator.clipboard.writeText(text)
+  }
+  
+  // Recording functions
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      mediaRecorderRef.current = new MediaRecorder(stream)
+      audioChunksRef.current = []
+      
+      mediaRecorderRef.current.ondataavailable = (e) => {
+        audioChunksRef.current.push(e.data)
+      }
+      
+      mediaRecorderRef.current.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
+        await transcribeRecording(audioBlob)
+        stream.getTracks().forEach(track => track.stop())
+      }
+      
+      mediaRecorderRef.current.start()
+      setIsRecording(true)
+      setRecordingTime(0)
+      
+      // Start timer
+      recordingIntervalRef.current = setInterval(() => {
+        setRecordingTime(prev => prev + 1)
+      }, 1000)
+      
+    } catch (error) {
+      console.error('Error starting recording:', error)
+      alert('Could not access microphone')
+    }
+  }
+  
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop()
+      setIsRecording(false)
+      if (recordingIntervalRef.current) {
+        clearInterval(recordingIntervalRef.current)
+      }
+    }
+  }
+  
+  const transcribeRecording = async (audioBlob) => {
+    setTranscribing(true)
+    try {
+      const formData = new FormData()
+      formData.append('audio', audioBlob, 'recording.webm')
+      
+      const response = await axios.post(`${API_URL}/api/transcribe-quick`, formData)
+      if (response.data.text) {
+        setManualStoryContent(prev => prev + (prev ? '\n\n' : '') + response.data.text)
+      }
+    } catch (error) {
+      console.error('Error transcribing:', error)
+      alert('Error transcribing audio')
+    } finally {
+      setTranscribing(false)
+    }
+  }
+  
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${mins}:${secs.toString().padStart(2, '0')}`
+  }
+  
+  // Save manual story
+  const saveManualStory = async () => {
+    if (!manualStoryContent.trim()) {
+      alert('Please enter story content')
+      return
+    }
+    
+    setSavingManual(true)
+    try {
+      const token = await getAuthToken()
+      await axios.post(`${API_URL}/api/story-bank`, {
+        title: manualStoryName || 'My Story',
+        content: manualStoryContent,
+        story_content: manualStoryContent,  // Required by DB
+        setup_line: manualSetupLine,
+        closing_bridge: manualClosingBridge,
+        target_emotions: manualEmotions,
+        objection_type: manualObjection,
+        product: manualProduct,
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      
+      resetManualBuilder()
+      setActiveView('library')
+      loadStories()
+    } catch (err) {
+      console.error('Error saving story:', err)
+      alert('Error saving story: ' + (err.response?.data?.error || err.message))
+    }
+    setSavingManual(false)
+  }
+  
+  // Text-to-speech
+  const speakStory = (text, storyId) => {
+    if (speaking && playingStoryId === storyId) {
+      window.speechSynthesis.cancel()
+      setSpeaking(false)
+      setPlayingStoryId(null)
+      return
+    }
+    
+    window.speechSynthesis.cancel()
+    const utterance = new SpeechSynthesisUtterance(text)
+    utterance.lang = 'en-US'
+    utterance.rate = 0.9
+    
+    utterance.onstart = () => { setSpeaking(true); setPlayingStoryId(storyId) }
+    utterance.onend = () => { setSpeaking(false); setPlayingStoryId(null) }
+    utterance.onerror = () => { setSpeaking(false); setPlayingStoryId(null) }
+    
+    window.speechSynthesis.speak(utterance)
+  }
+  
+  const toggleManualEmotion = (emotionId) => {
+    setManualEmotions(prev => 
+      prev.includes(emotionId) 
+        ? prev.filter(e => e !== emotionId)
+        : [...prev, emotionId]
+    )
   }
 
   // Filter stories
@@ -250,26 +409,39 @@ export default function StoryBankPage() {
             </div>
             
             {/* View Toggle */}
-            <div className="flex items-center gap-2 bg-white/5 rounded-xl p-1">
+            <div className="flex items-center gap-1 bg-white/5 rounded-xl p-1">
               <button
                 onClick={() => { setActiveView('library'); setSelectedStory(null); }}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5 ${
                   activeView === 'library'
                     ? 'bg-amber-500 text-white'
-                    : 'text-gray-400 hover:text-white'
+                    : 'text-gray-400 hover:text-white hover:bg-white/10'
                 }`}
               >
-                📚 ספריה
+                <BookMarked className="w-4 h-4" />
+                Library
+              </button>
+              <button
+                onClick={() => { setActiveView('manual'); resetManualBuilder(); }}
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5 ${
+                  activeView === 'manual'
+                    ? 'bg-emerald-500 text-white'
+                    : 'text-gray-400 hover:text-white hover:bg-white/10'
+                }`}
+              >
+                <PenTool className="w-4 h-4" />
+                Create
               </button>
               <button
                 onClick={() => { setActiveView('builder'); resetBuilder(); }}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5 ${
                   activeView === 'builder'
-                    ? 'bg-amber-500 text-white'
-                    : 'text-gray-400 hover:text-white'
+                    ? 'bg-violet-500 text-white'
+                    : 'text-gray-400 hover:text-white hover:bg-white/10'
                 }`}
               >
-                ✨ בנה סיפור
+                <Wand2 className="w-4 h-4" />
+                AI Generate
               </button>
             </div>
           </div>
@@ -526,7 +698,218 @@ export default function StoryBankPage() {
           </div>
         )}
 
-        {/* Builder View */}
+        {/* Manual Story Creation View */}
+        {activeView === 'manual' && (
+          <div className="max-w-4xl mx-auto space-y-6">
+            {/* Header Card */}
+            <div className="bg-gradient-to-br from-emerald-500/20 via-teal-500/10 to-cyan-500/5 rounded-2xl border border-emerald-500/30 p-6">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-14 h-14 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/30">
+                  <PenTool className="w-7 h-7 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-white">Create Your Story</h2>
+                  <p className="text-emerald-300/70">Type or record your sales story</p>
+                </div>
+              </div>
+            </div>
+            
+            {/* Story Name */}
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 text-white font-medium">
+                <FileText className="w-5 h-5 text-emerald-400" />
+                Story Name
+              </label>
+              <input
+                type="text"
+                value={manualStoryName}
+                onChange={(e) => setManualStoryName(e.target.value)}
+                placeholder="e.g., David's Trust Story, Maria's Decision..."
+                className="w-full p-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500/50"
+              />
+            </div>
+            
+            {/* Story Content with Recording */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="flex items-center gap-2 text-white font-medium">
+                  <MessageSquare className="w-5 h-5 text-emerald-400" />
+                  Your Story
+                </label>
+                <div className="flex items-center gap-2">
+                  {transcribing && (
+                    <span className="flex items-center gap-2 text-sm text-amber-400">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Transcribing...
+                    </span>
+                  )}
+                  <button
+                    onClick={isRecording ? stopRecording : startRecording}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all ${
+                      isRecording
+                        ? 'bg-red-500 text-white animate-pulse'
+                        : 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30'
+                    }`}
+                  >
+                    {isRecording ? (
+                      <>
+                        <Square className="w-4 h-4" />
+                        Stop ({formatTime(recordingTime)})
+                      </>
+                    ) : (
+                      <>
+                        <Mic className="w-4 h-4" />
+                        Record
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+              <textarea
+                value={manualStoryContent}
+                onChange={(e) => setManualStoryContent(e.target.value)}
+                placeholder="Tell your story here... You can type or use the record button to speak your story and it will be transcribed automatically."
+                rows={8}
+                className="w-full p-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500/50 resize-none"
+              />
+              <p className="text-xs text-gray-500">
+                Tip: Record multiple times to add to your story. Each recording will append to your content.
+              </p>
+            </div>
+            
+            {/* Setup Line */}
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 text-white font-medium">
+                <Lightbulb className="w-5 h-5 text-amber-400" />
+                Opening Line (Optional)
+              </label>
+              <input
+                type="text"
+                value={manualSetupLine}
+                onChange={(e) => setManualSetupLine(e.target.value)}
+                placeholder="e.g., 'Let me tell you about a customer I had last month...'"
+                className="w-full p-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-amber-500/50"
+              />
+            </div>
+            
+            {/* Closing Bridge */}
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 text-white font-medium">
+                <ArrowRight className="w-5 h-5 text-cyan-400" />
+                Closing Bridge (Optional)
+              </label>
+              <input
+                type="text"
+                value={manualClosingBridge}
+                onChange={(e) => setManualClosingBridge(e.target.value)}
+                placeholder="e.g., 'So my question to you is... are you ready to experience the same results?'"
+                className="w-full p-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500/50"
+              />
+            </div>
+            
+            {/* Emotions Selection */}
+            <div className="space-y-3">
+              <label className="flex items-center gap-2 text-white font-medium">
+                <Heart className="w-5 h-5 text-pink-400" />
+                What emotions should this story evoke?
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {EMOTIONS.map(emotion => (
+                  <button
+                    key={emotion.id}
+                    onClick={() => toggleManualEmotion(emotion.id)}
+                    className={`px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-2 ${
+                      manualEmotions.includes(emotion.id)
+                        ? `bg-gradient-to-r ${emotion.color} text-white shadow-lg`
+                        : 'bg-white/5 text-gray-300 hover:bg-white/10 border border-white/10'
+                    }`}
+                  >
+                    <span>{emotion.icon}</span>
+                    {emotion.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            
+            {/* Objection Type */}
+            <div className="space-y-3">
+              <label className="flex items-center gap-2 text-white font-medium">
+                <Target className="w-5 h-5 text-orange-400" />
+                Which objection does this story address?
+              </label>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                {OBJECTION_TYPES.map(objection => (
+                  <button
+                    key={objection.id}
+                    onClick={() => setManualObjection(manualObjection === objection.id ? '' : objection.id)}
+                    className={`p-3 rounded-xl text-sm transition-all flex items-center gap-2 ${
+                      manualObjection === objection.id
+                        ? 'bg-orange-500/20 border-2 border-orange-500 text-orange-300'
+                        : 'bg-white/5 border border-white/10 text-gray-300 hover:bg-white/10'
+                    }`}
+                  >
+                    <span>{objection.icon}</span>
+                    {objection.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            
+            {/* Product */}
+            <div className="space-y-3">
+              <label className="flex items-center gap-2 text-white font-medium">
+                <Tag className="w-5 h-5 text-violet-400" />
+                Related Product (Optional)
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {PRODUCTS.map(product => (
+                  <button
+                    key={product.id}
+                    onClick={() => setManualProduct(manualProduct === product.id ? '' : product.id)}
+                    className={`px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-2 ${
+                      manualProduct === product.id
+                        ? 'bg-violet-500/20 border-2 border-violet-500 text-violet-300'
+                        : 'bg-white/5 text-gray-300 hover:bg-white/10 border border-white/10'
+                    }`}
+                  >
+                    <span>{product.icon}</span>
+                    {product.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            
+            {/* Preview & Save */}
+            <div className="flex gap-4 pt-4">
+              <button
+                onClick={resetManualBuilder}
+                className="flex-1 py-4 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-medium transition-all flex items-center justify-center gap-2"
+              >
+                <X className="w-5 h-5" />
+                Clear All
+              </button>
+              <button
+                onClick={saveManualStory}
+                disabled={!manualStoryContent.trim() || savingManual}
+                className="flex-1 py-4 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 disabled:from-slate-600 disabled:to-slate-600 text-white rounded-xl font-semibold transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/30"
+              >
+                {savingManual ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-5 h-5" />
+                    Save to Story Bank
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Builder View (AI Generated) */}
         {activeView === 'builder' && (
           <div className="max-w-4xl mx-auto space-y-8">
             {/* Mode Selection */}
@@ -543,9 +926,9 @@ export default function StoryBankPage() {
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${builderMode === 'create' ? 'bg-amber-500' : 'bg-white/10'}`}>
                     <Plus className="w-5 h-5 text-white" />
                   </div>
-                  <h3 className="text-lg font-semibold text-white">צור סיפור חדש</h3>
+                  <h3 className="text-lg font-semibold text-white">Create New Story</h3>
                 </div>
-                <p className="text-sm text-gray-400">ה-AI יבנה סיפור מאפס בהתבסס על המסר והרגשות</p>
+                <p className="text-sm text-gray-400">AI will build a story from scratch based on your message and emotions</p>
               </button>
               
               <button
@@ -560,9 +943,9 @@ export default function StoryBankPage() {
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${builderMode === 'improve' ? 'bg-violet-500' : 'bg-white/10'}`}>
                     <Wand2 className="w-5 h-5 text-white" />
                   </div>
-                  <h3 className="text-lg font-semibold text-white">שפר סיפור קיים</h3>
+                  <h3 className="text-lg font-semibold text-white">Improve Existing Story</h3>
                 </div>
-                <p className="text-sm text-gray-400">הכנס סיפור שלך וה-AI ישפר אותו עם 6 האלמנטים</p>
+                <p className="text-sm text-gray-400">Enter your story and AI will enhance it with all 6 elements</p>
               </button>
             </div>
 
