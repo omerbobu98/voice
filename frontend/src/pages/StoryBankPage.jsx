@@ -206,11 +206,13 @@ export default function StoryBankPage() {
 
   // Filter stories
   const filteredStories = stories.filter(story => {
+    const storyContent = story.content || story.story_content || ''
     const matchesSearch = !searchQuery || 
       story.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      story.content?.toLowerCase().includes(searchQuery.toLowerCase())
+      storyContent.toLowerCase().includes(searchQuery.toLowerCase())
     const matchesEmotion = !filterEmotion || 
-      (story.target_emotions || []).includes(filterEmotion)
+      (story.target_emotions || []).includes(filterEmotion) ||
+      story.target_emotion === filterEmotion
     const matchesObjection = !filterObjection || 
       story.objection_type === filterObjection
     return matchesSearch && matchesEmotion && matchesObjection
@@ -367,7 +369,7 @@ export default function StoryBankPage() {
                       <ChevronRight className="w-5 h-5 text-gray-500 group-hover:text-amber-400 transition-colors" />
                     </div>
                     
-                    <p className="text-sm text-gray-400 line-clamp-2 mb-4">{story.content}</p>
+                    <p className="text-sm text-gray-400 line-clamp-2 mb-4">{story.content || story.story_content}</p>
                     
                     <div className="flex items-center justify-between">
                       <div className="flex gap-1">
@@ -446,7 +448,7 @@ export default function StoryBankPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => copyToClipboard(selectedStory.content)}
+                      onClick={() => copyToClipboard(selectedStory.content || selectedStory.story_content)}
                       className="p-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors"
                       title="העתק"
                     >
@@ -483,7 +485,7 @@ export default function StoryBankPage() {
                     <span className="text-sm font-medium">הסיפור</span>
                   </div>
                   <div className="bg-white/5 rounded-xl p-5">
-                    <p className="text-gray-200 text-lg leading-relaxed whitespace-pre-wrap">{selectedStory.content}</p>
+                    <p className="text-gray-200 text-lg leading-relaxed whitespace-pre-wrap">{selectedStory.content || selectedStory.story_content}</p>
                   </div>
                 </div>
 

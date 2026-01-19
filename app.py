@@ -1738,32 +1738,42 @@ def save_story():
         return jsonify({'error': 'Database not available'}), 500
     
     data = request.get_json()
+    print(f"[save_story] Received data: {data}")
     
     try:
+        # Get story content - try multiple field names
+        story_content = data.get('content') or data.get('story_content') or ''
+        
+        # Build story data matching database schema
         story_data = {
             'user_id': user_id,
-            'title': data.get('title', 'סיפור ללא שם'),
-            'content': data.get('content', data.get('story_content', '')),
+            'title': data.get('title', 'Untitled Story'),
+            'story_content': story_content,  # Required field
+            'content': story_content,  # Also set content for compatibility
             'target_emotions': data.get('target_emotions', []),
+            'target_emotion': data.get('target_emotions', ['trust'])[0] if data.get('target_emotions') else 'trust',
             'target_message': data.get('target_message'),
             'objection_type': data.get('objection_type'),
-            'product': data.get('product', data.get('product_type')),
-            'structure': data.get('structure', data.get('story_structure')),
+            'product': data.get('product') or data.get('product_type'),
+            'product_type': data.get('product') or data.get('product_type'),
+            'structure': data.get('structure') or data.get('story_structure'),
+            'story_structure': data.get('structure') or data.get('story_structure'),
             'setup_line': data.get('setup_line'),
             'closing_bridge': data.get('closing_bridge'),
             'explanation': data.get('explanation'),
-            'original_story': data.get('original_story'),
             'tags': data.get('tags', []),
             'is_favorite': data.get('is_favorite', False),
-            'used_count': 0,
-            'success_count': 0,
-            'fail_count': 0
+            'usage_count': 0
         }
         
+        print(f"[save_story] Inserting story_data: {story_data}")
         result = client.table('story_bank').insert(story_data).execute()
-        return jsonify({'story': result.data[0] if result.data else {}}), 201
+        print(f"[save_story] Insert result: {result.data}")
+        return jsonify({'story': result.data[0] if result.data else {}, 'success': True}), 201
     except Exception as e:
         print(f"[save_story] Error: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 
