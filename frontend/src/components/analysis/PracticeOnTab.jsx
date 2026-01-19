@@ -1,3 +1,23 @@
+// Re-export new modular Practice On Tab component
+// This file now serves as a bridge to maintain backward compatibility
+// The new implementation is in ./practice/ folder
+
+export { default } from './practice'
+export * from './practice'
+
+/* 
+ * ============================================================
+ * LEGACY CODE BELOW - PRESERVED FOR REFERENCE
+ * The new implementation is modular and located in:
+ * - ./practice/PracticeOnTabMain.jsx (main component)
+ * - ./practice/PracticeTranslations.js (translations & guides)
+ * - ./practice/PracticeHelpers.jsx (helper components)
+ * - ./practice/SkillPracticeCard.jsx (interactive practice)
+ * - ./practice/RoleplayCard.jsx (roleplay scenarios)
+ * - ./practice/ExerciseCard.jsx (exercises & drills)
+ * ============================================================
+ */
+
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { 
   Target, Dumbbell, Mic, Play, Pause, Volume2, ChevronDown, ChevronUp, 
@@ -12,8 +32,8 @@ import axios from 'axios'
 import { API_URL } from '../../lib/config'
 import { supabase } from '../../lib/supabase'
 
-// ============ SALES METHODOLOGY GUIDES ============
-const SALES_METHODOLOGY_GUIDES = {
+// ============ LEGACY SALES METHODOLOGY GUIDES ============
+const LEGACY_SALES_METHODOLOGY_GUIDES = {
   discovery: {
     title: 'גילוי כאב (Discovery)',
     why: 'גילוי כאב הוא הבסיס לכל מכירה. בלי להבין את הכאב האמיתי של הלקוח, אתה מוכר מוצר במקום פתרון.',
@@ -2017,8 +2037,8 @@ function NewStoryCreator({ analysisResult, onSaveToBank }) {
   )
 }
 
-// Main Practice On Tab Component
-export default function PracticeOnTab({ analysisResult, result, TTSButton }) {
+// LEGACY: Main Practice On Tab Component (not used - kept for reference)
+function LegacyPracticeOnTab({ analysisResult, result, TTSButton }) {
   const [practiceData, setPracticeData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)

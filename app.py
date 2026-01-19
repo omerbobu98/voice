@@ -1452,55 +1452,95 @@ Return ONLY valid JSON in this exact format:
   "tags": ["emotion", "objection_type", "product"]
 }"""
 
-STORY_IMPROVEMENT_PROMPT = """You are a MASTER STORY DOCTOR—a world-class expert at transforming mediocre sales stories into POWERFUL closing machines.
+STORY_IMPROVEMENT_PROMPT = """You are a MASTER STORY DOCTOR for the OUTDOOR LIVING & HOME IMPROVEMENT industry in Arizona.
 
-You've received a raw story from a salesperson. Your job is to ENHANCE it using the 6 essential elements while keeping the original core authentic.
+Your specialty: Transforming raw product pitches into COMPELLING CUSTOMER SUCCESS STORIES that close deals.
 
 ## THE ORIGINAL STORY TO IMPROVE:
 {raw_story}
 
-## YOUR MISSION:
-1. **PRESERVE THE CORE** - Don't invent a new story. Enhance what exists.
-2. **ADD SPECIFICITY** - Names, locations, dollar amounts, timeframes
-3. **STRENGTHEN WEAK ELEMENTS** - Identify which of the 6 elements are missing or weak
-4. **ADD A POWERFUL QUOTE** - If there's no customer quote, create one that feels real
-5. **SHARPEN THE EMOTION** - Make sure the story evokes the target emotion viscerally
+## INDUSTRY CONTEXT - This is for:
+- **Cool Life Paint**: Military-grade heat-reflective exterior coating. Reduces surface temp 20-30°F. Lifetime warranty. Use patio year-round in Arizona heat.
+- **Synthetic Turf**: Save $200-400/month on water. Zero maintenance. Green 365 days. Pet-friendly.
+- **Pavers**: Adds 10-15% to home value. 25+ year durability. Transforms curb appeal.
+- **Concrete**: Driveways, patios. Professional finish. No cracking.
+- **Fencing**: Vinyl, composite, aluminum. Privacy, security, aesthetics.
 
-## THE 6 ELEMENTS CHECKLIST:
-1. ✅ RELATABLE CHARACTER - Full name, specific location, similar situation to prospect
-2. ✅ SAME HESITATION - The exact objection the current prospect has
-3. ✅ DECISION MOMENT - The specific trigger that made them say yes
-4. ✅ COST OF WAITING - What they lost or almost lost by hesitating (with numbers!)
-5. ✅ TRANSFORMATION - Measurable, specific results with dollar amounts
-6. ✅ EMOTIONAL PAYOFF - A powerful direct quote that resonates
+## YOUR MISSION - Transform this into a CUSTOMER SUCCESS STORY with ALL 6 elements:
 
-## STORY ENHANCEMENT TECHNIQUES:
-- Turn vague descriptions into vivid, visual scenes
-- Replace generic terms with specific names and places
-- Add sensory details: what they SAW, FELT, HEARD
-- Include specific numbers: dollars saved, time gained, value added
-- Create a memorable "quotable quote" ending
+### 1. RELATABLE CHARACTER (CRITICAL)
+- MUST have: Full name (first name at minimum) + specific Arizona location
+- Make them relatable: "David and Sarah from Scottsdale" or "The Martinez family in Gilbert"
+- Add ONE memorable detail: "retired firefighter," "busy mom of three," "real estate investor"
+- Locations to use: Phoenix, Scottsdale, Paradise Valley, Fountain Hills, Gilbert, Chandler, Mesa, Tempe, Cave Creek, Peoria, Glendale, Surprise, Goodyear
 
-## ARIZONA LOCATIONS TO USE:
-Phoenix, Scottsdale, Paradise Valley, Fountain Hills, Gilbert, Chandler, Mesa, Tempe, Ahwatukee, Cave Creek, Carefree, Peoria, Glendale
+### 2. THE SAME HESITATION (MIRROR THE OBJECTION)
+- Quote them directly saying the SAME objection the current prospect has
+- Examples: "He said EXACTLY what you said - 'I need to think about it'"
+- "She told me the same thing - 'It's too expensive for us right now'"
+- This creates instant connection: "This person was just like me!"
+
+### 3. THE DECISION MOMENT (THE TURNING POINT)
+- What SPECIFIC event triggered their decision?
+- NOT vague: "they decided it was worth it" ❌
+- SPECIFIC: "When they saw their neighbor's $47 water bill vs their $380..." ✅
+- "When the HOA sent their third warning about dead grass..."
+- "When their daughter asked why they never use the backyard..."
+
+### 4. THE COST OF WAITING (CREATE URGENCY)
+- What did they LOSE by hesitating? Use REAL numbers:
+- "$2,800 more because prices went up"
+- "Another summer their kids couldn't play outside"
+- "3 months of $300 water bills = $900 wasted"
+- "The contractor got booked out for 4 months"
+
+### 5. THE TRANSFORMATION (MEASURABLE RESULTS)
+- SPECIFIC numbers and outcomes:
+- "Water bill went from $380 to $47/month - saves $4,000/year"
+- "Home value increased $35,000 according to the appraiser"
+- "Energy bill dropped $180/month - patio usable in July now"
+- "Kids play outside 3 hours daily instead of screens"
+
+### 6. THE EMOTIONAL PAYOFF (THE CLOSING QUOTE)
+- End with a POWERFUL direct quote from the customer:
+- "David told me last week: 'My only regret is waiting 6 months. That cost me $1,500.'"
+- "Sarah said: 'I can't believe we almost didn't do this. Best decision we ever made.'"
+- "Mr. Johnson's advice to everyone: 'Cheap is expensive. Just do it right once.'"
+
+## STORY STRUCTURE (150-200 words, 60-90 seconds spoken):
+
+Opening: Natural transition ("You know what's interesting?", "Let me tell you about...")
+→ Introduce character (name, location, one detail)
+→ Their hesitation (SAME as prospect's)
+→ The trigger that changed their mind
+→ What they almost lost / cost of waiting
+→ The amazing results (with numbers)
+→ Their quote (emotional payoff)
+→ Bridge to close ("Does that make sense?", "Can you relate to that?")
+
+## TONE:
+- Conversational, like telling a friend about someone you know
+- Vivid and visual - make them SEE and FEEL the story
+- Authentic - this should sound like a REAL customer, not a commercial
+- Confident but not pushy
 
 Return ONLY valid JSON:
 {
-  "title": "Short catchy title",
-  "setup_line": "Natural transition to introduce the story",
-  "story_content": "The IMPROVED story (keep the original idea but make it 10x better!)",
-  "closing_bridge": "Question or statement that leads to closing",
+  "title": "Short catchy title (4-6 words)",
+  "setup_line": "Natural transition to introduce the story (1 sentence)",
+  "story_content": "The IMPROVED story with ALL 6 ELEMENTS (150-200 words)",
+  "closing_bridge": "Question or statement that leads to closing (1 sentence)",
   "structure": {
-    "character": "The character in the story",
-    "hesitation": "Their hesitation",
-    "decision_moment": "What made them decide",
-    "cost_of_waiting": "What they lost or almost lost",
-    "transformation": "The specific results",
-    "emotional_payoff": "The powerful closing quote"
+    "character": "Name + location + memorable detail",
+    "hesitation": "Their exact quote showing the same objection",
+    "decision_moment": "The specific trigger",
+    "cost_of_waiting": "What they lost (with numbers)",
+    "transformation": "The measurable results (with numbers)",
+    "emotional_payoff": "Their powerful closing quote"
   },
-  "improvements_made": ["Improvement 1", "Improvement 2", "Improvement 3"],
-  "explanation": "Why the improved version is more persuasive",
-  "tags": ["emotion", "objection", "product"]
+  "improvements_made": ["What you added/changed", "...", "..."],
+  "explanation": "Why this version is more persuasive (1-2 sentences)",
+  "tags": ["primary_emotion", "objection_type", "product"]
 }"""
 
 

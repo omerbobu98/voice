@@ -5,12 +5,15 @@ import {
   BarChart3, TrendingUp, AlertTriangle, Target, Zap, Phone, PlayCircle, PauseCircle,
   ChevronRight, Sparkles, Shield, Award, PieChart, Activity, Volume2, Home, History,
   Settings, User, Menu, X, ChevronDown, Calendar, Hash, LogOut, FileDown, Edit3, Dumbbell, BookMarked,
-  Heart, Trash2, Search, ThumbsUp, ThumbsDown
+  Heart, Trash2, Search, ThumbsUp, ThumbsDown, Globe
 } from 'lucide-react'
 import axios from 'axios'
 import { useAuth } from './contexts/AuthContext'
+import { useLanguage } from './contexts/LanguageContext'
+import { t } from './lib/translations'
 import { supabase } from './lib/supabase'
 import ProtectedRoute from './components/ProtectedRoute'
+import { LanguageToggle } from './components/LanguageToggle'
 import LandingPage from './pages/LandingPage'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
@@ -20,27 +23,28 @@ import AdminCallView from './pages/AdminCallView'
 import LiveCallPageMobile from './pages/LiveCallPageMobile'
 import AIAgentPage from './pages/AIAgentPage'
 import PracticePage from './pages/PracticePage'
-// StoryBankPage removed - now using StoryBankContent in MainApp
 import { API_URL } from './lib/config'
 import { AnalysisInsights } from './components/analysis'
 import AIAssistant from './components/AIAssistant'
 
-const stages = [
-  { key: 'upload', label: 'Uploading', icon: Upload, progress: 10 },
-  { key: 'queue', label: 'In Queue', icon: Clock, progress: 25 },
-  { key: 'transcribe', label: 'Transcribing', icon: Mic, progress: 50 },
-  { key: 'speakers', label: 'Identifying Speakers', icon: Users, progress: 75 },
-  { key: 'classify', label: 'Analyzing Roles', icon: Brain, progress: 90 },
-  { key: 'complete', label: 'Complete', icon: CheckCircle2, progress: 100 },
+// Helper function to get translated stages
+const getStages = (lang) => [
+  { key: 'upload', label: t('calls.uploading', lang), icon: Upload, progress: 10 },
+  { key: 'queue', label: t('calls.inQueue', lang), icon: Clock, progress: 25 },
+  { key: 'transcribe', label: t('calls.transcribing', lang), icon: Mic, progress: 50 },
+  { key: 'speakers', label: t('calls.identifyingSpeakers', lang), icon: Users, progress: 75 },
+  { key: 'classify', label: t('calls.analyzingRoles', lang), icon: Brain, progress: 90 },
+  { key: 'complete', label: t('calls.complete', lang), icon: CheckCircle2, progress: 100 },
 ]
 
-const navItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: Home },
-  { id: 'ai-agent', label: 'AI Agent', icon: Brain, highlight: true, isRoute: true },
-  { id: 'story-bank', label: 'Story Bank', icon: BookMarked },
-  { id: 'upload', label: 'New Call', icon: Upload },
-  { id: 'calls', label: 'Call History', icon: History },
-  { id: 'settings', label: 'Settings', icon: Settings },
+// Helper function to get translated nav items
+const getNavItems = (lang) => [
+  { id: 'dashboard', label: t('nav.dashboard', lang), icon: Home },
+  { id: 'ai-agent', label: t('nav.aiAgent', lang), icon: Brain, highlight: true, isRoute: true },
+  { id: 'story-bank', label: t('nav.storyBank', lang), icon: BookMarked },
+  { id: 'upload', label: t('nav.newCall', lang), icon: Upload },
+  { id: 'calls', label: t('nav.callHistory', lang), icon: History },
+  { id: 'settings', label: t('nav.settings', lang), icon: Settings },
 ]
 
 const upcomingFeatures = [
@@ -347,34 +351,43 @@ function PDFDownloadButton({ analysisResult, fileName = 'call_analysis' }) {
 }
 
 // Story Bank Content Component - Clean Professional Design
-const STORY_EMOTIONS = [
-  { value: 'trust', label: 'אמון', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
-  { value: 'urgency', label: 'דחיפות', color: 'bg-red-500/20 text-red-400 border-red-500/30' },
-  { value: 'value', label: 'ערך', color: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' },
-  { value: 'fear_of_loss', label: 'פחד מהפסד', color: 'bg-orange-500/20 text-orange-400 border-orange-500/30' },
-  { value: 'professionalism', label: 'מקצועיות', color: 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30' },
-  { value: 'integrity', label: 'יושרה', color: 'bg-teal-500/20 text-teal-400 border-teal-500/30' },
-  { value: 'success', label: 'הצלחה', color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' },
-  { value: 'social_proof', label: 'הוכחה חברתית', color: 'bg-violet-500/20 text-violet-400 border-violet-500/30' }
+// Bilingual story options
+const getStoryEmotions = (lang) => [
+  { value: 'trust', label: t('emotions.trust', lang), color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
+  { value: 'urgency', label: t('emotions.urgency', lang), color: 'bg-red-500/20 text-red-400 border-red-500/30' },
+  { value: 'value', label: t('emotions.value', lang), color: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' },
+  { value: 'fear_of_loss', label: t('emotions.fear_of_loss', lang), color: 'bg-orange-500/20 text-orange-400 border-orange-500/30' },
+  { value: 'professionalism', label: t('emotions.professionalism', lang), color: 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30' },
+  { value: 'integrity', label: t('emotions.integrity', lang), color: 'bg-teal-500/20 text-teal-400 border-teal-500/30' },
+  { value: 'success', label: t('emotions.success', lang), color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' },
+  { value: 'social_proof', label: t('emotions.social_proof', lang), color: 'bg-violet-500/20 text-violet-400 border-violet-500/30' }
 ]
 
-const STORY_OBJECTIONS = [
-  { value: 'need_to_think', label: 'צריך לחשוב' },
-  { value: 'too_expensive', label: 'יקר לי' },
-  { value: 'spouse_decision', label: 'בן/בת זוג' },
-  { value: 'getting_quotes', label: 'בודק הצעות' },
-  { value: 'bad_timing', label: 'לא עכשיו' }
+const getStoryObjections = (lang) => [
+  { value: 'need_to_think', label: t('objections.need_to_think', lang) },
+  { value: 'too_expensive', label: t('objections.too_expensive', lang) },
+  { value: 'spouse_decision', label: t('objections.spouse_decision', lang) },
+  { value: 'getting_quotes', label: t('objections.getting_quotes', lang) },
+  { value: 'bad_timing', label: t('objections.bad_timing', lang) }
 ]
 
-const STORY_PRODUCTS = [
-  { value: 'cool_life', label: 'Cool Life' },
-  { value: 'turf', label: 'דשא' },
-  { value: 'pavers', label: 'ריצוף' },
-  { value: 'concrete', label: 'בטון' },
-  { value: 'fence', label: 'גדר' }
+const getStoryProducts = (lang) => [
+  { value: 'cool_life', label: t('products.cool_life', lang) },
+  { value: 'turf', label: t('products.turf', lang) },
+  { value: 'pavers', label: t('products.pavers', lang) },
+  { value: 'concrete', label: t('products.concrete', lang) },
+  { value: 'fence', label: t('products.fence', lang) }
 ]
 
 function StoryBankContent() {
+  const { language, dir } = useLanguage()
+  const T = (key) => t(key, language)
+  
+  // Get translated options
+  const STORY_EMOTIONS = getStoryEmotions(language)
+  const STORY_OBJECTIONS = getStoryObjections(language)
+  const STORY_PRODUCTS = getStoryProducts(language)
+  
   const [stories, setStories] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedStory, setSelectedStory] = useState(null)
@@ -459,19 +472,19 @@ function StoryBankContent() {
 
   const getObjectionLabel = (value) => {
     const obj = STORY_OBJECTIONS.find(o => o.value === value)
-    return obj ? obj.label : 'כללי'
+    return obj ? obj.label : T('storyBank.general')
   }
 
   return (
-    <div className="max-w-5xl mx-auto" dir="rtl">
+    <div className="max-w-5xl mx-auto" dir={dir}>
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-white mb-2 flex items-center gap-3">
           <BookMarked className="w-7 h-7 text-violet-400" />
-          בנק הסיפורים שלי
+          {T('storyBank.title')}
         </h1>
         <p className="text-gray-400">
-          סיפורים שתורגמו מניתוח שיחות - השתמש בהם נגד התנגדויות
+          {T('storyBank.subtitle')}
         </p>
       </div>
 
@@ -479,13 +492,13 @@ function StoryBankContent() {
       <div className="bg-white/5 rounded-2xl border border-white/10 p-4 mb-6 space-y-4">
         {/* Search */}
         <div className="relative">
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+          <Search className={`absolute ${dir === 'rtl' ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500`} />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="חפש בסיפורים..."
-            className="w-full pr-10 pl-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-violet-500"
+            placeholder={T('storyBank.searchPlaceholder')}
+            className={`w-full ${dir === 'rtl' ? 'pr-10 pl-4' : 'pl-10 pr-4'} py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-violet-500`}
           />
         </div>
 
@@ -493,7 +506,7 @@ function StoryBankContent() {
         <div className="flex flex-wrap gap-4">
           {/* By Objection */}
           <div className="flex-1 min-w-[200px]">
-            <p className="text-xs text-gray-500 mb-2">לפי התנגדות</p>
+            <p className="text-xs text-gray-500 mb-2">{T('storyBank.byObjection')}</p>
             <div className="flex flex-wrap gap-1.5">
               <button
                 onClick={() => setFilterObjection('')}
@@ -501,7 +514,7 @@ function StoryBankContent() {
                   filterObjection === '' ? 'bg-violet-500 text-white' : 'bg-white/5 text-gray-400 hover:text-white'
                 }`}
               >
-                הכל
+                {T('common.all')}
               </button>
               {STORY_OBJECTIONS.map(obj => (
                 <button
@@ -519,7 +532,7 @@ function StoryBankContent() {
 
           {/* By Product */}
           <div className="flex-1 min-w-[200px]">
-            <p className="text-xs text-gray-500 mb-2">לפי מוצר</p>
+            <p className="text-xs text-gray-500 mb-2">{T('storyBank.byProduct')}</p>
             <div className="flex flex-wrap gap-1.5">
               <button
                 onClick={() => setFilterProduct('')}
@@ -527,7 +540,7 @@ function StoryBankContent() {
                   filterProduct === '' ? 'bg-emerald-500 text-white' : 'bg-white/5 text-gray-400 hover:text-white'
                 }`}
               >
-                הכל
+                {T('common.all')}
               </button>
               {STORY_PRODUCTS.map(prod => (
                 <button
@@ -547,14 +560,14 @@ function StoryBankContent() {
         {/* Stats */}
         <div className="flex items-center justify-between pt-2 border-t border-white/10">
           <span className="text-sm text-gray-400">
-            {filteredStories.length} סיפורים {filteredStories.length !== stories.length && `(מתוך ${stories.length})`}
+            {filteredStories.length} {T('storyBank.stories')} {filteredStories.length !== stories.length && `(${T('common.of')} ${stories.length})`}
           </span>
           {(filterEmotion || filterObjection || filterProduct || searchQuery) && (
             <button
               onClick={() => { setFilterEmotion(''); setFilterObjection(''); setFilterProduct(''); setSearchQuery(''); }}
               className="text-xs text-violet-400 hover:text-violet-300"
             >
-              נקה פילטרים
+              {T('common.clearFilters')}
             </button>
           )}
         </div>
@@ -569,17 +582,17 @@ function StoryBankContent() {
         /* Story Detail View */
         <div className="space-y-6">
           <button onClick={() => setSelectedStory(null)} className="flex items-center gap-2 text-gray-400 hover:text-white text-sm">
-            <ChevronRight className="w-4 h-4 rotate-180" /> חזרה לרשימה
+            <ChevronRight className={`w-4 h-4 ${dir === 'rtl' ? 'rotate-180' : ''}`} /> {T('storyBank.backToList')}
           </button>
           
           <div className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] rounded-2xl border border-white/10 p-6 space-y-5">
             <div className="flex items-start justify-between">
               <div>
-                <h2 className="text-xl font-bold text-white mb-2">{selectedStory.title || 'סיפור'}</h2>
+                <h2 className="text-xl font-bold text-white mb-2">{selectedStory.title || T('analysis.stories')}</h2>
                 <div className="flex flex-wrap gap-2">
                   {selectedStory.objection_type && (
                     <span className="px-2 py-1 bg-red-500/20 text-red-400 rounded-lg text-xs">
-                      נגד: {getObjectionLabel(selectedStory.objection_type)}
+                      {T('storyBank.against')}: {getObjectionLabel(selectedStory.objection_type)}
                     </span>
                   )}
                   {selectedStory.target_emotions?.map(e => getEmotionBadge(e))}
@@ -592,7 +605,7 @@ function StoryBankContent() {
 
             {selectedStory.setup_line && (
               <div className="bg-amber-500/10 rounded-xl border border-amber-500/20 p-4">
-                <p className="text-xs text-amber-400 mb-1">🎯 משפט פתיחה</p>
+                <p className="text-xs text-amber-400 mb-1">🎯 {T('analysis.setupLine')}</p>
                 <p className="text-white">{selectedStory.setup_line}</p>
               </div>
             )}
@@ -603,14 +616,14 @@ function StoryBankContent() {
 
             {selectedStory.closing_bridge && (
               <div className="bg-emerald-500/10 rounded-xl border border-emerald-500/20 p-4">
-                <p className="text-xs text-emerald-400 mb-1">🌉 גשר סגירה</p>
+                <p className="text-xs text-emerald-400 mb-1">🌉 {T('analysis.closingBridge')}</p>
                 <p className="text-white">{selectedStory.closing_bridge}</p>
               </div>
             )}
 
             {selectedStory.explanation && (
               <div className="bg-blue-500/10 rounded-xl border border-blue-500/20 p-4">
-                <p className="text-xs text-blue-400 mb-1">💡 למה זה עובד</p>
+                <p className="text-xs text-blue-400 mb-1">💡 {T('storyBank.whyItWorks')}</p>
                 <p className="text-gray-300 text-sm">{selectedStory.explanation}</p>
               </div>
             )}
@@ -618,20 +631,20 @@ function StoryBankContent() {
             {/* Usage Tracking */}
             <div className="flex items-center justify-between pt-4 border-t border-white/10">
               <div className="text-sm text-gray-500">
-                שימושים: {selectedStory.used_count || 0}
+                {T('storyBank.usageCount')}: {selectedStory.used_count || 0}
               </div>
               <div className="flex gap-2">
                 <button
                   onClick={() => markStoryUsed(selectedStory.id, true)}
                   className="px-4 py-2 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 rounded-lg text-sm flex items-center gap-2"
                 >
-                  <ThumbsUp className="w-4 h-4" /> עבד!
+                  <ThumbsUp className="w-4 h-4" /> {T('storyBank.worked')}
                 </button>
                 <button
                   onClick={() => markStoryUsed(selectedStory.id, false)}
                   className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg text-sm flex items-center gap-2"
                 >
-                  <ThumbsDown className="w-4 h-4" /> לא עבד
+                  <ThumbsDown className="w-4 h-4" /> {T('storyBank.didntWork')}
                 </button>
               </div>
             </div>
@@ -655,7 +668,7 @@ function StoryBankContent() {
                   >
                     <div className="flex items-start justify-between mb-2">
                       <h4 className="font-medium text-white group-hover:text-violet-400 transition-colors line-clamp-1">
-                        {story.title || 'סיפור'}
+                        {story.title || T('analysis.stories')}
                       </h4>
                       {story.used_count > 0 && (
                         <span className="text-xs text-gray-500 flex items-center gap-1">
@@ -678,17 +691,17 @@ function StoryBankContent() {
         <div className="text-center py-16">
           <BookMarked className="w-16 h-16 text-gray-600 mx-auto mb-4" />
           <h3 className="text-xl font-semibold text-white mb-2">
-            {stories.length === 0 ? 'אין לך סיפורים עדיין' : 'אין סיפורים שמתאימים לפילטרים'}
+            {stories.length === 0 ? T('storyBank.noStoriesYet') : T('storyBank.noStoriesMatch')}
           </h3>
           <p className="text-gray-500 mb-6">
             {stories.length === 0 
-              ? 'נתח שיחה ושפר את הסיפורים שלך ב-Practice On'
-              : 'נסה לשנות את הפילטרים או לחפש משהו אחר'
+              ? T('storyBank.analyzeCallTip')
+              : T('storyBank.tryChangingFilters')
             }
           </p>
           {stories.length === 0 && (
             <p className="text-sm text-violet-400">
-              💡 טיפ: לך לניתוח שיחה ← Practice On ← סיפורים
+              💡 {T('storyBank.tip')}: {T('storyBank.goToAnalysis')}
             </p>
           )}
         </div>
@@ -699,6 +712,12 @@ function StoryBankContent() {
 
 function MainApp() {
   const { user, signOut } = useAuth()
+  const { language, dir } = useLanguage()
+  const T = (key) => t(key, language)
+  
+  // Get translated items
+  const stages = getStages(language)
+  const navItems = getNavItems(language)
   
   // Navigation state
   const [activeTab, setActiveTab] = useState('upload')
@@ -1104,8 +1123,8 @@ function MainApp() {
 
   // Render Dashboard View
   const renderDashboard = () => (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-white">Dashboard</h2>
+    <div className="space-y-6" dir={dir}>
+      <h2 className="text-2xl font-bold text-white">{T('dashboard.title')}</h2>
       
       {dashboardLoading ? (
         <div className="flex items-center justify-center py-20">
@@ -1118,28 +1137,28 @@ function MainApp() {
             <div className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] rounded-2xl p-5 border border-white/10">
               <div className="flex items-center gap-3 mb-2">
                 <Phone className="w-5 h-5 text-violet-400" />
-                <span className="text-gray-500 text-sm">Total Calls</span>
+                <span className="text-gray-500 text-sm">{T('dashboard.totalCalls')}</span>
               </div>
               <p className="text-4xl font-bold text-white">{dashboardStats.total_calls || 0}</p>
             </div>
             <div className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] rounded-2xl p-5 border border-white/10">
               <div className="flex items-center gap-3 mb-2">
                 <Clock className="w-5 h-5 text-blue-400" />
-                <span className="text-gray-500 text-sm">Avg Duration</span>
+                <span className="text-gray-500 text-sm">{T('dashboard.avgDuration')}</span>
               </div>
               <p className="text-4xl font-bold text-white">{formatDuration(dashboardStats.avg_duration_seconds || 0)}</p>
             </div>
             <div className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] rounded-2xl p-5 border border-white/10">
               <div className="flex items-center gap-3 mb-2">
                 <Target className="w-5 h-5 text-emerald-400" />
-                <span className="text-gray-500 text-sm">Avg Score</span>
+                <span className="text-gray-500 text-sm">{T('dashboard.avgScore')}</span>
               </div>
               <p className="text-4xl font-bold text-white">{dashboardStats.avg_overall_score || 0}<span className="text-lg text-gray-500">/100</span></p>
             </div>
             <div className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] rounded-2xl p-5 border border-white/10">
               <div className="flex items-center gap-3 mb-2">
                 <Volume2 className="w-5 h-5 text-fuchsia-400" />
-                <span className="text-gray-500 text-sm">Talk Ratio</span>
+                <span className="text-gray-500 text-sm">{T('dashboard.talkRatio')}</span>
               </div>
               <p className="text-4xl font-bold text-white">{dashboardStats.avg_seller_talk_pct || 50}<span className="text-lg text-gray-500">%</span></p>
             </div>
@@ -1151,7 +1170,7 @@ function MainApp() {
             <div className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] rounded-2xl p-6 border border-white/10">
               <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
                 <AlertTriangle className="w-5 h-5 text-orange-400" />
-                Top Objections
+                {T('dashboard.topObjections')}
               </h3>
               {Object.keys(dashboardStats.objection_counts || {}).length > 0 ? (
                 <div className="space-y-3">
@@ -1163,7 +1182,7 @@ function MainApp() {
                   ))}
                 </div>
               ) : (
-                <p className="text-gray-500">No objections recorded yet</p>
+                <p className="text-gray-500">{T('dashboard.noObjectionsYet')}</p>
               )}
             </div>
 
@@ -1171,7 +1190,7 @@ function MainApp() {
             <div className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] rounded-2xl p-6 border border-white/10">
               <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
                 <TrendingUp className="w-5 h-5 text-blue-400" />
-                Areas to Improve
+                {T('dashboard.areasToImprove')}
               </h3>
               {(dashboardStats.improvement_areas || []).length > 0 ? (
                 <ul className="space-y-2">
@@ -1183,7 +1202,7 @@ function MainApp() {
                   ))}
                 </ul>
               ) : (
-                <p className="text-gray-500">Analyze more calls to see improvement areas</p>
+                <p className="text-gray-500">{T('dashboard.analyzeMoreCalls')}</p>
               )}
             </div>
           </div>
@@ -1192,27 +1211,27 @@ function MainApp() {
           <div className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] rounded-2xl p-6 border border-white/10">
             <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
               <Shield className="w-5 h-5 text-violet-400" />
-              Deal Risk Distribution
+              {T('dashboard.dealRiskDistribution')}
             </h3>
             <div className="flex gap-4">
               <div className="flex-1 text-center p-4 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
                 <p className="text-3xl font-bold text-emerald-400">{dashboardStats.risk_distribution?.low || 0}</p>
-                <p className="text-sm text-gray-500">Low Risk</p>
+                <p className="text-sm text-gray-500">{T('dashboard.lowRisk')}</p>
               </div>
               <div className="flex-1 text-center p-4 bg-yellow-500/10 rounded-xl border border-yellow-500/20">
                 <p className="text-3xl font-bold text-yellow-400">{dashboardStats.risk_distribution?.medium || 0}</p>
-                <p className="text-sm text-gray-500">Medium Risk</p>
+                <p className="text-sm text-gray-500">{T('dashboard.mediumRisk')}</p>
               </div>
               <div className="flex-1 text-center p-4 bg-red-500/10 rounded-xl border border-red-500/20">
                 <p className="text-3xl font-bold text-red-400">{dashboardStats.risk_distribution?.high || 0}</p>
-                <p className="text-sm text-gray-500">High Risk</p>
+                <p className="text-sm text-gray-500">{T('dashboard.highRisk')}</p>
               </div>
             </div>
           </div>
         </>
       ) : (
         <div className="text-center py-20">
-          <p className="text-gray-500">No data available. Upload and analyze calls to see stats.</p>
+          <p className="text-gray-500">{T('dashboard.noDataAvailable')}</p>
         </div>
       )}
     </div>
@@ -1220,16 +1239,16 @@ function MainApp() {
 
   // Render Calls History View
   const renderCallsHistory = () => (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="space-y-4 sm:space-y-6" dir={dir}>
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-xl sm:text-2xl font-bold text-white">Call History</h2>
+        <h2 className="text-xl sm:text-2xl font-bold text-white">{T('calls.callHistory')}</h2>
         <button
           onClick={() => setActiveTab('upload')}
           className="px-3 sm:px-4 py-2 bg-violet-500 hover:bg-violet-600 text-white rounded-xl font-medium flex items-center gap-2 text-sm sm:text-base active:scale-95 transition-all flex-shrink-0"
         >
           <Upload className="w-4 h-4" />
-          <span className="hidden xs:inline">New Call</span>
-          <span className="xs:hidden">New</span>
+          <span className="hidden xs:inline">{T('nav.newCall')}</span>
+          <span className="xs:hidden">{T('common.upload')}</span>
         </button>
       </div>
 
@@ -1261,7 +1280,7 @@ function MainApp() {
                           ? 'bg-emerald-500/20 text-emerald-400' 
                           : 'bg-yellow-500/20 text-yellow-400'
                       }`}>
-                        {call.status === 'analyzed' ? 'Analyzed' : 'Transcribed'}
+                        {call.status === 'analyzed' ? T('calls.analyzed') : T('calls.notAnalyzed')}
                       </span>
                     </div>
                     {/* Metadata - wraps on mobile */}
@@ -1288,7 +1307,7 @@ function MainApp() {
                       ? 'bg-emerald-500/20 text-emerald-400' 
                       : 'bg-yellow-500/20 text-yellow-400'
                   }`}>
-                    {call.status === 'analyzed' ? 'Analyzed' : 'Transcribed'}
+                    {call.status === 'analyzed' ? T('calls.analyzed') : T('calls.notAnalyzed')}
                   </span>
                   <ChevronRight className="w-5 h-5 text-gray-500" />
                 </div>
@@ -1299,12 +1318,12 @@ function MainApp() {
       ) : (
         <div className="text-center py-20 bg-gradient-to-b from-white/[0.08] to-white/[0.02] rounded-2xl border border-white/10">
           <Phone className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-          <p className="text-gray-500">No calls yet</p>
+          <p className="text-gray-500">{T('calls.noCallsYet')}</p>
           <button
             onClick={() => setActiveTab('upload')}
             className="mt-4 px-4 py-2 bg-violet-500 hover:bg-violet-600 text-white rounded-xl font-medium"
           >
-            Upload First Call
+            {T('calls.uploadFirstCall')}
           </button>
         </div>
       )}
@@ -1514,7 +1533,10 @@ function MainApp() {
                 {navItems.find(n => n.id === activeTab)?.label || 'SalesAI'}
               </h2>
             </div>
-            <span className="px-3 py-1 bg-violet-500/20 text-violet-400 rounded-full text-xs font-medium">Beta</span>
+            <div className="flex items-center gap-3">
+              <LanguageToggle compact />
+              <span className="px-3 py-1 bg-violet-500/20 text-violet-400 rounded-full text-xs font-medium">Beta</span>
+            </div>
           </div>
         </header>
 
@@ -1525,7 +1547,7 @@ function MainApp() {
           {activeTab === 'settings' && (
             <div className="text-center py-20">
               <Settings className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-              <p className="text-gray-500">Settings coming soon</p>
+              <p className="text-gray-500">{T('nav.settings')} - Coming soon</p>
             </div>
           )}
           {activeTab === 'story-bank' && (
@@ -2213,12 +2235,12 @@ function MainApp() {
       {showRenameModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-gradient-to-b from-gray-800 to-gray-900 rounded-2xl p-6 w-full max-w-md border border-white/10">
-            <h3 className="text-xl font-bold text-white mb-4">שנה שם שיחה</h3>
+            <h3 className="text-xl font-bold text-white mb-4">{T('calls.renameCall')}</h3>
             <input
               type="text"
               value={renameValue}
               onChange={(e) => setRenameValue(e.target.value)}
-              placeholder="הזן שם חדש..."
+              placeholder={T('calls.callName')}
               className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-violet-500 mb-4"
               autoFocus
             />
@@ -2227,14 +2249,14 @@ function MainApp() {
                 onClick={() => setShowRenameModal(false)}
                 className="flex-1 px-4 py-2.5 bg-white/10 hover:bg-white/20 text-gray-300 rounded-xl transition-colors"
               >
-                ביטול
+                {T('common.cancel')}
               </button>
               <button
                 onClick={handleRename}
                 disabled={renaming || !renameValue.trim()}
                 className="flex-1 px-4 py-2.5 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white rounded-xl transition-colors disabled:opacity-50"
               >
-                {renaming ? 'שומר...' : 'שמור'}
+                {renaming ? T('common.saving') : T('common.save')}
               </button>
             </div>
           </div>

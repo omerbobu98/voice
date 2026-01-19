@@ -1,9 +1,15 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { useLanguage } from '../contexts/LanguageContext'
+import { t } from '../lib/translations'
+import { LanguageToggle } from '../components/LanguageToggle'
 import { Phone, Mail, Lock, AlertTriangle, Loader2 } from 'lucide-react'
 
 export default function LoginPage() {
+  const { language, dir } = useLanguage()
+  const T = (key) => t(key, language)
+  
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -38,25 +44,30 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center px-6">
+    <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center px-6" dir={dir}>
       <div className="w-full max-w-md">
+        {/* Language Toggle */}
+        <div className="flex justify-end mb-4">
+          <LanguageToggle compact />
+        </div>
+        
         {/* Logo */}
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-3">
             <div className="w-12 h-12 bg-gradient-to-br from-violet-500 to-fuchsia-500 rounded-xl flex items-center justify-center">
               <Phone className="w-6 h-6 text-white" />
             </div>
-            <div className="text-left">
+            <div className={dir === 'rtl' ? 'text-right' : 'text-left'}>
               <h1 className="text-2xl font-bold text-white">SalesAI</h1>
-              <p className="text-xs text-gray-500">Conversation Intelligence</p>
+              <p className="text-xs text-gray-500">{T('landing.conversationIntelligence')}</p>
             </div>
           </Link>
         </div>
 
         {/* Login Card */}
         <div className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] rounded-3xl p-8 border border-white/10 shadow-2xl">
-          <h2 className="text-2xl font-bold text-white text-center mb-2">Welcome Back</h2>
-          <p className="text-gray-500 text-center mb-8">Sign in to continue to SalesAI</p>
+          <h2 className="text-2xl font-bold text-white text-center mb-2">{T('auth.welcomeBack')}</h2>
+          <p className="text-gray-500 text-center mb-8">{T('auth.signInContinue')}</p>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {error && (
@@ -67,14 +78,14 @@ export default function LoginPage() {
             )}
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Email</label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">{T('auth.email')}</label>
               <div className="relative">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+                <Mail className={`absolute ${dir === 'rtl' ? 'right-4' : 'left-4'} top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500`} />
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 py-3 text-base text-white placeholder-gray-500 focus:outline-none focus:border-violet-500 transition-colors"
+                  className={`w-full bg-white/5 border border-white/10 rounded-xl ${dir === 'rtl' ? 'pr-12 pl-4' : 'pl-12 pr-4'} py-3 text-base text-white placeholder-gray-500 focus:outline-none focus:border-violet-500 transition-colors`}
                   placeholder="you@example.com"
                   required
                 />
@@ -82,14 +93,14 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Password</label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">{T('auth.password')}</label>
               <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+                <Lock className={`absolute ${dir === 'rtl' ? 'right-4' : 'left-4'} top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500`} />
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 py-3 text-base text-white placeholder-gray-500 focus:outline-none focus:border-violet-500 transition-colors"
+                  className={`w-full bg-white/5 border border-white/10 rounded-xl ${dir === 'rtl' ? 'pr-12 pl-4' : 'pl-12 pr-4'} py-3 text-base text-white placeholder-gray-500 focus:outline-none focus:border-violet-500 transition-colors`}
                   placeholder="••••••••"
                   required
                 />
@@ -104,10 +115,10 @@ export default function LoginPage() {
               {loading ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  Signing in...
+                  {T('auth.signingIn')}
                 </>
               ) : (
-                'Sign In'
+                T('auth.signIn')
               )}
             </button>
           </form>
@@ -118,7 +129,7 @@ export default function LoginPage() {
               <div className="w-full border-t border-white/10"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-[#12121a] text-gray-500">or continue with</span>
+              <span className="px-4 bg-[#12121a] text-gray-500">{T('auth.orContinueWith')}</span>
             </div>
           </div>
 
@@ -132,7 +143,7 @@ export default function LoginPage() {
             {googleLoading ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
-                Connecting...
+                {T('auth.connecting')}
               </>
             ) : (
               <>
@@ -142,16 +153,16 @@ export default function LoginPage() {
                   <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
                   <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
                 </svg>
-                Continue with Google
+                {T('auth.continueWithGoogle')}
               </>
             )}
           </button>
 
           <div className="mt-6 text-center">
             <p className="text-gray-500">
-              Don't have an account?{' '}
+              {T('auth.noAccount')}{' '}
               <Link to="/register" className="text-violet-400 hover:text-violet-300 font-medium">
-                Sign up
+                {T('auth.signUp')}
               </Link>
             </p>
           </div>
@@ -160,7 +171,7 @@ export default function LoginPage() {
         {/* Back to home */}
         <div className="mt-6 text-center">
           <Link to="/" className="text-gray-500 hover:text-gray-400 text-sm">
-            ← Back to home
+            {T('auth.backToHome')}
           </Link>
         </div>
       </div>

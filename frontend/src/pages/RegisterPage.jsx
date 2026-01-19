@@ -1,9 +1,15 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { useLanguage } from '../contexts/LanguageContext'
+import { t } from '../lib/translations'
+import { LanguageToggle } from '../components/LanguageToggle'
 import { Phone, Mail, Lock, AlertTriangle, Loader2, CheckCircle2 } from 'lucide-react'
 
 export default function RegisterPage() {
+  const { language, dir } = useLanguage()
+  const T = (key) => t(key, language)
+  
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -29,12 +35,12 @@ export default function RegisterPage() {
     setError('')
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match')
+      setError(T('auth.passwordsNoMatch'))
       return
     }
 
     if (password.length < 6) {
-      setError('Password must be at least 6 characters')
+      setError(T('auth.passwordTooShort'))
       return
     }
 
@@ -57,22 +63,22 @@ export default function RegisterPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center px-6">
+      <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center px-6" dir={dir}>
         <div className="w-full max-w-md">
           <div className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] rounded-3xl p-8 border border-white/10 shadow-2xl text-center">
             <div className="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
               <CheckCircle2 className="w-8 h-8 text-emerald-400" />
             </div>
-            <h2 className="text-2xl font-bold text-white mb-2">Check Your Email</h2>
+            <h2 className="text-2xl font-bold text-white mb-2">{T('auth.checkEmail')}</h2>
             <p className="text-gray-400 mb-6">
-              We've sent a confirmation link to <span className="text-white">{email}</span>. 
-              Click the link to activate your account.
+              {T('auth.confirmationSent')} <span className="text-white">{email}</span>. 
+              {T('auth.clickToActivate')}
             </p>
             <Link
               to="/login"
               className="inline-block px-6 py-3 bg-violet-500/20 text-violet-400 rounded-xl font-medium hover:bg-violet-500/30 transition-colors"
             >
-              Go to Login
+              {T('auth.goToLogin')}
             </Link>
           </div>
         </div>
@@ -81,25 +87,30 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center px-6">
+    <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center px-6" dir={dir}>
       <div className="w-full max-w-md">
+        {/* Language Toggle */}
+        <div className="flex justify-end mb-4">
+          <LanguageToggle compact />
+        </div>
+        
         {/* Logo */}
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-3">
             <div className="w-12 h-12 bg-gradient-to-br from-violet-500 to-fuchsia-500 rounded-xl flex items-center justify-center">
               <Phone className="w-6 h-6 text-white" />
             </div>
-            <div className="text-left">
+            <div className={dir === 'rtl' ? 'text-right' : 'text-left'}>
               <h1 className="text-2xl font-bold text-white">SalesAI</h1>
-              <p className="text-xs text-gray-500">Conversation Intelligence</p>
+              <p className="text-xs text-gray-500">{T('landing.conversationIntelligence')}</p>
             </div>
           </Link>
         </div>
 
         {/* Register Card */}
         <div className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] rounded-3xl p-8 border border-white/10 shadow-2xl">
-          <h2 className="text-2xl font-bold text-white text-center mb-2">Create Account</h2>
-          <p className="text-gray-500 text-center mb-8">Start your free trial today</p>
+          <h2 className="text-2xl font-bold text-white text-center mb-2">{T('auth.createAccount')}</h2>
+          <p className="text-gray-500 text-center mb-8">{T('auth.startFreeTrial')}</p>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             {error && (
@@ -110,14 +121,14 @@ export default function RegisterPage() {
             )}
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Email</label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">{T('auth.email')}</label>
               <div className="relative">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+                <Mail className={`absolute ${dir === 'rtl' ? 'right-4' : 'left-4'} top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500`} />
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 py-3 text-base text-white placeholder-gray-500 focus:outline-none focus:border-violet-500 transition-colors"
+                  className={`w-full bg-white/5 border border-white/10 rounded-xl ${dir === 'rtl' ? 'pr-12 pl-4' : 'pl-12 pr-4'} py-3 text-base text-white placeholder-gray-500 focus:outline-none focus:border-violet-500 transition-colors`}
                   placeholder="you@example.com"
                   required
                 />
@@ -125,14 +136,14 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Password</label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">{T('auth.password')}</label>
               <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+                <Lock className={`absolute ${dir === 'rtl' ? 'right-4' : 'left-4'} top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500`} />
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 py-3 text-base text-white placeholder-gray-500 focus:outline-none focus:border-violet-500 transition-colors"
+                  className={`w-full bg-white/5 border border-white/10 rounded-xl ${dir === 'rtl' ? 'pr-12 pl-4' : 'pl-12 pr-4'} py-3 text-base text-white placeholder-gray-500 focus:outline-none focus:border-violet-500 transition-colors`}
                   placeholder="••••••••"
                   required
                 />
@@ -140,14 +151,14 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Confirm Password</label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">{T('auth.confirmPassword')}</label>
               <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+                <Lock className={`absolute ${dir === 'rtl' ? 'right-4' : 'left-4'} top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500`} />
                 <input
                   type="password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 py-3 text-base text-white placeholder-gray-500 focus:outline-none focus:border-violet-500 transition-colors"
+                  className={`w-full bg-white/5 border border-white/10 rounded-xl ${dir === 'rtl' ? 'pr-12 pl-4' : 'pl-12 pr-4'} py-3 text-base text-white placeholder-gray-500 focus:outline-none focus:border-violet-500 transition-colors`}
                   placeholder="••••••••"
                   required
                 />
@@ -162,10 +173,10 @@ export default function RegisterPage() {
               {loading ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  Creating account...
+                  {T('auth.creatingAccount')}
                 </>
               ) : (
-                'Create Account'
+                T('auth.createAccount')
               )}
             </button>
           </form>
@@ -176,7 +187,7 @@ export default function RegisterPage() {
               <div className="w-full border-t border-white/10"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-[#12121a] text-gray-500">or continue with</span>
+              <span className="px-4 bg-[#12121a] text-gray-500">{T('auth.orContinueWith')}</span>
             </div>
           </div>
 
@@ -190,7 +201,7 @@ export default function RegisterPage() {
             {googleLoading ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
-                Connecting...
+                {T('auth.connecting')}
               </>
             ) : (
               <>
@@ -200,16 +211,16 @@ export default function RegisterPage() {
                   <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
                   <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
                 </svg>
-                Continue with Google
+                {T('auth.continueWithGoogle')}
               </>
             )}
           </button>
 
           <div className="mt-6 text-center">
             <p className="text-gray-500">
-              Already have an account?{' '}
+              {T('auth.haveAccount')}{' '}
               <Link to="/login" className="text-violet-400 hover:text-violet-300 font-medium">
-                Sign in
+                {T('auth.signIn')}
               </Link>
             </p>
           </div>
@@ -218,7 +229,7 @@ export default function RegisterPage() {
         {/* Back to home */}
         <div className="mt-6 text-center">
           <Link to="/" className="text-gray-500 hover:text-gray-400 text-sm">
-            ← Back to home
+            {T('auth.backToHome')}
           </Link>
         </div>
       </div>
