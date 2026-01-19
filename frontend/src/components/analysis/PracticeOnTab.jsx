@@ -1476,25 +1476,39 @@ function StoryImprovementCard({ story, analysisResult, onSaveToBank }) {
     setSaving(true)
     try {
       const { data: { session } } = await supabase.auth.getSession()
-      await axios.post(`${API_URL}/api/story-bank`, {
-        title: improvedStory.title || 'סיפור משופר',
-        content: improvedStory.story_content,
+      if (!session?.access_token) {
+        alert(lang === 'en' ? 'Please log in to save stories' : 'יש להתחבר כדי לשמור סיפורים')
+        setSaving(false)
+        return
+      }
+      
+      const storyContent = improvedStory.story_content || improvedStory.content || ''
+      const response = await axios.post(`${API_URL}/api/story-bank`, {
+        title: improvedStory.title || 'Improved Story',
+        content: storyContent,
+        story_content: storyContent,
         setup_line: improvedStory.setup_line,
         closing_bridge: improvedStory.closing_bridge,
-        target_emotions: selectedEmotions,
+        target_emotions: selectedEmotions.length > 0 ? selectedEmotions : ['trust'],
         objection_type: selectedObjection,
         product: selectedProduct,
         structure: improvedStory.structure,
-        explanation: improvedStory.explanation,
-        original_story: story.original_story
+        explanation: improvedStory.explanation
       }, {
         headers: { Authorization: `Bearer ${session?.access_token}` }
       })
-      setSaved(true)
-      onSaveToBank && onSaveToBank()
+      
+      if (response.data.success || response.data.story) {
+        setSaved(true)
+        onSaveToBank && onSaveToBank()
+      } else {
+        throw new Error('Failed to save')
+      }
     } catch (err) {
       console.error('Error saving story:', err)
-      alert(lang === 'en' ? 'Error saving story' : 'שגיאה בשמירת הסיפור')
+      alert(lang === 'en' 
+        ? `Error saving story: ${err.response?.data?.error || err.message}` 
+        : `שגיאה בשמירת הסיפור: ${err.response?.data?.error || err.message}`)
     }
     setSaving(false)
   }
@@ -1869,20 +1883,32 @@ function NewStoryCreator({ analysisResult, onSaveToBank }) {
     setSaving(true)
     try {
       const { data: { session } } = await supabase.auth.getSession()
-      await axios.post(`${API_URL}/api/story-bank`, {
+      if (!session?.access_token) {
+        alert('Please log in to save stories')
+        setSaving(false)
+        return
+      }
+      
+      const storyContent = improvedStory.story_content || improvedStory.content || ''
+      const response = await axios.post(`${API_URL}/api/story-bank`, {
         title: improvedStory.title || 'New Story',
-        content: improvedStory.story_content,
+        content: storyContent,
+        story_content: storyContent,
         setup_line: improvedStory.setup_line,
         closing_bridge: improvedStory.closing_bridge,
-        target_emotions: selectedEmotions,
+        target_emotions: selectedEmotions.length > 0 ? selectedEmotions : ['trust'],
         objection_type: selectedObjection,
         product: selectedProduct,
         structure: improvedStory.structure,
-        explanation: improvedStory.explanation,
-        original_story: rawStory
+        explanation: improvedStory.explanation
       }, {
         headers: { Authorization: `Bearer ${session?.access_token}` }
       })
+      
+      if (!response.data.success && !response.data.story) {
+        throw new Error('Failed to save')
+      }
+      
       // Reset form
       setRawStory('')
       setSelectedEmotions([])
