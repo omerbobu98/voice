@@ -4,7 +4,7 @@ import {
   Volume2, Play, Mic, Clock, Star, Sparkles, ArrowRight, Send,
   Square, Loader2, RotateCcw, Trophy, CheckCircle2, X, Pause,
   Brain, ThumbsUp, ThumbsDown, Award, Lightbulb, Wand2, PlayCircle,
-  StopCircle, BookOpen, GraduationCap
+  StopCircle, BookOpen, GraduationCap, AlertCircle, Check, SpellCheck
 } from 'lucide-react'
 import axios from 'axios'
 import { API_URL } from '../../../lib/config'
@@ -24,6 +24,11 @@ export default function InteractiveRoleplay({ scenario, lang = 'en', TTSButton, 
   const [turnCount, setTurnCount] = useState(0)
   const [showTips, setShowTips] = useState(false)
   
+  // Grammar correction state
+  const [grammarCorrection, setGrammarCorrection] = useState(null)
+  const [showGrammarPopup, setShowGrammarPopup] = useState(false)
+  const [isCorrectingGrammar, setIsCorrectingGrammar] = useState(false)
+  
   // AI Demo conversation state
   const [aiConversation, setAiConversation] = useState(null)
   const [generatingDemo, setGeneratingDemo] = useState(false)
@@ -36,6 +41,7 @@ export default function InteractiveRoleplay({ scenario, lang = 'en', TTSButton, 
   const mediaRecorderRef = useRef(null)
   const audioChunksRef = useRef([])
   const messagesEndRef = useRef(null)
+  const audioRef = useRef(null)
   
   // Estimate difficulty
   const difficulty = scenario.techniques_to_use?.length > 2 ? 'hard' : scenario.techniques_to_use?.length > 1 ? 'medium' : 'easy'
@@ -207,18 +213,80 @@ export default function InteractiveRoleplay({ scenario, lang = 'en', TTSButton, 
   
   const transcribeAndSend = async (audioBlob) => {
     setIsLoading(true)
+    setIsCorrectingGrammar(true)
     try {
       const formData = new FormData()
       formData.append('audio', audioBlob, 'recording.webm')
       
-      const response = await axios.post(`${API_URL}/api/transcribe-quick`, formData)
-      if (response.data.text) {
-        await sendMessage(response.data.text)
+      // First transcribe
+      const transcribeResponse = await axios.post(`${API_URL}/api/transcribe-quick`, formData)
+      
+      if (transcribeResponse.data.text) {
+        const originalText = transcribeResponse.data.text
+        
+        // Get grammar correction
+        try {
+          const grammarResponse = await axios.post(`${API_URL}/api/grammar/correct`, {
+            text: originalText,
+            language: lang
+          })
+          
+          if (grammarResponse.data.has_errors) {
+            // Show grammar correction popup
+            setGrammarCorrection({
+              original: originalText,
+              corrected: grammarResponse.data.corrected,
+              corrections: grammarResponse.data.corrections || []
+            })
+            setShowGrammarPopup(true)
+            
+            // Play corrected audio using TTS
+            playGrammarCorrectionAudio(grammarResponse.data.corrected)
+          }
+          
+          setIsCorrectingGrammar(false)
+          // Send the original text to continue conversation
+          await sendMessage(originalText)
+          
+        } catch (grammarError) {
+          console.error('Grammar check failed:', grammarError)
+          setIsCorrectingGrammar(false)
+          await sendMessage(originalText)
+        }
       }
     } catch (error) {
       console.error('Error transcribing:', error)
+      setIsCorrectingGrammar(false)
     } finally {
       setIsLoading(false)
+    }
+  }
+  
+  // Play grammar correction audio using OpenAI TTS
+  const playGrammarCorrectionAudio = async (text) => {
+    try {
+      const response = await axios.post(`${API_URL}/api/tts`, {
+        text: text,
+        voice: 'nova',
+        hd: true,
+        speed: 0.9
+      })
+      
+      if (response.data.audio_url) {
+        const audioUrl = `${API_URL}${response.data.audio_url}`
+        if (audioRef.current) {
+          audioRef.current.pause()
+        }
+        audioRef.current = new Audio(audioUrl)
+        audioRef.current.play()
+      }
+    } catch (error) {
+      console.error('TTS error:', error)
+      // Fallback to browser TTS
+      const utterance = new SpeechSynthesisUtterance(text)
+      utterance.lang = 'en-US'
+      utterance.rate = 0.9
+      window.speechSynthesis.speak(utterance)
     }
   }
   
@@ -229,6 +297,8 @@ export default function InteractiveRoleplay({ scenario, lang = 'en', TTSButton, 
     setUserInput('')
     setFeedback(null)
     setScore(null)
+    setGrammarCorrection(null)
+    setShowGrammarPopup(false)
     setTurnCount(0)
     setAiConversation(null)
     setCurrentPlayingIndex(-1)
@@ -584,6 +654,83 @@ export default function InteractiveRoleplay({ scenario, lang = 'en', TTSButton, 
                 <Lightbulb className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
                 <p className="text-sm text-amber-300">{feedback}</p>
               </div>
+            </div>
+          )}
+          
+          {/* Grammar Correction Popup */}
+          {showGrammarPopup && grammarCorrection && (
+            <div className="mx-5 mb-3 p-4 bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-500/30 rounded-xl animate-in slide-in-from-bottom-2">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <SpellCheck className="w-5 h-5 text-blue-400" />
+                  <span className="text-sm font-semibold text-blue-300">
+                    {lang === 'en' ? 'Grammar Correction' : 'תיקון דקדוק'}
+                  </span>
+                </div>
+                <button
+                  onClick={() => setShowGrammarPopup(false)}
+                  className="p-1 hover:bg-white/10 rounded-lg transition-colors"
+                >
+                  <X className="w-4 h-4 text-slate-400" />
+                </button>
+              </div>
+              
+              {/* Original vs Corrected */}
+              <div className="space-y-3">
+                {/* What you said */}
+                <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+                  <p className="text-xs text-red-400 mb-1 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />
+                    {lang === 'en' ? 'What you said:' : 'מה שאמרת:'}
+                  </p>
+                  <p className="text-slate-300 text-sm">{grammarCorrection.original}</p>
+                </div>
+                
+                {/* Corrected version */}
+                <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
+                  <p className="text-xs text-emerald-400 mb-1 flex items-center gap-1">
+                    <Check className="w-3 h-3" />
+                    {lang === 'en' ? 'Correct way to say it:' : 'הדרך הנכונה:'}
+                  </p>
+                  <p className="text-slate-200 text-sm font-medium">{grammarCorrection.corrected}</p>
+                  
+                  {/* Listen button */}
+                  <button
+                    onClick={() => playGrammarCorrectionAudio(grammarCorrection.corrected)}
+                    className="mt-2 flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/20 text-emerald-300 rounded-lg text-xs font-medium hover:bg-emerald-500/30 transition-colors"
+                  >
+                    <Volume2 className="w-3.5 h-3.5" />
+                    {lang === 'en' ? 'Listen Again' : 'האזן שוב'}
+                  </button>
+                </div>
+                
+                {/* Corrections details */}
+                {grammarCorrection.corrections?.length > 0 && (
+                  <div className="space-y-2 pt-2 border-t border-slate-700/50">
+                    <p className="text-xs text-slate-500">{lang === 'en' ? 'Corrections:' : 'תיקונים:'}</p>
+                    {grammarCorrection.corrections.map((c, i) => (
+                      <div key={i} className="text-xs">
+                        <span className="text-red-400 line-through">{c.original_phrase}</span>
+                        <span className="text-slate-500 mx-2">→</span>
+                        <span className="text-emerald-400">{c.corrected_phrase}</span>
+                        {c.explanation && (
+                          <p className="text-slate-500 mt-0.5 italic">{c.explanation}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          
+          {/* Grammar checking indicator */}
+          {isCorrectingGrammar && (
+            <div className="mx-5 mb-3 p-3 bg-blue-500/10 border border-blue-500/20 rounded-xl flex items-center gap-2">
+              <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />
+              <span className="text-sm text-blue-300">
+                {lang === 'en' ? 'Checking grammar...' : 'בודק דקדוק...'}
+              </span>
             </div>
           )}
           

@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { 
   Target, Dumbbell, BookMarked, Users, CheckCircle2, Sparkles,
   Trophy, Flame, TrendingUp, Timer, ArrowRight, AlertTriangle,
-  Zap, Award, Star, Crown, BookOpen, Plus
+  Zap, Award, Star, Crown, BookOpen, Plus, SpellCheck, Volume2,
+  AlertCircle, Check, Loader2
 } from 'lucide-react'
 import axios from 'axios'
 import { API_URL } from '../../../lib/config'
@@ -23,6 +24,11 @@ export default function PracticeOnTab({ analysisResult, result, TTSButton }) {
   const [activeSection, setActiveSection] = useState('overview')
   const [lang, setLang] = useState('en')
   const [userStats, setUserStats] = useState({ level: 1, xp: 0, streak: 0 })
+  
+  // Grammar analysis state
+  const [grammarAnalysis, setGrammarAnalysis] = useState(null)
+  const [grammarLoading, setGrammarLoading] = useState(false)
+  const [playingGrammarAudio, setPlayingGrammarAudio] = useState(null)
   
   const pt = PRACTICE_TRANSLATIONS[lang]
   
@@ -222,12 +228,103 @@ export default function PracticeOnTab({ analysisResult, result, TTSButton }) {
     })
   }
   
+  // Analyze grammar from transcript
+  const analyzeGrammar = async () => {
+    if (!analysisResult?.analysis?.transcript) {
+      return
+    }
+    
+    setGrammarLoading(true)
+    try {
+      // Extract seller messages from transcript
+      const transcript = analysisResult.analysis.transcript
+      const sellerMessages = []
+      
+      // Parse transcript to get seller turns
+      const lines = transcript.split('\n')
+      let currentSpeaker = null
+      let currentText = ''
+      
+      lines.forEach(line => {
+        const sellerMatch = line.match(/^(Seller|Sales Rep|Agent|איש מכירות|נציג):\s*(.+)/i)
+        const customerMatch = line.match(/^(Customer|Client|Buyer|לקוח):\s*(.+)/i)
+        
+        if (sellerMatch) {
+          if (currentSpeaker === 'seller' && currentText) {
+            sellerMessages.push({ role: 'agent', text: currentText.trim() })
+          }
+          currentSpeaker = 'seller'
+          currentText = sellerMatch[2]
+        } else if (customerMatch) {
+          if (currentSpeaker === 'seller' && currentText) {
+            sellerMessages.push({ role: 'agent', text: currentText.trim() })
+          }
+          currentSpeaker = 'customer'
+          currentText = ''
+        } else if (currentSpeaker === 'seller') {
+          currentText += ' ' + line.trim()
+        }
+      })
+      
+      // Add last seller message
+      if (currentSpeaker === 'seller' && currentText) {
+        sellerMessages.push({ role: 'agent', text: currentText.trim() })
+      }
+      
+      if (sellerMessages.length === 0) {
+        setGrammarAnalysis({ analysis: [], summary: { total_errors: 0, messages_with_errors: 0 } })
+        return
+      }
+      
+      const response = await axios.post(`${API_URL}/api/grammar/analyze-conversation`, {
+        messages: sellerMessages,
+        language: lang
+      })
+      
+      setGrammarAnalysis(response.data)
+    } catch (error) {
+      console.error('Grammar analysis error:', error)
+    } finally {
+      setGrammarLoading(false)
+    }
+  }
+  
+  // Play grammar correction audio
+  const playGrammarAudio = async (text, index) => {
+    try {
+      setPlayingGrammarAudio(index)
+      const response = await axios.post(`${API_URL}/api/tts`, {
+        text: text,
+        voice: 'nova',
+        hd: true,
+        speed: 0.9
+      })
+      
+      if (response.data.audio_url) {
+        const audio = new Audio(`${API_URL}${response.data.audio_url}`)
+        audio.onended = () => setPlayingGrammarAudio(null)
+        audio.onerror = () => setPlayingGrammarAudio(null)
+        await audio.play()
+      }
+    } catch (error) {
+      console.error('TTS error:', error)
+      setPlayingGrammarAudio(null)
+      // Fallback to browser TTS
+      const utterance = new SpeechSynthesisUtterance(text)
+      utterance.lang = 'en-US'
+      utterance.rate = 0.9
+      utterance.onend = () => setPlayingGrammarAudio(null)
+      window.speechSynthesis.speak(utterance)
+    }
+  }
+  
   const sections = [
     { id: 'overview', label: pt.overview, icon: Star },
     { id: 'stories', label: pt.stories || (lang === 'en' ? 'Stories' : 'סיפורים'), icon: BookOpen },
     { id: 'weaknesses', label: pt.weaknesses, icon: Target },
     { id: 'exercises', label: pt.exercises, icon: Dumbbell },
     { id: 'roleplay', label: pt.roleplay, icon: Users },
+    { id: 'grammar', label: lang === 'en' ? 'Grammar' : 'דקדוק', icon: SpellCheck },
     { id: 'tasks', label: pt.tasks, icon: CheckCircle2 },
     { id: 'achievements', label: pt.achievements, icon: Trophy }
   ]
@@ -664,6 +761,167 @@ export default function PracticeOnTab({ analysisResult, result, TTSButton }) {
             <div className="text-center py-12 bg-slate-800/30 rounded-xl border border-slate-700/30">
               <Users className="w-12 h-12 text-slate-600 mx-auto mb-3" />
               <p className="text-slate-400">{pt.noScenarios}</p>
+            </div>
+          )}
+        </div>
+      )}
+      
+      {/* Grammar Analysis */}
+      {activeSection === 'grammar' && (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-slate-200 flex items-center gap-2">
+              <SpellCheck className="w-5 h-5 text-blue-400" />
+              {lang === 'en' ? 'Grammar Analysis' : 'ניתוח דקדוק'}
+            </h3>
+            <button
+              onClick={analyzeGrammar}
+              disabled={grammarLoading}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-500/20 text-blue-400 rounded-xl text-sm font-medium hover:bg-blue-500/30 transition-colors disabled:opacity-50"
+            >
+              {grammarLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  {lang === 'en' ? 'Analyzing...' : 'מנתח...'}
+                </>
+              ) : (
+                <>
+                  <SpellCheck className="w-4 h-4" />
+                  {lang === 'en' ? 'Analyze My Grammar' : 'נתח את הדקדוק שלי'}
+                </>
+              )}
+            </button>
+          </div>
+          
+          <p className="text-sm text-slate-400">
+            {lang === 'en' 
+              ? 'Review your grammar from the call. See corrections and hear the correct pronunciation.'
+              : 'סקור את הדקדוק שלך מהשיחה. ראה תיקונים ושמע את ההגייה הנכונה.'
+            }
+          </p>
+          
+          {grammarAnalysis ? (
+            <div className="space-y-6">
+              {/* Summary Card */}
+              <div className="p-4 bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-xl border border-blue-500/20">
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="font-semibold text-blue-300 flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4" />
+                    {lang === 'en' ? 'Summary' : 'סיכום'}
+                  </h4>
+                  {grammarAnalysis.summary?.total_errors === 0 ? (
+                    <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 text-xs rounded-full flex items-center gap-1">
+                      <Check className="w-3 h-3" />
+                      {lang === 'en' ? 'Perfect Grammar!' : 'דקדוק מושלם!'}
+                    </span>
+                  ) : (
+                    <span className="px-3 py-1 bg-amber-500/20 text-amber-400 text-xs rounded-full">
+                      {grammarAnalysis.summary?.total_errors || 0} {lang === 'en' ? 'corrections needed' : 'תיקונים נדרשים'}
+                    </span>
+                  )}
+                </div>
+                
+                {grammarAnalysis.summary?.overall_feedback && (
+                  <p className="text-slate-300 text-sm mb-3">{grammarAnalysis.summary.overall_feedback}</p>
+                )}
+                
+                {grammarAnalysis.summary?.common_issues?.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    <span className="text-xs text-slate-500">{lang === 'en' ? 'Common issues:' : 'בעיות נפוצות:'}</span>
+                    {grammarAnalysis.summary.common_issues.map((issue, i) => (
+                      <span key={i} className="px-2 py-0.5 bg-slate-700/50 text-slate-300 text-xs rounded-lg">
+                        {issue}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+              
+              {/* Individual Corrections */}
+              {grammarAnalysis.analysis?.filter(a => a.has_errors).length > 0 ? (
+                <div className="space-y-4">
+                  <h4 className="font-medium text-slate-300">
+                    {lang === 'en' ? 'Sentences to Improve' : 'משפטים לשיפור'}
+                  </h4>
+                  
+                  {grammarAnalysis.analysis.filter(a => a.has_errors).map((item, i) => (
+                    <div key={i} className="p-4 bg-slate-800/50 rounded-xl border border-slate-700/50 space-y-3">
+                      {/* Original */}
+                      <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+                        <p className="text-xs text-red-400 mb-1 flex items-center gap-1">
+                          <AlertCircle className="w-3 h-3" />
+                          {lang === 'en' ? 'What you said:' : 'מה שאמרת:'}
+                        </p>
+                        <p className="text-slate-300 text-sm">{item.original_text}</p>
+                      </div>
+                      
+                      {/* Corrected */}
+                      <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
+                        <p className="text-xs text-emerald-400 mb-1 flex items-center gap-1">
+                          <Check className="w-3 h-3" />
+                          {lang === 'en' ? 'Correct version:' : 'גרסה מתוקנת:'}
+                        </p>
+                        <p className="text-slate-200 text-sm font-medium">{item.corrected_text}</p>
+                        
+                        {/* Listen button */}
+                        <button
+                          onClick={() => playGrammarAudio(item.corrected_text, i)}
+                          disabled={playingGrammarAudio !== null}
+                          className="mt-2 flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/20 text-emerald-300 rounded-lg text-xs font-medium hover:bg-emerald-500/30 transition-colors disabled:opacity-50"
+                        >
+                          {playingGrammarAudio === i ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Volume2 className="w-3.5 h-3.5" />
+                          )}
+                          {lang === 'en' ? 'Listen' : 'האזן'}
+                        </button>
+                      </div>
+                      
+                      {/* Error details */}
+                      {item.errors?.length > 0 && (
+                        <div className="space-y-2 pt-2 border-t border-slate-700/50">
+                          <p className="text-xs text-slate-500">{lang === 'en' ? 'Details:' : 'פרטים:'}</p>
+                          {item.errors.map((err, j) => (
+                            <div key={j} className="text-xs flex items-start gap-2">
+                              <span className={`px-1.5 py-0.5 rounded ${
+                                err.type === 'grammar' ? 'bg-red-500/20 text-red-400' :
+                                err.type === 'word_choice' ? 'bg-amber-500/20 text-amber-400' :
+                                'bg-blue-500/20 text-blue-400'
+                              }`}>
+                                {err.type}
+                              </span>
+                              <div>
+                                <span className="text-red-400 line-through">{err.original}</span>
+                                <span className="text-slate-500 mx-1">→</span>
+                                <span className="text-emerald-400">{err.corrected}</span>
+                                {err.rule && <p className="text-slate-500 mt-0.5 italic">{err.rule}</p>}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : grammarAnalysis.analysis?.length > 0 ? (
+                <div className="text-center py-12 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
+                  <CheckCircle2 className="w-12 h-12 text-emerald-400 mx-auto mb-3" />
+                  <p className="text-emerald-300 font-medium">
+                    {lang === 'en' ? 'Excellent! No grammar errors found.' : 'מצוין! לא נמצאו שגיאות דקדוק.'}
+                  </p>
+                </div>
+              ) : null}
+            </div>
+          ) : (
+            <div className="text-center py-12 bg-slate-800/30 rounded-xl border border-slate-700/30">
+              <SpellCheck className="w-12 h-12 text-slate-600 mx-auto mb-3" />
+              <p className="text-slate-400 mb-4">
+                {lang === 'en' 
+                  ? 'Click "Analyze My Grammar" to review your speaking patterns from the call.'
+                  : 'לחץ על "נתח את הדקדוק שלי" כדי לסקור את דפוסי הדיבור שלך מהשיחה.'
+                }
+              </p>
             </div>
           )}
         </div>

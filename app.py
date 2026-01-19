@@ -1559,6 +1559,134 @@ def transcribe_quick():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/api/grammar/correct', methods=['POST'])
+def correct_grammar():
+    """Correct grammar in text and provide the corrected version with explanations"""
+    try:
+        data = request.get_json()
+        text = data.get('text', '')
+        language = data.get('language', 'en')
+        
+        if not text:
+            return jsonify({'error': 'No text provided'}), 400
+        
+        system_prompt = f"""You are an expert English grammar coach for sales professionals. Analyze the text and correct any grammar mistakes.
+
+RULES:
+1. Focus on grammar, word choice, and sentence structure
+2. Keep the meaning and intent identical
+3. Make corrections natural for spoken English (sales context)
+4. If the grammar is already correct, return the same text
+5. Respond in JSON format
+
+OUTPUT FORMAT:
+{{
+  "original": "The original text",
+  "corrected": "The corrected text with proper grammar",
+  "has_errors": true/false,
+  "corrections": [
+    {{
+      "original_phrase": "the incorrect part",
+      "corrected_phrase": "the corrected version",
+      "explanation": "Brief explanation of the grammar rule"
+    }}
+  ]
+}}"""
+
+        response = openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": f"Correct this text: \"{text}\""}
+            ],
+            temperature=0.3,
+            response_format={"type": "json_object"}
+        )
+        
+        result = json.loads(response.choices[0].message.content)
+        return jsonify(result)
+        
+    except Exception as e:
+        print(f"[correct_grammar] Error: {e}")
+        return jsonify({
+            'original': text,
+            'corrected': text,
+            'has_errors': False,
+            'corrections': []
+        })
+
+
+@app.route('/api/grammar/analyze-conversation', methods=['POST'])
+def analyze_conversation_grammar():
+    """Analyze all seller messages in a conversation for grammar issues"""
+    try:
+        data = request.get_json()
+        messages = data.get('messages', [])
+        language = data.get('language', 'en')
+        
+        # Filter only seller/agent messages
+        seller_messages = [m for m in messages if m.get('role') in ['agent', 'sales_rep', 'seller']]
+        
+        if not seller_messages:
+            return jsonify({'analysis': [], 'summary': {'total_errors': 0, 'messages_with_errors': 0}})
+        
+        # Combine all seller text
+        seller_texts = [{"index": i, "text": m.get('text', '')} for i, m in enumerate(seller_messages)]
+        
+        system_prompt = """You are an expert English grammar coach analyzing sales conversation transcripts. Review each seller message for grammar issues.
+
+For EACH message, identify:
+1. Grammar mistakes (verb tense, subject-verb agreement, articles, prepositions)
+2. Word choice issues (wrong word, awkward phrasing)
+3. Sentence structure problems
+
+OUTPUT FORMAT (JSON):
+{
+  "analysis": [
+    {
+      "message_index": 0,
+      "original_text": "the original message",
+      "corrected_text": "the fully corrected message",
+      "has_errors": true/false,
+      "errors": [
+        {
+          "type": "grammar|word_choice|structure",
+          "original": "incorrect phrase",
+          "corrected": "corrected phrase", 
+          "rule": "Brief grammar rule explanation"
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "total_errors": 5,
+    "messages_with_errors": 2,
+    "common_issues": ["verb tense", "articles"],
+    "overall_feedback": "One sentence summary of grammar quality"
+  }
+}"""
+
+        response = openai_client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": f"Analyze these seller messages for grammar issues:\n\n{json.dumps(seller_texts, indent=2)}"}
+            ],
+            temperature=0.3,
+            response_format={"type": "json_object"}
+        )
+        
+        result = json.loads(response.choices[0].message.content)
+        return jsonify(result)
+        
+    except Exception as e:
+        print(f"[analyze_conversation_grammar] Error: {e}")
+        return jsonify({
+            'analysis': [],
+            'summary': {'total_errors': 0, 'messages_with_errors': 0, 'common_issues': [], 'overall_feedback': 'Unable to analyze'}
+        })
+
+
 @app.route('/api/roleplay/generate-full-conversation', methods=['POST'])
 def generate_full_conversation():
     """Generate a full AI vs AI roleplay conversation demonstrating proper sales techniques"""
