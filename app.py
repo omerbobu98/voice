@@ -1365,6 +1365,169 @@ def get_calls_for_practice():
         return jsonify({'error': str(e)}), 500
 
 
+# ============ Interactive Roleplay API ============
+
+@app.route('/api/roleplay/respond', methods=['POST'])
+def roleplay_respond():
+    """Generate AI customer response for interactive roleplay"""
+    try:
+        data = request.get_json()
+        scenario = data.get('scenario', {})
+        conversation = data.get('conversation', [])
+        techniques = data.get('techniques_to_use', [])
+        turn_count = data.get('turn_count', 1)
+        max_turns = data.get('max_turns', 6)
+        language = data.get('language', 'en')
+        
+        # Build conversation history
+        conv_history = "\n".join([
+            f"{'Customer' if m['role'] == 'customer' else 'Sales Rep'}: {m['text']}"
+            for m in conversation
+        ])
+        
+        system_prompt = f"""You are playing the role of a REALISTIC CUSTOMER in a sales roleplay scenario for the Outdoor Living industry (Cool Life Paint, Turf, Pavers, Fencing).
+
+SCENARIO: {scenario.get('name', 'Sales Practice')}
+CONTEXT: {scenario.get('context', 'Customer considering outdoor home improvement')}
+CUSTOMER PERSONALITY: {scenario.get('customer_personality', 'skeptical but interested')}
+OBJECTION TYPE: {scenario.get('objection_type', 'price concern')}
+
+TECHNIQUES THE REP SHOULD USE: {', '.join(techniques) if techniques else 'general sales techniques'}
+
+CURRENT TURN: {turn_count} of {max_turns}
+
+YOUR ROLE:
+- Be a realistic, challenging but fair customer
+- Raise objections naturally based on the scenario
+- React authentically to the sales rep's responses
+- If they use good techniques, show some movement (but don't give in too easily)
+- If they push too hard or miss the point, become more resistant
+- Near the end ({max_turns - 1} or {max_turns}), start moving toward a decision
+
+LANGUAGE: Respond in {'Hebrew' if language == 'he' else 'English'}
+
+RESPONSE FORMAT (JSON):
+{{
+  "customer_response": "Your response as the customer (1-3 sentences)",
+  "customer_emotion": "interested|skeptical|resistant|convinced|neutral",
+  "should_end": false,
+  "inline_feedback": "Brief tip for the sales rep (optional, only if they made a notable mistake or success)"
+}}"""
+
+        response = openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": f"Conversation so far:\n{conv_history}\n\nGenerate your next customer response."}
+            ],
+            temperature=0.8,
+            response_format={"type": "json_object"}
+        )
+        
+        result = json.loads(response.choices[0].message.content)
+        return jsonify(result)
+        
+    except Exception as e:
+        print(f"[roleplay_respond] Error: {e}")
+        # Fallback response
+        fallback = {
+            "customer_response": "I understand, but I still need to think about it. What makes your company different from others?",
+            "customer_emotion": "skeptical",
+            "should_end": False
+        }
+        return jsonify(fallback)
+
+
+@app.route('/api/roleplay/feedback', methods=['POST'])
+def roleplay_feedback():
+    """Generate feedback for completed roleplay session"""
+    try:
+        data = request.get_json()
+        scenario = data.get('scenario', {})
+        conversation = data.get('conversation', [])
+        techniques = data.get('techniques_to_use', [])
+        language = data.get('language', 'en')
+        
+        conv_history = "\n".join([
+            f"{'Customer' if m['role'] == 'customer' else 'Sales Rep'}: {m['text']}"
+            for m in conversation
+        ])
+        
+        system_prompt = f"""You are an expert SALES COACH analyzing a roleplay practice session.
+
+SCENARIO: {scenario.get('name', 'Sales Practice')}
+GOAL: {scenario.get('goal', 'Handle objection and move toward close')}
+TECHNIQUES THAT SHOULD BE USED: {', '.join(techniques) if techniques else 'general sales techniques'}
+
+Analyze the sales rep's performance and provide constructive feedback.
+
+LANGUAGE: Respond in {'Hebrew' if language == 'he' else 'English'}
+
+RESPONSE FORMAT (JSON):
+{{
+  "score": 75,
+  "feedback": {{
+    "strengths": ["What they did well - be specific", "Another strength"],
+    "improvements": ["What they could improve - be constructive", "Another suggestion"],
+    "overall": "One sentence summary of their performance"
+  }},
+  "techniques_used": ["Which techniques they used"],
+  "techniques_missed": ["Which techniques they should have used"]
+}}
+
+Score guide:
+- 90-100: Excellent - used techniques masterfully, built rapport, handled objections well
+- 75-89: Good - solid performance with room for improvement
+- 60-74: Average - some good moments but missed opportunities
+- Below 60: Needs practice - missed key techniques or made significant mistakes"""
+
+        response = openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": f"Analyze this roleplay conversation:\n\n{conv_history}"}
+            ],
+            temperature=0.7,
+            response_format={"type": "json_object"}
+        )
+        
+        result = json.loads(response.choices[0].message.content)
+        return jsonify(result)
+        
+    except Exception as e:
+        print(f"[roleplay_feedback] Error: {e}")
+        return jsonify({
+            "score": 70,
+            "feedback": {
+                "strengths": ["Good effort in the practice session"],
+                "improvements": ["Continue practicing objection handling"],
+                "overall": "Keep practicing to improve your skills!"
+            }
+        })
+
+
+@app.route('/api/transcribe-quick', methods=['POST'])
+def transcribe_quick():
+    """Quick transcription for roleplay voice input"""
+    try:
+        if 'audio' not in request.files:
+            return jsonify({'error': 'No audio file'}), 400
+        
+        audio_file = request.files['audio']
+        
+        # Use OpenAI Whisper for quick transcription
+        transcript = openai_client.audio.transcriptions.create(
+            model="whisper-1",
+            file=audio_file
+        )
+        
+        return jsonify({'text': transcript.text})
+        
+    except Exception as e:
+        print(f"[transcribe_quick] Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
 # ============ Story Bank API ============
 
 STORY_GENERATION_PROMPT = """You are a WORLD-CLASS SALES STORYTELLING MASTER specializing in the Outdoor Living industry (Cool Life exterior coating, synthetic turf, pavers, pergolas, fencing).
@@ -2045,13 +2208,23 @@ def admin_trends():
 
 @app.route('/api/tts', methods=['POST'])
 def text_to_speech():
-    """Generate speech audio from text using OpenAI TTS"""
+    """Generate HIGH QUALITY speech audio from text using OpenAI TTS-HD"""
     if not openai_client:
         return jsonify({'error': 'OpenAI API not configured'}), 500
     
     data = request.json
     text = data.get('text', '')
     voice = data.get('voice', 'nova')  # Options: alloy, echo, fable, onyx, nova, shimmer
+    speed = data.get('speed', 1.0)  # Speed: 0.25 to 4.0
+    hd = data.get('hd', True)  # Use HD model by default for better quality
+    
+    # Validate voice
+    valid_voices = ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer']
+    if voice not in valid_voices:
+        voice = 'nova'  # Default to nova - natural, warm voice
+    
+    # Validate speed
+    speed = max(0.25, min(4.0, float(speed)))
     
     if not text:
         return jsonify({'error': 'Text is required'}), 400
@@ -2060,10 +2233,14 @@ def text_to_speech():
         text = text[:4096]  # OpenAI TTS has a limit
     
     try:
+        # Use tts-1-hd for higher quality audio (sounds more natural)
+        model = "tts-1-hd" if hd else "tts-1"
+        
         response = openai_client.audio.speech.create(
-            model="tts-1",
+            model=model,
             voice=voice,
-            input=text
+            input=text,
+            speed=speed
         )
         
         # Generate unique filename
@@ -2076,7 +2253,10 @@ def text_to_speech():
         # Return the audio URL
         return jsonify({
             'audio_url': f'/api/audio/{audio_filename}',
-            'text': text
+            'text': text,
+            'voice': voice,
+            'model': model,
+            'speed': speed
         })
         
     except Exception as e:

@@ -10,6 +10,7 @@ import { PRACTICE_TRANSLATIONS, ACHIEVEMENT_BADGES } from './PracticeTranslation
 import { ProgressRing, LanguageToggle, StatCard, AchievementCard, StreakCounter, LevelBadge, QuickWinCard } from './PracticeHelpers'
 import SkillPracticeCard from './SkillPracticeCard'
 import RoleplayCard from './RoleplayCard'
+import InteractiveRoleplay from './InteractiveRoleplay'
 import ExerciseCard, { DailyDrillCard, ActionItemCard } from './ExerciseCard'
 import StoryEnhancer from '../StoryEnhancer'
 
@@ -623,18 +624,40 @@ export default function PracticeOnTab({ analysisResult, result, TTSButton }) {
         </div>
       )}
       
-      {/* Roleplay */}
+      {/* Roleplay - Interactive AI Practice */}
       {activeSection === 'roleplay' && (
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-slate-200 flex items-center gap-2">
-            <Users className="w-5 h-5 text-pink-400" />
-            {pt.roleplayScenarios}
-          </h3>
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-slate-200 flex items-center gap-2">
+              <Users className="w-5 h-5 text-pink-400" />
+              {pt.roleplayScenarios}
+            </h3>
+            <span className="px-3 py-1 bg-pink-500/20 text-pink-400 text-xs rounded-full flex items-center gap-1">
+              <Sparkles className="w-3 h-3" />
+              {lang === 'en' ? 'AI Interactive' : 'אינטראקטיבי עם AI'}
+            </span>
+          </div>
+          
+          <p className="text-sm text-slate-400">
+            {lang === 'en' 
+              ? 'Practice real sales conversations with an AI customer. Get instant feedback on your responses.'
+              : 'תרגל שיחות מכירה אמיתיות עם לקוח AI. קבל משוב מיידי על התשובות שלך.'
+            }
+          </p>
           
           {practiceData.roleplay_scenarios?.length > 0 ? (
-            <div className="space-y-4">
+            <div className="space-y-6">
               {practiceData.roleplay_scenarios.map((scenario, i) => (
-                <RoleplayCard key={i} scenario={scenario} lang={lang} TTSButton={TTSButton} />
+                <InteractiveRoleplay 
+                  key={i} 
+                  scenario={scenario} 
+                  lang={lang} 
+                  TTSButton={TTSButton}
+                  onComplete={(result) => {
+                    console.log('Roleplay completed:', result)
+                    toggleExercise(`roleplay-${i}`)
+                  }}
+                />
               ))}
             </div>
           ) : (
@@ -694,23 +717,109 @@ export default function PracticeOnTab({ analysisResult, result, TTSButton }) {
         </div>
       )}
       
-      {/* Achievements */}
+      {/* Achievements - Enhanced with stats and categories */}
       {activeSection === 'achievements' && (
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-slate-200 flex items-center gap-2">
-            <Trophy className="w-5 h-5 text-amber-400" />
-            {pt.achievementsTitle}
-          </h3>
+        <div className="space-y-6">
+          {/* Achievement Stats Header */}
+          <div className="bg-gradient-to-br from-amber-500/10 via-yellow-500/10 to-orange-500/10 rounded-2xl border border-amber-500/20 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-14 h-14 bg-gradient-to-br from-amber-500 to-yellow-500 rounded-2xl flex items-center justify-center shadow-lg shadow-amber-500/30">
+                  <Trophy className="w-7 h-7 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-slate-100">{pt.achievementsTitle}</h3>
+                  <p className="text-sm text-slate-400">
+                    {lang === 'en' ? 'Your journey to sales mastery' : 'המסע שלך לשליטה במכירות'}
+                  </p>
+                </div>
+              </div>
+              
+              {/* Total XP */}
+              <div className="text-right">
+                <div className="flex items-center gap-2 justify-end">
+                  <Sparkles className="w-5 h-5 text-amber-400" />
+                  <span className="text-3xl font-bold text-amber-400">{userStats.xp || 150}</span>
+                </div>
+                <p className="text-xs text-slate-500">{lang === 'en' ? 'Total XP Earned' : 'סה"כ XP שנצבר'}</p>
+              </div>
+            </div>
+            
+            {/* Progress to next level */}
+            <div className="mt-4">
+              <div className="flex items-center justify-between text-xs text-slate-400 mb-2">
+                <span>Level {userStats.level || 1}</span>
+                <span>Level {(userStats.level || 1) + 1}</span>
+              </div>
+              <div className="h-3 bg-slate-700/50 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-amber-500 via-yellow-500 to-orange-500 rounded-full transition-all duration-500"
+                  style={{ width: '45%' }}
+                />
+              </div>
+              <p className="text-xs text-slate-500 mt-2 text-center">
+                {lang === 'en' ? '350 XP to next level' : '350 XP לרמה הבאה'}
+              </p>
+            </div>
+          </div>
           
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {ACHIEVEMENT_BADGES.map((badge, i) => (
-              <AchievementCard 
-                key={badge.id} 
-                badge={badge} 
-                unlocked={i < 2}
-                lang={lang}
-              />
-            ))}
+          {/* Achievement Categories */}
+          <div className="space-y-6">
+            {/* Unlocked Achievements */}
+            <div>
+              <h4 className="text-sm font-semibold text-emerald-400 mb-3 flex items-center gap-2">
+                <Award className="w-4 h-4" />
+                {lang === 'en' ? 'Unlocked' : 'פתוחים'} (2)
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {ACHIEVEMENT_BADGES.slice(0, 2).map((badge) => (
+                  <AchievementCard 
+                    key={badge.id} 
+                    badge={badge} 
+                    unlocked={true}
+                    lang={lang}
+                  />
+                ))}
+              </div>
+            </div>
+            
+            {/* In Progress */}
+            <div>
+              <h4 className="text-sm font-semibold text-amber-400 mb-3 flex items-center gap-2">
+                <Flame className="w-4 h-4" />
+                {lang === 'en' ? 'In Progress' : 'בתהליך'} (2)
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {ACHIEVEMENT_BADGES.slice(2, 4).map((badge, i) => (
+                  <AchievementCard 
+                    key={badge.id} 
+                    badge={badge} 
+                    unlocked={false}
+                    progress={[65, 40][i]}
+                    lang={lang}
+                  />
+                ))}
+              </div>
+            </div>
+            
+            {/* Locked */}
+            <div>
+              <h4 className="text-sm font-semibold text-slate-500 mb-3 flex items-center gap-2">
+                <Star className="w-4 h-4" />
+                {lang === 'en' ? 'Locked' : 'נעולים'} ({ACHIEVEMENT_BADGES.length - 4})
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {ACHIEVEMENT_BADGES.slice(4).map((badge) => (
+                  <AchievementCard 
+                    key={badge.id} 
+                    badge={badge} 
+                    unlocked={false}
+                    progress={0}
+                    lang={lang}
+                  />
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       )}

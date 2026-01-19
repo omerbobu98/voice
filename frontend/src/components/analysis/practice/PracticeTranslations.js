@@ -287,13 +287,87 @@ export const SALES_METHODOLOGY_GUIDES = {
 }
 
 // ============================================
-// ACHIEVEMENT BADGES
+// ACHIEVEMENT BADGES - Enhanced with descriptions and rarity
 // ============================================
 export const ACHIEVEMENT_BADGES = [
-  { id: 'first_practice', nameEn: 'First Step', nameHe: 'צעד ראשון', xp: 50, color: 'emerald' },
-  { id: 'story_master', nameEn: 'Story Master', nameHe: 'אמן סיפורים', xp: 100, color: 'violet' },
-  { id: 'objection_handler', nameEn: 'Objection Handler', nameHe: 'מטפל התנגדויות', xp: 200, color: 'amber' },
-  { id: 'streak_7', nameEn: '7 Day Streak', nameHe: 'שבוע ברצף', xp: 150, color: 'orange' },
-  { id: 'perfect_score', nameEn: 'Perfect Score', nameHe: 'ציון מושלם', xp: 250, color: 'yellow' },
-  { id: 'roleplay_pro', nameEn: 'Roleplay Pro', nameHe: 'מומחה תפקידים', xp: 300, color: 'pink' }
+  { 
+    id: 'first_practice', 
+    nameEn: 'First Step', 
+    nameHe: 'צעד ראשון', 
+    descEn: 'Complete your first practice session',
+    descHe: 'השלם את תרגול המכירות הראשון שלך',
+    xp: 50, 
+    color: 'emerald',
+    rarity: 'common'
+  },
+  { 
+    id: 'story_master', 
+    nameEn: 'Story Master', 
+    nameHe: 'אמן סיפורים', 
+    descEn: 'Create 5 stories with all 6 elements',
+    descHe: 'צור 5 סיפורים עם כל 6 האלמנטים',
+    xp: 150, 
+    color: 'violet',
+    rarity: 'rare'
+  },
+  { 
+    id: 'objection_handler', 
+    nameEn: 'Objection Crusher', 
+    nameHe: 'מוחץ התנגדויות', 
+    descEn: 'Handle 10 objections successfully in roleplay',
+    descHe: 'התמודד בהצלחה עם 10 התנגדויות בתרגול',
+    xp: 200, 
+    color: 'amber',
+    rarity: 'rare'
+  },
+  { 
+    id: 'streak_7', 
+    nameEn: 'On Fire', 
+    nameHe: 'בוער', 
+    descEn: '7-day practice streak',
+    descHe: 'שבוע של תרגול ברצף',
+    xp: 175, 
+    color: 'orange',
+    rarity: 'rare'
+  },
+  { 
+    id: 'perfect_score', 
+    nameEn: 'Perfection', 
+    nameHe: 'שלמות', 
+    descEn: 'Score 100% on a roleplay session',
+    descHe: 'קבל ציון מושלם במשחק תפקידים',
+    xp: 300, 
+    color: 'yellow',
+    rarity: 'epic'
+  },
+  { 
+    id: 'roleplay_pro', 
+    nameEn: 'Roleplay Champion', 
+    nameHe: 'אלוף משחקי תפקידים', 
+    descEn: 'Complete 20 interactive roleplay sessions',
+    descHe: 'השלם 20 משחקי תפקידים אינטראקטיביים',
+    xp: 350, 
+    color: 'pink',
+    rarity: 'epic'
+  },
+  { 
+    id: 'closing_expert', 
+    nameEn: 'Closer', 
+    nameHe: 'סגרן', 
+    descEn: 'Master all closing techniques',
+    descHe: 'שלוט בכל טכניקות הסגירה',
+    xp: 400, 
+    color: 'blue',
+    rarity: 'legendary'
+  },
+  { 
+    id: 'consistency_king', 
+    nameEn: 'Unstoppable', 
+    nameHe: 'בלתי ניתן לעצירה', 
+    descEn: '30-day practice streak',
+    descHe: 'חודש של תרגול ברצף',
+    xp: 500, 
+    color: 'yellow',
+    rarity: 'legendary'
+  }
 ]
