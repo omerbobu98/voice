@@ -3,7 +3,7 @@ import {
   Target, Dumbbell, BookMarked, Users, CheckCircle2, Sparkles,
   Trophy, Flame, TrendingUp, Timer, ArrowRight, AlertTriangle,
   Zap, Award, Star, Crown, BookOpen, Plus, SpellCheck, Volume2,
-  AlertCircle, Check, Loader2
+  AlertCircle, Check, Loader2, Square
 } from 'lucide-react'
 import axios from 'axios'
 import { API_URL } from '../../../lib/config'
@@ -30,12 +30,23 @@ export default function PracticeOnTab({ analysisResult, result, TTSButton }) {
   const [grammarAnalysis, setGrammarAnalysis] = useState(null)
   const [grammarLoading, setGrammarLoading] = useState(false)
   const [playingGrammarAudio, setPlayingGrammarAudio] = useState(null)
+  const [grammarAudioProgress, setGrammarAudioProgress] = useState(0)
+  const [grammarAudioDuration, setGrammarAudioDuration] = useState(0)
+  const grammarFetchedRef = useRef(false)
   
   const pt = PRACTICE_TRANSLATIONS[lang]
   
   useEffect(() => {
     generatePracticeContent()
   }, [analysisResult])
+  
+  // Auto-run grammar analysis when Grammar tab is selected
+  useEffect(() => {
+    if (activeSection === 'grammar' && !grammarAnalysis && !grammarLoading && !grammarFetchedRef.current) {
+      grammarFetchedRef.current = true
+      analyzeGrammar()
+    }
+  }, [activeSection, grammarAnalysis, grammarLoading])
   
   const generatePracticeContent = async () => {
     if (!analysisResult) {
@@ -279,7 +290,8 @@ export default function PracticeOnTab({ analysisResult, result, TTSButton }) {
       
       const response = await axios.post(`${API_URL}/api/grammar/analyze-conversation`, {
         messages: sellerMessages,
-        language: lang
+        language: lang,
+        call_id: result?.call_id  // For caching
       })
       
       setGrammarAnalysis(response.data)
@@ -293,17 +305,25 @@ export default function PracticeOnTab({ analysisResult, result, TTSButton }) {
   // Current audio ref for cleanup
   const grammarAudioRef = useRef(null)
   
-  // Play grammar correction audio - Cross-device compatible
+  // Stop grammar audio
+  const stopGrammarAudio = () => {
+    if (grammarAudioRef.current) {
+      grammarAudioRef.current.pause()
+      grammarAudioRef.current.currentTime = 0
+      grammarAudioRef.current = null
+    }
+    stopTTS()
+    setPlayingGrammarAudio(null)
+    setGrammarAudioProgress(0)
+    setGrammarAudioDuration(0)
+  }
+  
+  // Play grammar correction audio - Cross-device compatible with progress
   const playGrammarAudio = async (text, index) => {
     try {
-      // Stop any existing playback
-      if (grammarAudioRef.current) {
-        grammarAudioRef.current.pause()
-        grammarAudioRef.current = null
-      }
-      stopTTS()
-      
+      stopGrammarAudio()
       setPlayingGrammarAudio(index)
+      setGrammarAudioProgress(0)
       
       // Use unified TTS with automatic fallback
       grammarAudioRef.current = await playTTS(text, {
@@ -312,13 +332,28 @@ export default function PracticeOnTab({ analysisResult, result, TTSButton }) {
         speed: 0.9,
         onEnd: () => {
           setPlayingGrammarAudio(null)
+          setGrammarAudioProgress(0)
+          setGrammarAudioDuration(0)
           grammarAudioRef.current = null
         },
         onError: () => {
           setPlayingGrammarAudio(null)
+          setGrammarAudioProgress(0)
           grammarAudioRef.current = null
         }
       })
+      
+      // Set up progress tracking
+      if (grammarAudioRef.current) {
+        grammarAudioRef.current.addEventListener('loadedmetadata', () => {
+          setGrammarAudioDuration(grammarAudioRef.current?.duration || 0)
+        })
+        grammarAudioRef.current.addEventListener('timeupdate', () => {
+          if (grammarAudioRef.current) {
+            setGrammarAudioProgress(grammarAudioRef.current.currentTime)
+          }
+        })
+      }
     } catch (error) {
       console.error('TTS error:', error)
       setPlayingGrammarAudio(null)
@@ -545,6 +580,7 @@ export default function PracticeOnTab({ analysisResult, result, TTSButton }) {
                     TTSButton={TTSButton}
                     onFeedbackReceived={(fb) => console.log('Feedback:', fb)}
                     onComplete={() => toggleExercise(`area-${i}`)}
+                    callId={result?.call_id}
                   />
                 ))}
               </div>
@@ -680,6 +716,7 @@ export default function PracticeOnTab({ analysisResult, result, TTSButton }) {
                 TTSButton={TTSButton}
                 onFeedbackReceived={(fb) => console.log('Feedback:', fb)}
                 onComplete={() => toggleExercise(`area-${i}`)}
+                callId={result?.call_id}
               />
             ))}
           </div>
@@ -781,34 +818,77 @@ export default function PracticeOnTab({ analysisResult, result, TTSButton }) {
               <SpellCheck className="w-5 h-5 text-blue-400" />
               {lang === 'en' ? 'Grammar Analysis' : 'ניתוח דקדוק'}
             </h3>
-            <button
-              onClick={analyzeGrammar}
-              disabled={grammarLoading}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-500/20 text-blue-400 rounded-xl text-sm font-medium hover:bg-blue-500/30 transition-colors disabled:opacity-50"
-            >
-              {grammarLoading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  {lang === 'en' ? 'Analyzing...' : 'מנתח...'}
-                </>
-              ) : (
-                <>
-                  <SpellCheck className="w-4 h-4" />
-                  {lang === 'en' ? 'Analyze My Grammar' : 'נתח את הדקדוק שלי'}
-                </>
-              )}
-            </button>
+            {grammarAnalysis && (
+              <button
+                onClick={() => {
+                  grammarFetchedRef.current = false
+                  setGrammarAnalysis(null)
+                  analyzeGrammar()
+                }}
+                disabled={grammarLoading}
+                className="flex items-center gap-2 px-3 py-1.5 bg-slate-700/50 text-slate-300 rounded-lg text-xs font-medium hover:bg-slate-700 transition-colors disabled:opacity-50"
+              >
+                <SpellCheck className="w-3 h-3" />
+                {lang === 'en' ? 'Re-analyze' : 'נתח מחדש'}
+              </button>
+            )}
           </div>
           
           <p className="text-sm text-slate-400">
             {lang === 'en' 
-              ? 'Review your grammar from the call. See corrections and hear the correct pronunciation.'
-              : 'סקור את הדקדוק שלך מהשיחה. ראה תיקונים ושמע את ההגייה הנכונה.'
+              ? 'Your grammar is automatically analyzed. See corrections and hear the correct pronunciation.'
+              : 'הדקדוק שלך מנותח אוטומטית. ראה תיקונים ושמע את ההגייה הנכונה.'
             }
           </p>
           
+          {/* Loading State */}
+          {grammarLoading && !grammarAnalysis && (
+            <div className="text-center py-12">
+              <div className="relative w-16 h-16 mx-auto mb-4">
+                <div className="absolute inset-0 rounded-full border-4 border-blue-500/20" />
+                <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-blue-500 animate-spin" />
+                <SpellCheck className="absolute inset-0 m-auto w-6 h-6 text-blue-400" />
+              </div>
+              <p className="text-slate-300">{lang === 'en' ? 'Analyzing your grammar...' : 'מנתח את הדקדוק שלך...'}</p>
+              <p className="text-xs text-slate-500 mt-2">{lang === 'en' ? 'This may take a few seconds' : 'זה עשוי לקחת מספר שניות'}</p>
+            </div>
+          )}
+          
           {grammarAnalysis ? (
             <div className="space-y-6">
+              {/* Audio Player Bar - Shows when playing */}
+              {playingGrammarAudio && (
+                <div className="p-3 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 rounded-xl border border-blue-500/30">
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={stopGrammarAudio}
+                      className="w-10 h-10 bg-red-500/20 hover:bg-red-500/30 rounded-full flex items-center justify-center transition-colors"
+                    >
+                      <Square className="w-4 h-4 text-red-400" />
+                    </button>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs text-blue-300">{lang === 'en' ? 'Playing audio...' : 'מנגן אודיו...'}</span>
+                        {grammarAudioDuration > 0 && (
+                          <span className="text-xs text-slate-400">
+                            {Math.floor(grammarAudioProgress)}s / {Math.floor(grammarAudioDuration)}s
+                          </span>
+                        )}
+                      </div>
+                      <div className="h-1.5 bg-slate-700 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-gradient-to-r from-blue-500 to-cyan-500 transition-all duration-200"
+                          style={{ width: grammarAudioDuration > 0 ? `${(grammarAudioProgress / grammarAudioDuration) * 100}%` : '0%' }}
+                        />
+                      </div>
+                    </div>
+                    <div className="w-8 h-8 bg-blue-500/20 rounded-full flex items-center justify-center">
+                      <Volume2 className="w-4 h-4 text-blue-400 animate-pulse" />
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Summary Card */}
               <div className="p-4 bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-xl border border-blue-500/20">
                 <div className="flex items-center justify-between mb-4">
@@ -847,17 +927,24 @@ export default function PracticeOnTab({ analysisResult, result, TTSButton }) {
                 {grammarAnalysis.analysis?.filter(a => a.has_errors).length > 0 && (
                   <button
                     onClick={() => {
-                      const allCorrections = grammarAnalysis.analysis
-                        .filter(a => a.has_errors)
-                        .map(a => a.corrected_text)
-                        .join('. ')
-                      playGrammarAudio(allCorrections, 'all')
+                      if (playingGrammarAudio === 'all') {
+                        stopGrammarAudio()
+                      } else {
+                        const allCorrections = grammarAnalysis.analysis
+                          .filter(a => a.has_errors)
+                          .map(a => a.corrected_text)
+                          .join('. ')
+                        playGrammarAudio(allCorrections, 'all')
+                      }
                     }}
-                    disabled={playingGrammarAudio !== null}
-                    className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-500/20 text-blue-300 rounded-xl text-sm font-medium hover:bg-blue-500/30 transition-colors disabled:opacity-50"
+                    className={`mt-4 w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                      playingGrammarAudio === 'all'
+                        ? 'bg-red-500/20 text-red-300 hover:bg-red-500/30'
+                        : 'bg-blue-500/20 text-blue-300 hover:bg-blue-500/30'
+                    }`}
                   >
                     {playingGrammarAudio === 'all' ? (
-                      <><Loader2 className="w-4 h-4 animate-spin" />{lang === 'en' ? 'Playing All...' : 'מנגן הכל...'}</>
+                      <><Square className="w-4 h-4" />{lang === 'en' ? 'Stop' : 'עצור'}</>
                     ) : (
                       <><Volume2 className="w-4 h-4" />{lang === 'en' ? 'Listen to All Corrections' : 'האזן לכל התיקונים'}</>
                     )}

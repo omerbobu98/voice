@@ -12,7 +12,7 @@ import { PRACTICE_TRANSLATIONS, SALES_METHODOLOGY_GUIDES } from './PracticeTrans
 import { PriorityBadge, ScoreRing } from './PracticeHelpers'
 import { CrossDeviceRecorder, getFileExtension, resumeAudioContext, playTTS, stopTTS } from '../../../lib/audioUtils'
 
-export default function SkillPracticeCard({ weakness, exerciseContext, lang, TTSButton, onFeedbackReceived, onComplete }) {
+export default function SkillPracticeCard({ weakness, exerciseContext, lang, TTSButton, onFeedbackReceived, onComplete, callId }) {
   const pt = PRACTICE_TRANSLATIONS[lang]
   const [mode, setMode] = useState('guide')
   const [userInput, setUserInput] = useState('')
@@ -28,44 +28,81 @@ export default function SkillPracticeCard({ weakness, exerciseContext, lang, TTS
   // Professional improvement guide state
   const [professionalGuide, setProfessionalGuide] = useState(null)
   const [guideLoading, setGuideLoading] = useState(false)
+  const [guideError, setGuideError] = useState(null)
   const [playingSection, setPlayingSection] = useState(null)
+  const [audioProgress, setAudioProgress] = useState(0)
+  const [audioDuration, setAudioDuration] = useState(0)
   const audioRef = useRef(null)
+  const fetchedRef = useRef(false)
   
   const guideKey = weakness.guide_key || 'objection_handling'
   const guide = SALES_METHODOLOGY_GUIDES[guideKey] || SALES_METHODOLOGY_GUIDES.objection_handling
   
-  // Fetch professional improvement guide on mount
+  // Fetch professional improvement guide on mount - with caching check
   useEffect(() => {
-    fetchProfessionalGuide()
-  }, [weakness.skill_name])
+    const skillName = weakness?.skill_name
+    if (skillName && !fetchedRef.current && !professionalGuide) {
+      fetchedRef.current = true
+      fetchProfessionalGuide(skillName)
+    }
+  }, [weakness?.skill_name])
   
-  const fetchProfessionalGuide = async () => {
+  const fetchProfessionalGuide = async (skillName) => {
+    if (!skillName) return
     setGuideLoading(true)
+    setGuideError(null)
+    
+    // Create a timeout to show fallback after 8 seconds
+    const timeoutId = setTimeout(() => {
+      if (guideLoading) {
+        console.log('Guide generation taking too long, using fallback')
+        setGuideLoading(false)
+        setProfessionalGuide(null) // Will show static guide
+      }
+    }, 8000)
+    
     try {
       const response = await axios.post(`${API_URL}/api/generate-improvement-guide`, {
-        skill_name: weakness.skill_name,
-        specific_issues: weakness.specific_issues || [],
-        current_score: weakness.current_score || 50,
-        language: lang
-      })
-      setProfessionalGuide(response.data)
+        skill_name: skillName,
+        specific_issues: weakness?.specific_issues || [],
+        current_score: weakness?.current_score || 50,
+        language: lang,
+        call_id: callId  // For caching
+      }, { timeout: 15000 }) // 15 second timeout
+      
+      clearTimeout(timeoutId)
+      if (response.data) {
+        setProfessionalGuide(response.data)
+      }
     } catch (error) {
+      clearTimeout(timeoutId)
       console.error('Error fetching improvement guide:', error)
+      setGuideError(error.message)
+      // Will fall back to static guide
     } finally {
       setGuideLoading(false)
     }
   }
   
-  // Play TTS for a section
+  // Stop audio playback
+  const stopAudio = () => {
+    if (audioRef.current) {
+      audioRef.current.pause()
+      audioRef.current.currentTime = 0
+      audioRef.current = null
+    }
+    stopTTS()
+    setPlayingSection(null)
+    setAudioProgress(0)
+    setAudioDuration(0)
+  }
+  
+  // Play TTS for a section with progress tracking
   const playSectionAudio = async (text, sectionId) => {
     try {
-      if (audioRef.current) {
-        audioRef.current.pause()
-        audioRef.current = null
-      }
-      stopTTS()
-      
+      stopAudio()
       setPlayingSection(sectionId)
+      setAudioProgress(0)
       
       audioRef.current = await playTTS(text, {
         voice: 'nova',
@@ -73,13 +110,28 @@ export default function SkillPracticeCard({ weakness, exerciseContext, lang, TTS
         speed: 0.9,
         onEnd: () => {
           setPlayingSection(null)
+          setAudioProgress(0)
+          setAudioDuration(0)
           audioRef.current = null
         },
         onError: () => {
           setPlayingSection(null)
+          setAudioProgress(0)
           audioRef.current = null
         }
       })
+      
+      // Set up progress tracking
+      if (audioRef.current) {
+        audioRef.current.addEventListener('loadedmetadata', () => {
+          setAudioDuration(audioRef.current?.duration || 0)
+        })
+        audioRef.current.addEventListener('timeupdate', () => {
+          if (audioRef.current) {
+            setAudioProgress(audioRef.current.currentTime)
+          }
+        })
+      }
     } catch (error) {
       console.error('TTS error:', error)
       setPlayingSection(null)
@@ -366,15 +418,51 @@ export default function SkillPracticeCard({ weakness, exerciseContext, lang, TTS
               </div>
             ) : professionalGuide ? (
               <>
+                {/* Audio Player Bar - Shows when playing */}
+                {playingSection && (
+                  <div className="mb-4 p-3 bg-gradient-to-r from-violet-500/20 to-fuchsia-500/20 rounded-xl border border-violet-500/30">
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={stopAudio}
+                        className="w-10 h-10 bg-red-500/20 hover:bg-red-500/30 rounded-full flex items-center justify-center transition-colors"
+                      >
+                        <Square className="w-4 h-4 text-red-400" />
+                      </button>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs text-violet-300">{lang === 'en' ? 'Playing audio...' : 'מנגן אודיו...'}</span>
+                          {audioDuration > 0 && (
+                            <span className="text-xs text-slate-400">
+                              {Math.floor(audioProgress)}s / {Math.floor(audioDuration)}s
+                            </span>
+                          )}
+                        </div>
+                        <div className="h-1.5 bg-slate-700 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-gradient-to-r from-violet-500 to-fuchsia-500 transition-all duration-200"
+                            style={{ width: audioDuration > 0 ? `${(audioProgress / audioDuration) * 100}%` : '0%' }}
+                          />
+                        </div>
+                      </div>
+                      <div className="w-8 h-8 bg-violet-500/20 rounded-full flex items-center justify-center">
+                        <Volume2 className="w-4 h-4 text-violet-400 animate-pulse" />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Listen to Full Guide Button */}
                 <div className="flex justify-end mb-2">
                   <button
-                    onClick={() => playSectionAudio(getFullGuideText(), 'full')}
-                    disabled={playingSection !== null}
-                    className="flex items-center gap-2 px-4 py-2 bg-violet-500/20 text-violet-400 rounded-xl text-sm font-medium hover:bg-violet-500/30 transition-colors disabled:opacity-50"
+                    onClick={() => playingSection ? stopAudio() : playSectionAudio(getFullGuideText(), 'full')}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+                      playingSection === 'full' 
+                        ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30' 
+                        : 'bg-violet-500/20 text-violet-400 hover:bg-violet-500/30'
+                    }`}
                   >
                     {playingSection === 'full' ? (
-                      <><Loader2 className="w-4 h-4 animate-spin" />{lang === 'en' ? 'Playing...' : 'מנגן...'}</>
+                      <><Square className="w-4 h-4" />{lang === 'en' ? 'Stop' : 'עצור'}</>
                     ) : (
                       <><Volume2 className="w-4 h-4" />{lang === 'en' ? 'Listen to Full Guide' : 'האזן למדריך המלא'}</>
                     )}

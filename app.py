@@ -1634,6 +1634,20 @@ def analyze_conversation_grammar():
         data = request.get_json()
         messages = data.get('messages', [])
         language = data.get('language', 'en')
+        call_id = data.get('call_id')  # Optional - for caching
+        user_id = get_user_id_from_token()
+        
+        # Check cache first if call_id provided
+        if call_id and user_id:
+            try:
+                client = get_supabase()
+                if client:
+                    cached = client.table('cached_grammar').select('*').eq('call_id', call_id).eq('language', language).maybe_single().execute()
+                    if cached.data:
+                        print(f"[analyze_conversation_grammar] Cache hit for call {call_id}")
+                        return jsonify(cached.data.get('grammar_data', {}))
+            except Exception as cache_err:
+                print(f"[analyze_conversation_grammar] Cache check error: {cache_err}")
         
         # Filter only seller/agent messages
         seller_messages = [m for m in messages if m.get('role') in ['agent', 'sales_rep', 'seller']]
@@ -1688,6 +1702,22 @@ OUTPUT FORMAT (JSON):
         )
         
         result = json.loads(response.choices[0].message.content)
+        
+        # Save to cache if call_id provided
+        if call_id and user_id:
+            try:
+                client = get_supabase()
+                if client:
+                    client.table('cached_grammar').upsert({
+                        'call_id': call_id,
+                        'user_id': user_id,
+                        'language': language,
+                        'grammar_data': result
+                    }, on_conflict='call_id,language').execute()
+                    print(f"[analyze_conversation_grammar] Cached grammar for call {call_id}")
+            except Exception as cache_err:
+                print(f"[analyze_conversation_grammar] Cache save error: {cache_err}")
+        
         return jsonify(result)
         
     except Exception as e:
@@ -1806,6 +1836,21 @@ def generate_improvement_guide():
         specific_issues = data.get('specific_issues', [])
         current_score = data.get('current_score', 50)
         language = data.get('language', 'en')
+        call_id = data.get('call_id')  # Optional - for caching per call
+        user_id = get_user_id_from_token()
+        
+        # Check cache first if call_id provided
+        if call_id and user_id:
+            try:
+                client = get_supabase()
+                if client:
+                    cache_key = f"{skill_name}_{language}"
+                    cached = client.table('cached_guides').select('*').eq('call_id', call_id).eq('cache_key', cache_key).maybe_single().execute()
+                    if cached.data:
+                        print(f"[generate_improvement_guide] Cache hit for {cache_key}")
+                        return jsonify(cached.data.get('guide_data', {}))
+            except Exception as cache_err:
+                print(f"[generate_improvement_guide] Cache check error: {cache_err}")
         
         issues_text = '\n'.join([f"- {issue}" for issue in specific_issues]) if specific_issues else "General improvement needed"
         
@@ -1908,6 +1953,25 @@ OUTPUT FORMAT (JSON):
         )
         
         result = json.loads(response.choices[0].message.content)
+        
+        # Save to cache if call_id provided
+        if call_id and user_id:
+            try:
+                client = get_supabase()
+                if client:
+                    cache_key = f"{skill_name}_{language}"
+                    client.table('cached_guides').upsert({
+                        'call_id': call_id,
+                        'user_id': user_id,
+                        'cache_key': cache_key,
+                        'guide_data': result,
+                        'skill_name': skill_name,
+                        'language': language
+                    }, on_conflict='call_id,cache_key').execute()
+                    print(f"[generate_improvement_guide] Cached guide for {cache_key}")
+            except Exception as cache_err:
+                print(f"[generate_improvement_guide] Cache save error: {cache_err}")
+        
         return jsonify(result)
         
     except Exception as e:
