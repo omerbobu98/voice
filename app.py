@@ -350,8 +350,19 @@ def run_deep_analysis(analysis_id, utterances, speaker_roles, call_id=None, user
         jobs[analysis_id]['progress'] = 10
         jobs[analysis_id]['stage'] = 'Analyzing conversation patterns...'
         
+        # Build full transcript from utterances for saving
+        full_transcript = '\n'.join([
+            f"{speaker_roles.get(u['speaker'], u['speaker'])}: {u['text']}"
+            for u in utterances
+        ])
+        
         # Perform comprehensive analysis
         sales_analysis = analyze_sales_call(utterances, speaker_roles, openai_client)
+        
+        # Add full_transcript to analysis for persistence
+        if 'analysis' in sales_analysis:
+            sales_analysis['analysis']['full_transcript'] = full_transcript
+            sales_analysis['analysis']['transcript'] = full_transcript
         
         jobs[analysis_id]['progress'] = 90
         jobs[analysis_id]['stage'] = 'Saving results...'

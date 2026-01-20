@@ -26,6 +26,7 @@ import PracticePage from './pages/PracticePage'
 import { API_URL } from './lib/config'
 import { AnalysisInsights } from './components/analysis'
 import AIAssistant from './components/AIAssistant'
+import { playAudioElement, createAudioElement, resumeAudioContext } from './lib/audioUtils'
 
 // Helper function to get translated stages
 const getStages = (lang) => [
@@ -73,12 +74,20 @@ function TTSPlayer({ text, label = "🔊 Listen", onPlay, onStop }) {
   const [duration, setDuration] = useState(0)
   const audioRef = useRef(null)
 
-  const playAudio = () => {
+  // Cross-device compatible audio playback
+  const playAudio = async () => {
     if (audioRef.current) {
+      // Resume AudioContext on user gesture (required for iOS)
+      await resumeAudioContext()
       // Notify parent to stop main audio
       if (onPlay) onPlay()
-      audioRef.current.play()
-      setPlaying(true)
+      try {
+        await playAudioElement(audioRef.current)
+        setPlaying(true)
+      } catch (err) {
+        console.error('Audio playback error:', err)
+        // On iOS, if autoplay fails, user needs to tap again
+      }
     }
   }
 
@@ -92,34 +101,54 @@ function TTSPlayer({ text, label = "🔊 Listen", onPlay, onStop }) {
     }
   }
 
-  const togglePlay = () => {
+  const togglePlay = async () => {
     if (playing) {
       audioRef.current.pause()
       setPlaying(false)
     } else {
-      playAudio()
+      await playAudio()
     }
   }
 
   const generateAudio = async () => {
     if (audioUrl) {
-      togglePlay()
+      await togglePlay()
       return
     }
 
+    // Resume AudioContext on user gesture (required for iOS)
+    await resumeAudioContext()
+    
     setLoading(true)
     try {
       const response = await axios.post(`${API_URL}/api/tts`, { 
         text,
-        voice: 'nova'
+        voice: 'nova',
+        hd: true,
+        speed: 0.9
       })
       const fullUrl = `${API_URL}${response.data.audio_url}`
       setAudioUrl(fullUrl)
       
-      // Auto-play after generation
-      setTimeout(() => {
-        playAudio()
-      }, 100)
+      // Create audio element with iOS-compatible settings
+      const audio = createAudioElement(fullUrl)
+      audioRef.current = audio
+      
+      // Set up event handlers
+      audio.onloadedmetadata = () => setDuration(audio.duration)
+      audio.ontimeupdate = () => setCurrentTime(audio.currentTime)
+      audio.onended = () => { setPlaying(false); setCurrentTime(0) }
+      audio.onerror = () => console.error('Audio load error')
+      
+      // Auto-play after generation (on user gesture)
+      try {
+        await playAudioElement(audio)
+        setPlaying(true)
+        if (onPlay) onPlay()
+      } catch (err) {
+        console.error('Auto-play failed:', err)
+        // User will need to tap play button
+      }
     } catch (err) {
       console.error('TTS error:', err)
     } finally {
@@ -930,9 +959,32 @@ function MainApp() {
       setJobId(callData.id) // Set jobId for potential re-analysis
       
       if (response.data.analysis) {
+        // Merge call transcription into analysis for components that need it
+        const fullTranscript = callData.transcription || ''
+        const utterances = callData.utterances || []
+        
+        // Build formatted transcript from utterances if available
+        let formattedTranscript = fullTranscript
+        if (utterances.length > 0 && callData.speaker_roles) {
+          formattedTranscript = utterances.map(u => {
+            const role = callData.speaker_roles[u.speaker] || u.speaker
+            return `${role}: ${u.text}`
+          }).join('\n')
+        }
+        
         setAnalysisResult({ 
           metrics: response.data.analysis.metrics || {}, 
-          analysis: response.data.analysis.analysis || {} 
+          analysis: {
+            ...response.data.analysis.analysis,
+            // Include transcript data for components that need it
+            full_transcript: formattedTranscript,
+            transcript: formattedTranscript
+          },
+          // Include full analysis data for practice tab
+          full_analysis: {
+            ...response.data.analysis.analysis,
+            full_transcript: formattedTranscript
+          }
         })
         setShowAnalysis(true)
       } else {
