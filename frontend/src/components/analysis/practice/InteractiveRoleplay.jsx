@@ -9,6 +9,14 @@ import {
 import axios from 'axios'
 import { API_URL } from '../../../lib/config'
 import { PRACTICE_TRANSLATIONS } from './PracticeTranslations'
+import { 
+  CrossDeviceRecorder, 
+  playTTS, 
+  playBrowserTTS, 
+  stopTTS,
+  getFileExtension,
+  resumeAudioContext 
+} from '../../../lib/audioUtils'
 
 export default function InteractiveRoleplay({ scenario, lang = 'en', TTSButton, onComplete }) {
   const pt = PRACTICE_TRANSLATIONS[lang] || PRACTICE_TRANSLATIONS.en
@@ -180,43 +188,47 @@ export default function InteractiveRoleplay({ scenario, lang = 'en', TTSButton, 
     }
   }
   
-  // Voice recording
+  // Cross-device recorder instance
+  const recorderRef = useRef(null)
+  
+  // Voice recording - Cross-device compatible
   const startRecording = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      mediaRecorderRef.current = new MediaRecorder(stream)
-      audioChunksRef.current = []
+      // Resume AudioContext on user gesture (required for iOS)
+      await resumeAudioContext()
       
-      mediaRecorderRef.current.ondataavailable = (e) => {
-        audioChunksRef.current.push(e.data)
-      }
+      recorderRef.current = new CrossDeviceRecorder({
+        onStop: async (blob, mimeType) => {
+          const extension = getFileExtension(mimeType)
+          await transcribeAndSend(blob, extension)
+        },
+        onError: (error) => {
+          console.error('Recording error:', error)
+          setIsRecording(false)
+        }
+      })
       
-      mediaRecorderRef.current.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
-        await transcribeAndSend(audioBlob)
-        stream.getTracks().forEach(track => track.stop())
-      }
-      
-      mediaRecorderRef.current.start()
+      await recorderRef.current.start()
       setIsRecording(true)
     } catch (error) {
       console.error('Error starting recording:', error)
+      alert(lang === 'en' ? 'Could not access microphone. Please check permissions.' : 'לא ניתן לגשת למיקרופון. אנא בדוק הרשאות.')
     }
   }
   
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop()
+  const stopRecording = async () => {
+    if (recorderRef.current && isRecording) {
+      await recorderRef.current.stop()
       setIsRecording(false)
     }
   }
   
-  const transcribeAndSend = async (audioBlob) => {
+  const transcribeAndSend = async (audioBlob, extension = 'webm') => {
     setIsLoading(true)
     setIsCorrectingGrammar(true)
     try {
       const formData = new FormData()
-      formData.append('audio', audioBlob, 'recording.webm')
+      formData.append('audio', audioBlob, `recording.${extension}`)
       
       // First transcribe
       const transcribeResponse = await axios.post(`${API_URL}/api/transcribe-quick`, formData)
@@ -262,31 +274,31 @@ export default function InteractiveRoleplay({ scenario, lang = 'en', TTSButton, 
     }
   }
   
-  // Play grammar correction audio using OpenAI TTS
+  // Play grammar correction audio using OpenAI TTS - Cross-device compatible
   const playGrammarCorrectionAudio = async (text) => {
     try {
-      const response = await axios.post(`${API_URL}/api/tts`, {
-        text: text,
+      // Stop any existing audio
+      if (audioRef.current) {
+        audioRef.current.pause()
+        audioRef.current = null
+      }
+      stopTTS()
+      
+      // Use unified TTS function with automatic fallback
+      audioRef.current = await playTTS(text, {
         voice: 'nova',
         hd: true,
-        speed: 0.9
-      })
-      
-      if (response.data.audio_url) {
-        const audioUrl = `${API_URL}${response.data.audio_url}`
-        if (audioRef.current) {
-          audioRef.current.pause()
+        speed: 0.9,
+        onEnd: () => {
+          audioRef.current = null
+        },
+        onError: (err) => {
+          console.error('TTS playback error:', err)
+          audioRef.current = null
         }
-        audioRef.current = new Audio(audioUrl)
-        audioRef.current.play()
-      }
+      })
     } catch (error) {
       console.error('TTS error:', error)
-      // Fallback to browser TTS
-      const utterance = new SpeechSynthesisUtterance(text)
-      utterance.lang = 'en-US'
-      utterance.rate = 0.9
-      window.speechSynthesis.speak(utterance)
     }
   }
   

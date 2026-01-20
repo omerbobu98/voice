@@ -1,15 +1,16 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { 
   BookOpen, PenTool, Mic, Star, Square, Send, Loader2,
   ChevronDown, ChevronUp, HelpCircle, Lightbulb, GraduationCap,
   AlertTriangle, Headphones, Brain, RotateCcw, ThumbsUp, ThumbsDown,
   Volume2, Copy, Check, Trophy, Zap, Target, Clock, Play,
-  CheckCircle2, ArrowRight, Sparkles
+  CheckCircle2, ArrowRight, Sparkles, MessageCircle, Quote, ListOrdered
 } from 'lucide-react'
 import axios from 'axios'
 import { API_URL } from '../../../lib/config'
 import { PRACTICE_TRANSLATIONS, SALES_METHODOLOGY_GUIDES } from './PracticeTranslations'
 import { PriorityBadge, ScoreRing } from './PracticeHelpers'
+import { CrossDeviceRecorder, getFileExtension, resumeAudioContext, playTTS, stopTTS } from '../../../lib/audioUtils'
 
 export default function SkillPracticeCard({ weakness, exerciseContext, lang, TTSButton, onFeedbackReceived, onComplete }) {
   const pt = PRACTICE_TRANSLATIONS[lang]
@@ -21,29 +22,100 @@ export default function SkillPracticeCard({ weakness, exerciseContext, lang, TTS
   const [recordingTime, setRecordingTime] = useState(0)
   const [showGuide, setShowGuide] = useState(false)
   const [copied, setCopied] = useState(false)
-  const mediaRecorderRef = useRef(null)
-  const audioChunksRef = useRef([])
+  const recorderRef = useRef(null)
   const timerRef = useRef(null)
+  
+  // Professional improvement guide state
+  const [professionalGuide, setProfessionalGuide] = useState(null)
+  const [guideLoading, setGuideLoading] = useState(false)
+  const [playingSection, setPlayingSection] = useState(null)
+  const audioRef = useRef(null)
   
   const guideKey = weakness.guide_key || 'objection_handling'
   const guide = SALES_METHODOLOGY_GUIDES[guideKey] || SALES_METHODOLOGY_GUIDES.objection_handling
   
+  // Fetch professional improvement guide on mount
+  useEffect(() => {
+    fetchProfessionalGuide()
+  }, [weakness.skill_name])
+  
+  const fetchProfessionalGuide = async () => {
+    setGuideLoading(true)
+    try {
+      const response = await axios.post(`${API_URL}/api/generate-improvement-guide`, {
+        skill_name: weakness.skill_name,
+        specific_issues: weakness.specific_issues || [],
+        current_score: weakness.current_score || 50,
+        language: lang
+      })
+      setProfessionalGuide(response.data)
+    } catch (error) {
+      console.error('Error fetching improvement guide:', error)
+    } finally {
+      setGuideLoading(false)
+    }
+  }
+  
+  // Play TTS for a section
+  const playSectionAudio = async (text, sectionId) => {
+    try {
+      if (audioRef.current) {
+        audioRef.current.pause()
+        audioRef.current = null
+      }
+      stopTTS()
+      
+      setPlayingSection(sectionId)
+      
+      audioRef.current = await playTTS(text, {
+        voice: 'nova',
+        hd: true,
+        speed: 0.9,
+        onEnd: () => {
+          setPlayingSection(null)
+          audioRef.current = null
+        },
+        onError: () => {
+          setPlayingSection(null)
+          audioRef.current = null
+        }
+      })
+    } catch (error) {
+      console.error('TTS error:', error)
+      setPlayingSection(null)
+    }
+  }
+  
+  // Generate full guide text for TTS
+  const getFullGuideText = () => {
+    if (!professionalGuide) return ''
+    let text = `${professionalGuide.why_matters} ${professionalGuide.psychology} `
+    professionalGuide.professional_approach?.forEach(step => {
+      text += `${step.title}. ${step.explanation} `
+    })
+    text += professionalGuide.summary
+    return text
+  }
+  
+  // Cross-device compatible recording
   const startRecording = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      mediaRecorderRef.current = new MediaRecorder(stream)
-      audioChunksRef.current = []
+      // Resume AudioContext on user gesture (required for iOS)
+      await resumeAudioContext()
       
-      mediaRecorderRef.current.ondataavailable = (e) => {
-        audioChunksRef.current.push(e.data)
-      }
+      recorderRef.current = new CrossDeviceRecorder({
+        onStop: async (blob, mimeType) => {
+          const extension = getFileExtension(mimeType)
+          await transcribeAndGetFeedback(blob, extension)
+        },
+        onError: (error) => {
+          console.error('Recording error:', error)
+          setIsRecording(false)
+          clearInterval(timerRef.current)
+        }
+      })
       
-      mediaRecorderRef.current.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
-        await transcribeAndGetFeedback(audioBlob)
-      }
-      
-      mediaRecorderRef.current.start()
+      await recorderRef.current.start()
       setIsRecording(true)
       setRecordingTime(0)
       
@@ -52,26 +124,25 @@ export default function SkillPracticeCard({ weakness, exerciseContext, lang, TTS
       }, 1000)
     } catch (err) {
       console.error('Failed to start recording:', err)
-      alert(lang === 'en' ? 'Cannot access microphone.' : 'לא ניתן לגשת למיקרופון.')
+      alert(lang === 'en' ? 'Cannot access microphone. Please check permissions.' : 'לא ניתן לגשת למיקרופון. אנא בדוק הרשאות.')
     }
   }
   
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop()
-      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop())
+  const stopRecording = async () => {
+    if (recorderRef.current && isRecording) {
+      await recorderRef.current.stop()
       setIsRecording(false)
       clearInterval(timerRef.current)
     }
   }
   
-  const transcribeAndGetFeedback = async (audioBlob) => {
+  const transcribeAndGetFeedback = async (audioBlob, extension = 'webm') => {
     setIsProcessing(true)
     setMode('feedback')
     
     try {
       const formData = new FormData()
-      formData.append('audio', audioBlob, 'recording.webm')
+      formData.append('audio', audioBlob, `recording.${extension}`)
       
       const transcribeRes = await axios.post(`${API_URL}/api/transcribe-practice`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
@@ -281,103 +352,281 @@ export default function SkillPracticeCard({ weakness, exerciseContext, lang, TTS
       
       {/* Content */}
       <div className="p-5" dir={lang === 'he' ? 'rtl' : 'ltr'}>
-        {/* Guide Mode - Enhanced with better visual hierarchy */}
+        {/* Guide Mode - Professional AI-Generated Content */}
         {mode === 'guide' && (
           <div className="space-y-5">
-            {/* Why Important - with icon highlight */}
-            <div className="p-4 bg-gradient-to-br from-violet-500/10 to-fuchsia-500/10 rounded-xl border border-violet-500/20 relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-20 h-20 bg-violet-500/10 rounded-full blur-2xl" />
-              <div className="relative">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-8 h-8 bg-violet-500/20 rounded-lg flex items-center justify-center">
-                    <HelpCircle className="w-4 h-4 text-violet-400" />
-                  </div>
-                  <h4 className="font-semibold text-violet-300">{pt.whyImportant}</h4>
+            {guideLoading ? (
+              <div className="text-center py-12">
+                <div className="relative w-16 h-16 mx-auto mb-4">
+                  <div className="absolute inset-0 rounded-full border-4 border-violet-500/20" />
+                  <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-violet-500 animate-spin" />
+                  <GraduationCap className="absolute inset-0 m-auto w-6 h-6 text-violet-400" />
                 </div>
-                <p className="text-sm text-slate-300 leading-relaxed">
-                  {lang === 'en' ? guide.whyEn : guide.whyHe}
-                </p>
+                <p className="text-slate-300">{lang === 'en' ? 'Generating personalized coaching...' : 'יוצר אימון מותאם אישית...'}</p>
               </div>
-            </div>
-            
-            {/* Guiding Principle - highlighted box */}
-            <div className="p-4 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent rounded-xl border border-amber-500/20 relative">
-              <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-amber-400 to-orange-500 rounded-l-xl" />
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-amber-500 to-orange-500 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg shadow-amber-500/20">
-                  <Lightbulb className="w-5 h-5 text-white" />
+            ) : professionalGuide ? (
+              <>
+                {/* Listen to Full Guide Button */}
+                <div className="flex justify-end mb-2">
+                  <button
+                    onClick={() => playSectionAudio(getFullGuideText(), 'full')}
+                    disabled={playingSection !== null}
+                    className="flex items-center gap-2 px-4 py-2 bg-violet-500/20 text-violet-400 rounded-xl text-sm font-medium hover:bg-violet-500/30 transition-colors disabled:opacity-50"
+                  >
+                    {playingSection === 'full' ? (
+                      <><Loader2 className="w-4 h-4 animate-spin" />{lang === 'en' ? 'Playing...' : 'מנגן...'}</>
+                    ) : (
+                      <><Volume2 className="w-4 h-4" />{lang === 'en' ? 'Listen to Full Guide' : 'האזן למדריך המלא'}</>
+                    )}
+                  </button>
                 </div>
-                <div>
-                  <h4 className="font-semibold text-amber-300 mb-1">{pt.guidingPrinciple}</h4>
-                  <p className="text-sm text-slate-200 font-medium leading-relaxed">
-                    {lang === 'en' ? guide.principleEn : guide.principleHe}
-                  </p>
-                </div>
-              </div>
-            </div>
-            
-            {/* Steps to Follow - Interactive checklist style */}
-            <div className="space-y-3">
-              <h4 className="font-semibold text-slate-200 flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 bg-emerald-500/20 rounded-lg flex items-center justify-center">
-                  <GraduationCap className="w-4 h-4 text-emerald-400" />
-                </div>
-                {pt.stepsToFollow}
-                <span className="text-xs text-slate-500 font-normal">({guide.steps?.length || 0} {lang === 'en' ? 'steps' : 'צעדים'})</span>
-              </h4>
-              
-              <div className="relative">
-                {/* Connection line */}
-                <div className="absolute left-[19px] top-8 bottom-8 w-0.5 bg-gradient-to-b from-emerald-500/50 via-teal-500/30 to-transparent hidden md:block" />
-                
-                {guide.steps?.map((step, i) => (
-                  <div key={i} className="relative flex gap-4 p-4 bg-slate-800/30 hover:bg-slate-800/50 rounded-xl transition-all mb-2 group cursor-pointer border border-transparent hover:border-emerald-500/20">
-                    {/* Step number with ring */}
-                    <div className="relative z-10">
-                      <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                        <span className="text-white font-bold">{i + 1}</span>
+
+                {/* Why This Matters */}
+                <div className="p-4 bg-gradient-to-br from-violet-500/10 to-fuchsia-500/10 rounded-xl border border-violet-500/20 relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-20 h-20 bg-violet-500/10 rounded-full blur-2xl" />
+                  <div className="relative">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 bg-violet-500/20 rounded-lg flex items-center justify-center">
+                          <HelpCircle className="w-4 h-4 text-violet-400" />
+                        </div>
+                        <h4 className="font-semibold text-violet-300">{lang === 'en' ? 'Why This Matters' : 'למה זה חשוב'}</h4>
                       </div>
+                      <button
+                        onClick={() => playSectionAudio(professionalGuide.why_matters, 'why')}
+                        disabled={playingSection !== null}
+                        className="p-2 bg-violet-500/20 rounded-lg hover:bg-violet-500/30 transition-colors disabled:opacity-50"
+                      >
+                        {playingSection === 'why' ? <Loader2 className="w-4 h-4 text-violet-400 animate-spin" /> : <Volume2 className="w-4 h-4 text-violet-400" />}
+                      </button>
                     </div>
-                    
-                    <div className="flex-1 pt-1">
-                      <p className="font-semibold text-slate-100 mb-1 group-hover:text-emerald-300 transition-colors">
-                        {lang === 'en' ? step.stepEn : step.stepHe}
-                      </p>
-                      <p className="text-sm text-slate-400 leading-relaxed">
-                        {lang === 'en' ? step.descEn : step.descHe}
-                      </p>
-                    </div>
-                    
-                    {/* Arrow indicator on hover */}
-                    <ArrowRight className="w-5 h-5 text-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity self-center" />
+                    <p className="text-sm text-slate-300 leading-relaxed">{professionalGuide.why_matters}</p>
                   </div>
-                ))}
-              </div>
-            </div>
-            
-            <button
-              onClick={() => setShowGuide(!showGuide)}
-              className="w-full p-3 bg-slate-800/50 rounded-xl text-sm text-slate-300 hover:bg-slate-700/50 transition-colors flex items-center justify-center gap-2"
-            >
-              {showGuide ? pt.showLess : pt.showMore}
-              {showGuide ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-            </button>
-            
-            {showGuide && guide.mistakesEn && (
-              <div className="mt-4">
-                <h4 className="font-semibold text-slate-200 mb-3 flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 text-red-400" />
-                  {pt.commonMistakes}
-                </h4>
-                <ul className="space-y-2">
-                  {(lang === 'en' ? guide.mistakesEn : guide.mistakesHe).map((mistake, i) => (
-                    <li key={i} className="flex items-start gap-2 text-sm text-slate-300">
-                      <span className="text-red-400">✗</span>
-                      {mistake}
-                    </li>
-                  ))}
-                </ul>
-              </div>
+                </div>
+
+                {/* Psychology Behind It */}
+                <div className="p-4 bg-gradient-to-r from-pink-500/10 via-pink-500/5 to-transparent rounded-xl border border-pink-500/20">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 bg-pink-500/20 rounded-lg flex items-center justify-center">
+                        <Brain className="w-4 h-4 text-pink-400" />
+                      </div>
+                      <h4 className="font-semibold text-pink-300">{lang === 'en' ? 'Buyer Psychology' : 'פסיכולוגיית הקונה'}</h4>
+                    </div>
+                    <button
+                      onClick={() => playSectionAudio(professionalGuide.psychology, 'psych')}
+                      disabled={playingSection !== null}
+                      className="p-2 bg-pink-500/20 rounded-lg hover:bg-pink-500/30 transition-colors disabled:opacity-50"
+                    >
+                      {playingSection === 'psych' ? <Loader2 className="w-4 h-4 text-pink-400 animate-spin" /> : <Volume2 className="w-4 h-4 text-pink-400" />}
+                    </button>
+                  </div>
+                  <p className="text-sm text-slate-300 leading-relaxed">{professionalGuide.psychology}</p>
+                </div>
+
+                {/* Professional Approach Steps */}
+                {professionalGuide.professional_approach?.length > 0 && (
+                  <div className="space-y-3">
+                    <h4 className="font-semibold text-slate-200 flex items-center gap-2">
+                      <div className="w-8 h-8 bg-emerald-500/20 rounded-lg flex items-center justify-center">
+                        <ListOrdered className="w-4 h-4 text-emerald-400" />
+                      </div>
+                      {lang === 'en' ? 'Professional Approach' : 'הגישה המקצועית'}
+                      <span className="text-xs text-slate-500 font-normal">({professionalGuide.professional_approach.length} {lang === 'en' ? 'steps' : 'צעדים'})</span>
+                    </h4>
+                    
+                    <div className="space-y-3">
+                      {professionalGuide.professional_approach.map((step, i) => (
+                        <div key={i} className="p-4 bg-slate-800/50 rounded-xl border border-slate-700/50 hover:border-emerald-500/30 transition-colors">
+                          <div className="flex items-start gap-3">
+                            <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                              <span className="text-white font-bold text-sm">{step.step || i + 1}</span>
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-center justify-between mb-1">
+                                <h5 className="font-semibold text-emerald-300">{step.title}</h5>
+                                <button
+                                  onClick={() => playSectionAudio(`${step.title}. ${step.explanation} Example: ${step.example_phrase}`, `step-${i}`)}
+                                  disabled={playingSection !== null}
+                                  className="p-1.5 bg-emerald-500/20 rounded-lg hover:bg-emerald-500/30 transition-colors disabled:opacity-50"
+                                >
+                                  {playingSection === `step-${i}` ? <Loader2 className="w-3.5 h-3.5 text-emerald-400 animate-spin" /> : <Volume2 className="w-3.5 h-3.5 text-emerald-400" />}
+                                </button>
+                              </div>
+                              <p className="text-sm text-slate-300 mb-2">{step.explanation}</p>
+                              
+                              {step.example_phrase && (
+                                <div className="p-2 bg-emerald-500/10 rounded-lg border border-emerald-500/20 mb-2">
+                                  <p className="text-xs text-emerald-400 mb-1 flex items-center gap-1">
+                                    <Quote className="w-3 h-3" />{lang === 'en' ? 'Say this:' : 'אמור:'}
+                                  </p>
+                                  <p className="text-sm text-slate-200 italic">"{step.example_phrase}"</p>
+                                </div>
+                              )}
+                              
+                              {step.mistake_to_avoid && (
+                                <div className="flex items-start gap-2 text-xs text-red-400">
+                                  <AlertTriangle className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                                  <span>{lang === 'en' ? 'Avoid:' : 'הימנע:'} {step.mistake_to_avoid}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Show More Button */}
+                <button
+                  onClick={() => setShowGuide(!showGuide)}
+                  className="w-full p-3 bg-slate-800/50 rounded-xl text-sm text-slate-300 hover:bg-slate-700/50 transition-colors flex items-center justify-center gap-2"
+                >
+                  {showGuide ? (lang === 'en' ? 'Hide Advanced Techniques' : 'הסתר טכניקות מתקדמות') : (lang === 'en' ? 'Show Advanced Techniques & Scenarios' : 'הצג טכניקות ותרחישים מתקדמים')}
+                  {showGuide ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                </button>
+
+                {showGuide && (
+                  <>
+                    {/* Advanced Techniques */}
+                    {professionalGuide.advanced_techniques?.length > 0 && (
+                      <div className="space-y-3 mt-4">
+                        <h4 className="font-semibold text-slate-200 flex items-center gap-2">
+                          <Zap className="w-4 h-4 text-amber-400" />
+                          {lang === 'en' ? 'Advanced Techniques' : 'טכניקות מתקדמות'}
+                        </h4>
+                        {professionalGuide.advanced_techniques.map((tech, i) => (
+                          <div key={i} className="p-4 bg-amber-500/10 rounded-xl border border-amber-500/20">
+                            <div className="flex items-center justify-between mb-2">
+                              <h5 className="font-semibold text-amber-300">{tech.name}</h5>
+                              <button
+                                onClick={() => playSectionAudio(`${tech.name}. ${tech.when_to_use}. Say: ${tech.exact_words}. ${tech.psychology}`, `tech-${i}`)}
+                                disabled={playingSection !== null}
+                                className="p-1.5 bg-amber-500/20 rounded-lg hover:bg-amber-500/30 transition-colors disabled:opacity-50"
+                              >
+                                {playingSection === `tech-${i}` ? <Loader2 className="w-3.5 h-3.5 text-amber-400 animate-spin" /> : <Volume2 className="w-3.5 h-3.5 text-amber-400" />}
+                              </button>
+                            </div>
+                            <p className="text-xs text-slate-400 mb-2">{lang === 'en' ? 'When to use:' : 'מתי להשתמש:'} {tech.when_to_use}</p>
+                            <div className="p-2 bg-slate-800/50 rounded-lg mb-2">
+                              <p className="text-sm text-slate-200">"{tech.exact_words}"</p>
+                            </div>
+                            <p className="text-xs text-amber-300/80">{lang === 'en' ? 'Why it works:' : 'למה זה עובד:'} {tech.psychology}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Practice Scenarios */}
+                    {professionalGuide.practice_scenarios?.length > 0 && (
+                      <div className="space-y-3 mt-4">
+                        <h4 className="font-semibold text-slate-200 flex items-center gap-2">
+                          <MessageCircle className="w-4 h-4 text-blue-400" />
+                          {lang === 'en' ? 'Practice Scenarios' : 'תרחישי תרגול'}
+                        </h4>
+                        {professionalGuide.practice_scenarios.map((scenario, i) => (
+                          <div key={i} className="p-4 bg-slate-800/50 rounded-xl border border-slate-700/50">
+                            <div className="space-y-3">
+                              <div className="p-3 bg-slate-700/50 rounded-lg">
+                                <p className="text-xs text-slate-400 mb-1">{lang === 'en' ? 'Customer says:' : 'הלקוח אומר:'}</p>
+                                <p className="text-sm text-slate-200">"{scenario.customer_says}"</p>
+                              </div>
+                              <div className="grid md:grid-cols-2 gap-3">
+                                <div className="p-3 bg-red-500/10 rounded-lg border border-red-500/20">
+                                  <p className="text-xs text-red-400 mb-1 flex items-center gap-1"><AlertTriangle className="w-3 h-3" />{lang === 'en' ? 'Wrong response:' : 'תגובה שגויה:'}</p>
+                                  <p className="text-sm text-slate-300">"{scenario.wrong_response}"</p>
+                                </div>
+                                <div className="p-3 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
+                                  <div className="flex items-center justify-between mb-1">
+                                    <p className="text-xs text-emerald-400 flex items-center gap-1"><Check className="w-3 h-3" />{lang === 'en' ? 'Right response:' : 'תגובה נכונה:'}</p>
+                                    <button
+                                      onClick={() => playSectionAudio(scenario.right_response, `scenario-${i}`)}
+                                      disabled={playingSection !== null}
+                                      className="p-1 bg-emerald-500/20 rounded hover:bg-emerald-500/30 transition-colors disabled:opacity-50"
+                                    >
+                                      {playingSection === `scenario-${i}` ? <Loader2 className="w-3 h-3 text-emerald-400 animate-spin" /> : <Volume2 className="w-3 h-3 text-emerald-400" />}
+                                    </button>
+                                  </div>
+                                  <p className="text-sm text-slate-200">"{scenario.right_response}"</p>
+                                </div>
+                              </div>
+                              <p className="text-xs text-blue-300">{lang === 'en' ? 'Why it works:' : 'למה זה עובד:'} {scenario.why_it_works}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Key Phrases */}
+                    {professionalGuide.key_phrases?.length > 0 && (
+                      <div className="mt-4 p-4 bg-violet-500/10 rounded-xl border border-violet-500/20">
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="font-semibold text-violet-300 flex items-center gap-2">
+                            <Quote className="w-4 h-4" />
+                            {lang === 'en' ? 'Key Phrases to Memorize' : 'משפטי מפתח לשינון'}
+                          </h4>
+                          <button
+                            onClick={() => playSectionAudio(professionalGuide.key_phrases.join('. '), 'phrases')}
+                            disabled={playingSection !== null}
+                            className="p-1.5 bg-violet-500/20 rounded-lg hover:bg-violet-500/30 transition-colors disabled:opacity-50"
+                          >
+                            {playingSection === 'phrases' ? <Loader2 className="w-3.5 h-3.5 text-violet-400 animate-spin" /> : <Volume2 className="w-3.5 h-3.5 text-violet-400" />}
+                          </button>
+                        </div>
+                        <div className="space-y-2">
+                          {professionalGuide.key_phrases.map((phrase, i) => (
+                            <div key={i} className="flex items-center gap-2 text-sm text-slate-300">
+                              <span className="text-violet-400">•</span>
+                              "{phrase}"
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {/* Summary */}
+                {professionalGuide.summary && (
+                  <div className="p-4 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent rounded-xl border border-amber-500/20 relative">
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-amber-400 to-orange-500 rounded-l-xl" />
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <Lightbulb className="w-5 h-5 text-amber-400" />
+                        <h4 className="font-semibold text-amber-300">{lang === 'en' ? 'Key Takeaway' : 'המסקנה העיקרית'}</h4>
+                      </div>
+                      <button
+                        onClick={() => playSectionAudio(professionalGuide.summary, 'summary')}
+                        disabled={playingSection !== null}
+                        className="p-1.5 bg-amber-500/20 rounded-lg hover:bg-amber-500/30 transition-colors disabled:opacity-50"
+                      >
+                        {playingSection === 'summary' ? <Loader2 className="w-3.5 h-3.5 text-amber-400 animate-spin" /> : <Volume2 className="w-3.5 h-3.5 text-amber-400" />}
+                      </button>
+                    </div>
+                    <p className="text-slate-200 font-medium">{professionalGuide.summary}</p>
+                  </div>
+                )}
+              </>
+            ) : (
+              /* Fallback to static guide */
+              <>
+                <div className="p-4 bg-gradient-to-br from-violet-500/10 to-fuchsia-500/10 rounded-xl border border-violet-500/20">
+                  <div className="flex items-center gap-2 mb-3">
+                    <HelpCircle className="w-4 h-4 text-violet-400" />
+                    <h4 className="font-semibold text-violet-300">{pt.whyImportant}</h4>
+                  </div>
+                  <p className="text-sm text-slate-300">{lang === 'en' ? guide.whyEn : guide.whyHe}</p>
+                </div>
+                
+                <div className="p-4 bg-amber-500/10 rounded-xl border border-amber-500/20">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Lightbulb className="w-4 h-4 text-amber-400" />
+                    <h4 className="font-semibold text-amber-300">{pt.guidingPrinciple}</h4>
+                  </div>
+                  <p className="text-sm text-slate-200">{lang === 'en' ? guide.principleEn : guide.principleHe}</p>
+                </div>
+              </>
             )}
             
             <div className="flex gap-3 pt-4">

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { 
   Target, Dumbbell, BookMarked, Users, CheckCircle2, Sparkles,
   Trophy, Flame, TrendingUp, Timer, ArrowRight, AlertTriangle,
@@ -8,6 +8,7 @@ import {
 import axios from 'axios'
 import { API_URL } from '../../../lib/config'
 import { PRACTICE_TRANSLATIONS, ACHIEVEMENT_BADGES } from './PracticeTranslations'
+import { playTTS, stopTTS } from '../../../lib/audioUtils'
 import { ProgressRing, LanguageToggle, StatCard, AchievementCard, StreakCounter, LevelBadge, QuickWinCard } from './PracticeHelpers'
 import SkillPracticeCard from './SkillPracticeCard'
 import RoleplayCard from './RoleplayCard'
@@ -289,32 +290,38 @@ export default function PracticeOnTab({ analysisResult, result, TTSButton }) {
     }
   }
   
-  // Play grammar correction audio
+  // Current audio ref for cleanup
+  const grammarAudioRef = useRef(null)
+  
+  // Play grammar correction audio - Cross-device compatible
   const playGrammarAudio = async (text, index) => {
     try {
+      // Stop any existing playback
+      if (grammarAudioRef.current) {
+        grammarAudioRef.current.pause()
+        grammarAudioRef.current = null
+      }
+      stopTTS()
+      
       setPlayingGrammarAudio(index)
-      const response = await axios.post(`${API_URL}/api/tts`, {
-        text: text,
+      
+      // Use unified TTS with automatic fallback
+      grammarAudioRef.current = await playTTS(text, {
         voice: 'nova',
         hd: true,
-        speed: 0.9
+        speed: 0.9,
+        onEnd: () => {
+          setPlayingGrammarAudio(null)
+          grammarAudioRef.current = null
+        },
+        onError: () => {
+          setPlayingGrammarAudio(null)
+          grammarAudioRef.current = null
+        }
       })
-      
-      if (response.data.audio_url) {
-        const audio = new Audio(`${API_URL}${response.data.audio_url}`)
-        audio.onended = () => setPlayingGrammarAudio(null)
-        audio.onerror = () => setPlayingGrammarAudio(null)
-        await audio.play()
-      }
     } catch (error) {
       console.error('TTS error:', error)
       setPlayingGrammarAudio(null)
-      // Fallback to browser TTS
-      const utterance = new SpeechSynthesisUtterance(text)
-      utterance.lang = 'en-US'
-      utterance.rate = 0.9
-      utterance.onend = () => setPlayingGrammarAudio(null)
-      window.speechSynthesis.speak(utterance)
     }
   }
   
@@ -807,7 +814,7 @@ export default function PracticeOnTab({ analysisResult, result, TTSButton }) {
                 <div className="flex items-center justify-between mb-4">
                   <h4 className="font-semibold text-blue-300 flex items-center gap-2">
                     <TrendingUp className="w-4 h-4" />
-                    {lang === 'en' ? 'Summary' : 'סיכום'}
+                    {lang === 'en' ? 'Grammar Analysis Summary' : 'סיכום ניתוח דקדוק'}
                   </h4>
                   {grammarAnalysis.summary?.total_errors === 0 ? (
                     <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 text-xs rounded-full flex items-center gap-1">
@@ -835,14 +842,41 @@ export default function PracticeOnTab({ analysisResult, result, TTSButton }) {
                     ))}
                   </div>
                 )}
+                
+                {/* Listen to All Corrections Button */}
+                {grammarAnalysis.analysis?.filter(a => a.has_errors).length > 0 && (
+                  <button
+                    onClick={() => {
+                      const allCorrections = grammarAnalysis.analysis
+                        .filter(a => a.has_errors)
+                        .map(a => a.corrected_text)
+                        .join('. ')
+                      playGrammarAudio(allCorrections, 'all')
+                    }}
+                    disabled={playingGrammarAudio !== null}
+                    className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-500/20 text-blue-300 rounded-xl text-sm font-medium hover:bg-blue-500/30 transition-colors disabled:opacity-50"
+                  >
+                    {playingGrammarAudio === 'all' ? (
+                      <><Loader2 className="w-4 h-4 animate-spin" />{lang === 'en' ? 'Playing All...' : 'מנגן הכל...'}</>
+                    ) : (
+                      <><Volume2 className="w-4 h-4" />{lang === 'en' ? 'Listen to All Corrections' : 'האזן לכל התיקונים'}</>
+                    )}
+                  </button>
+                )}
               </div>
               
               {/* Individual Corrections */}
               {grammarAnalysis.analysis?.filter(a => a.has_errors).length > 0 ? (
                 <div className="space-y-4">
-                  <h4 className="font-medium text-slate-300">
-                    {lang === 'en' ? 'Sentences to Improve' : 'משפטים לשיפור'}
-                  </h4>
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium text-slate-300 flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 text-red-400" />
+                      {lang === 'en' ? 'Your Sentences with Corrections' : 'המשפטים שלך עם תיקונים'}
+                    </h4>
+                    <span className="text-xs text-slate-500">
+                      {grammarAnalysis.analysis.filter(a => a.has_errors).length} {lang === 'en' ? 'sentences' : 'משפטים'}
+                    </span>
+                  </div>
                   
                   {grammarAnalysis.analysis.filter(a => a.has_errors).map((item, i) => (
                     <div key={i} className="p-4 bg-slate-800/50 rounded-xl border border-slate-700/50 space-y-3">

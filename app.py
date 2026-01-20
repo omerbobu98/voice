@@ -1753,7 +1753,7 @@ RESPOND IN JSON:
 }}"""
 
         response = openai_client.chat.completions.create(
-            model="gpt-5.2",
+            model="gpt-4o",
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": f"Generate a complete training conversation demonstrating expert objection handling for: {scenario.get('name', 'Objection Handling')}"}
@@ -1783,6 +1783,141 @@ RESPOND IN JSON:
             ],
             "techniques_demonstrated": ["Empathy", "4 Yes Questions", "Storytelling"],
             "key_learning_points": ["Always empathize before handling objection", "Use questions to isolate real concern", "Stories are more powerful than facts"]
+        })
+
+
+@app.route('/api/generate-improvement-guide', methods=['POST'])
+def generate_improvement_guide():
+    """Generate detailed, professional sales improvement explanation for a specific weakness area"""
+    try:
+        data = request.get_json()
+        skill_name = data.get('skill_name', 'Sales Techniques')
+        specific_issues = data.get('specific_issues', [])
+        current_score = data.get('current_score', 50)
+        language = data.get('language', 'en')
+        
+        issues_text = '\n'.join([f"- {issue}" for issue in specific_issues]) if specific_issues else "General improvement needed"
+        
+        system_prompt = f"""You are a WORLD-CLASS SALES TRAINER with 25+ years of experience training elite sales teams.
+Your expertise includes: Sandler, SPIN Selling, Challenger Sale, MEDDIC, and consultative selling methodologies.
+
+## YOUR TASK:
+Create a COMPREHENSIVE, PROFESSIONAL improvement guide for this sales skill area.
+Write it as if you're coaching a promising salesperson one-on-one - warm but direct, detailed but actionable.
+
+## SKILL AREA: {skill_name}
+## CURRENT SCORE: {current_score}/100
+## SPECIFIC ISSUES IDENTIFIED:
+{issues_text}
+
+## REQUIRED SECTIONS (in {'Hebrew' if language == 'he' else 'English'}):
+
+### 1. WHY THIS MATTERS (2-3 powerful sentences)
+Explain the real business impact. Use specific statistics or psychology. Make them FEEL why this is critical.
+
+### 2. THE PSYCHOLOGY BEHIND IT (3-4 sentences)
+Explain the buyer psychology. What's happening in the customer's mind? Why do traditional approaches fail?
+
+### 3. THE PROFESSIONAL APPROACH (5-7 detailed steps)
+For each step:
+- Clear action title
+- Detailed explanation (2-3 sentences)
+- Example phrase they can use verbatim
+- Common mistake to avoid
+
+### 4. ADVANCED TECHNIQUES (3-4 techniques)
+Share techniques that separate average salespeople from top performers:
+- Technique name
+- When to use it
+- Exact words/phrases
+- Why it works psychologically
+
+### 5. PRACTICE SCENARIOS (2-3 scenarios)
+Real situations they'll face:
+- Customer statement
+- Wrong response (what most do)
+- Right response (what pros do)
+- Why it works
+
+### 6. KEY PHRASES TO MEMORIZE (5-7 phrases)
+Battle-tested phrases they can use immediately. Make them sound natural, not scripted.
+
+### 7. ONE-SENTENCE SUMMARY
+A powerful principle they can remember.
+
+## STYLE REQUIREMENTS:
+- Be SPECIFIC, not generic. Use exact words and phrases.
+- Include psychology and reasoning behind each technique.
+- Make it feel like mentorship from a master, not a textbook.
+- Use Arizona/home improvement context where relevant.
+- {'Write entirely in Hebrew' if language == 'he' else 'Write in clear, professional English'}
+
+OUTPUT FORMAT (JSON):
+{{
+  "skill_name": "{skill_name}",
+  "why_matters": "Detailed explanation of business impact...",
+  "psychology": "Buyer psychology explanation...",
+  "professional_approach": [
+    {{
+      "step": 1,
+      "title": "Step title",
+      "explanation": "Detailed explanation...",
+      "example_phrase": "Exact phrase to use...",
+      "mistake_to_avoid": "Common mistake..."
+    }}
+  ],
+  "advanced_techniques": [
+    {{
+      "name": "Technique name",
+      "when_to_use": "Situation...",
+      "exact_words": "What to say...",
+      "psychology": "Why it works..."
+    }}
+  ],
+  "practice_scenarios": [
+    {{
+      "customer_says": "Customer statement...",
+      "wrong_response": "What most do...",
+      "right_response": "What pros do...",
+      "why_it_works": "Explanation..."
+    }}
+  ],
+  "key_phrases": ["Phrase 1", "Phrase 2", ...],
+  "summary": "One powerful sentence principle"
+}}"""
+
+        response = openai_client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": f"Generate a comprehensive improvement guide for: {skill_name}. Issues: {issues_text}"}
+            ],
+            temperature=0.7,
+            response_format={"type": "json_object"}
+        )
+        
+        result = json.loads(response.choices[0].message.content)
+        return jsonify(result)
+        
+    except Exception as e:
+        print(f"[generate_improvement_guide] Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            "skill_name": skill_name,
+            "why_matters": "This skill is critical for closing more deals and building customer trust.",
+            "psychology": "Customers buy based on emotion and justify with logic. Understanding this transforms your approach.",
+            "professional_approach": [
+                {"step": 1, "title": "Listen First", "explanation": "Always let the customer speak before responding.", "example_phrase": "Tell me more about that...", "mistake_to_avoid": "Interrupting or jumping to solutions"}
+            ],
+            "advanced_techniques": [
+                {"name": "The Empathy Bridge", "when_to_use": "When customer expresses concern", "exact_words": "I completely understand. Many of my customers felt the same way...", "psychology": "Creates connection and lowers resistance"}
+            ],
+            "practice_scenarios": [
+                {"customer_says": "I need to think about it", "wrong_response": "What's there to think about?", "right_response": "I understand. What specifically would you like to think about?", "why_it_works": "Isolates the real objection without being pushy"}
+            ],
+            "key_phrases": ["I understand how you feel", "Many customers have told me the same thing", "What would make this a no-brainer for you?"],
+            "summary": "Listen more, talk less, and always seek to understand before being understood."
         })
 
 
