@@ -837,6 +837,62 @@ If you can't find a project type, use "Sales Call".
         })
     return jsonify({'error': 'Failed to update call name'}), 500
 
+@app.route('/api/calls/<call_id>', methods=['DELETE'])
+def delete_call(call_id):
+    """Delete a call and its associated data (analysis, audio file)"""
+    user_id = get_user_id_from_token()
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    try:
+        client = get_supabase()
+        if not client:
+            return jsonify({'error': 'Database not available'}), 500
+        
+        # First verify the call belongs to this user
+        call = client.table('calls').select('id, audio_url, user_id').eq('id', call_id).eq('user_id', user_id).maybe_single().execute()
+        
+        if not call.data:
+            return jsonify({'error': 'Call not found or not authorized'}), 404
+        
+        # Delete audio file from storage if exists
+        audio_url = call.data.get('audio_url')
+        if audio_url:
+            try:
+                # Extract file path from URL
+                # URL format: https://xxx.supabase.co/storage/v1/object/public/audio/user_id/filename
+                if '/audio/' in audio_url:
+                    file_path = audio_url.split('/audio/')[-1]
+                    client.storage.from_('audio').remove([file_path])
+                    print(f"[delete_call] Deleted audio file: {file_path}")
+            except Exception as e:
+                print(f"[delete_call] Warning: Could not delete audio file: {e}")
+        
+        # Delete associated analyses (should cascade, but let's be explicit)
+        client.table('analyses').delete().eq('call_id', call_id).execute()
+        
+        # Delete associated practice sessions
+        client.table('practice_sessions').delete().eq('call_id', call_id).execute()
+        
+        # Delete cached data
+        client.table('cached_guides').delete().eq('call_id', call_id).execute()
+        client.table('cached_grammar').delete().eq('call_id', call_id).execute()
+        
+        # Finally delete the call itself
+        result = client.table('calls').delete().eq('id', call_id).eq('user_id', user_id).execute()
+        
+        if result.data:
+            print(f"[delete_call] Successfully deleted call {call_id}")
+            return jsonify({'success': True, 'message': 'Call deleted successfully'})
+        else:
+            return jsonify({'error': 'Failed to delete call'}), 500
+            
+    except Exception as e:
+        print(f"[delete_call] Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
 
 # ============ Practice On Feature ============
 
@@ -1283,7 +1339,7 @@ def delete_practice_session(session_id):
 
 @app.route('/api/practice-sessions/stats', methods=['GET'])
 def get_practice_stats():
-    """Get aggregated practice statistics for the user"""
+    """Get aggregated practice statistics for the user including gamification"""
     user_id = get_user_id_from_token()
     if not user_id:
         return jsonify({'error': 'Authentication required'}), 401
@@ -1293,13 +1349,46 @@ def get_practice_stats():
         return jsonify({'error': 'Database not available'}), 500
     
     try:
-        result = client.table('practice_sessions').select('*').eq('user_id', user_id).execute()
+        result = client.table('practice_sessions').select('*').eq('user_id', user_id).order('created_at', desc=True).execute()
         sessions = result.data or []
         
         total_sessions = len(sessions)
         total_exercises = sum(s.get('total_exercises', 0) for s in sessions)
         completed_exercises = sum(s.get('completed_count', 0) for s in sessions)
         avg_progress = int(sum(s.get('progress_percent', 0) for s in sessions) / total_sessions) if total_sessions > 0 else 0
+        
+        # Calculate XP: 10 XP per completed exercise, 50 XP bonus per completed session
+        total_xp = completed_exercises * 10
+        completed_sessions = sum(1 for s in sessions if s.get('progress_percent', 0) >= 100)
+        total_xp += completed_sessions * 50
+        
+        # Calculate level (100 XP per level)
+        level = 1 + (total_xp // 100)
+        xp_in_level = total_xp % 100
+        xp_to_next = 100 - xp_in_level
+        
+        # Calculate streak (consecutive days with practice activity)
+        streak = 0
+        if sessions:
+            from datetime import datetime, timedelta
+            today = datetime.now().date()
+            practice_dates = set()
+            for s in sessions:
+                if s.get('updated_at'):
+                    try:
+                        date_str = s['updated_at'][:10]
+                        practice_dates.add(datetime.strptime(date_str, '%Y-%m-%d').date())
+                    except:
+                        pass
+            
+            # Count consecutive days from today backwards
+            current_date = today
+            while current_date in practice_dates or (current_date == today and (today - timedelta(days=1)) in practice_dates):
+                if current_date in practice_dates:
+                    streak += 1
+                current_date -= timedelta(days=1)
+                if current_date not in practice_dates and current_date != today:
+                    break
         
         # Aggregate weakest areas across all sessions
         weakness_counts = {}
@@ -1318,12 +1407,37 @@ def get_practice_stats():
             key=lambda x: x['avg_score']
         )[:5]
         
+        # Achievements/badges
+        achievements = []
+        if total_sessions >= 1:
+            achievements.append({'id': 'first_session', 'name': 'First Steps', 'icon': '🎯', 'unlocked': True})
+        if completed_exercises >= 10:
+            achievements.append({'id': 'exercise_10', 'name': 'Getting Started', 'icon': '💪', 'unlocked': True})
+        if completed_exercises >= 50:
+            achievements.append({'id': 'exercise_50', 'name': 'Dedicated Learner', 'icon': '📚', 'unlocked': True})
+        if completed_sessions >= 5:
+            achievements.append({'id': 'sessions_5', 'name': 'Consistent', 'icon': '⭐', 'unlocked': True})
+        if streak >= 3:
+            achievements.append({'id': 'streak_3', 'name': 'On Fire', 'icon': '🔥', 'unlocked': True})
+        if streak >= 7:
+            achievements.append({'id': 'streak_7', 'name': 'Week Warrior', 'icon': '🏆', 'unlocked': True})
+        if level >= 5:
+            achievements.append({'id': 'level_5', 'name': 'Rising Star', 'icon': '🌟', 'unlocked': True})
+        
         return jsonify({
             'total_sessions': total_sessions,
             'total_exercises': total_exercises,
             'completed_exercises': completed_exercises,
+            'completed_sessions': completed_sessions,
             'avg_progress': avg_progress,
-            'top_weaknesses': top_weaknesses
+            'top_weaknesses': top_weaknesses,
+            # Gamification
+            'total_xp': total_xp,
+            'level': level,
+            'xp_in_level': xp_in_level,
+            'xp_to_next': xp_to_next,
+            'streak': streak,
+            'achievements': achievements
         })
     except Exception as e:
         print(f"[get_practice_stats] Error: {e}")
@@ -2576,6 +2690,89 @@ def admin_get_call(call_id):
     return jsonify(data)
 
 
+@app.route('/api/admin/team-comparison', methods=['GET'])
+@require_admin
+def admin_team_comparison():
+    """Get team comparison stats for all users"""
+    client = get_supabase()
+    if not client:
+        return jsonify({'error': 'Database not available'}), 500
+    
+    try:
+        # Get all users with their stats
+        users_result = client.table('user_roles').select('*').execute()
+        users = users_result.data or []
+        
+        team_stats = []
+        
+        for user in users:
+            user_id = user.get('user_id')
+            if not user_id:
+                continue
+            
+            # Get calls for this user
+            calls = client.table('calls').select('id, created_at').eq('user_id', user_id).execute()
+            calls_data = calls.data or []
+            
+            # Get analyses for this user's calls
+            call_ids = [c['id'] for c in calls_data]
+            analyses_data = []
+            if call_ids:
+                analyses = client.table('analyses').select('overall_score, meddic_score, bant_score, seller_talk_percentage, bant_qualified').in_('call_id', call_ids).execute()
+                analyses_data = analyses.data or []
+            
+            # Calculate averages
+            total_calls = len(calls_data)
+            analyzed_calls = len(analyses_data)
+            avg_score = round(sum(a.get('overall_score', 0) for a in analyses_data) / analyzed_calls) if analyzed_calls > 0 else 0
+            avg_meddic = round(sum(a.get('meddic_score', 0) for a in analyses_data) / analyzed_calls) if analyzed_calls > 0 else 0
+            avg_bant = round(sum(a.get('bant_score', 0) for a in analyses_data) / analyzed_calls) if analyzed_calls > 0 else 0
+            avg_talk_pct = round(sum(a.get('seller_talk_percentage', 50) for a in analyses_data) / analyzed_calls, 1) if analyzed_calls > 0 else 50
+            qualified_rate = round(sum(1 for a in analyses_data if a.get('bant_qualified')) / analyzed_calls * 100) if analyzed_calls > 0 else 0
+            
+            team_stats.append({
+                'user_id': user_id,
+                'email': user.get('email', 'Unknown'),
+                'name': user.get('name') or user.get('email', 'Unknown').split('@')[0],
+                'role': user.get('role', 'user'),
+                'total_calls': total_calls,
+                'analyzed_calls': analyzed_calls,
+                'avg_score': avg_score,
+                'avg_meddic': avg_meddic,
+                'avg_bant': avg_bant,
+                'avg_talk_pct': avg_talk_pct,
+                'qualified_rate': qualified_rate
+            })
+        
+        # Sort by avg_score descending
+        team_stats.sort(key=lambda x: x['avg_score'], reverse=True)
+        
+        # Calculate team averages
+        if team_stats:
+            team_avg_score = round(sum(u['avg_score'] for u in team_stats) / len(team_stats))
+            team_avg_meddic = round(sum(u['avg_meddic'] for u in team_stats) / len(team_stats))
+            team_avg_bant = round(sum(u['avg_bant'] for u in team_stats) / len(team_stats))
+        else:
+            team_avg_score = team_avg_meddic = team_avg_bant = 0
+        
+        return jsonify({
+            'team_members': team_stats,
+            'team_averages': {
+                'avg_score': team_avg_score,
+                'avg_meddic': team_avg_meddic,
+                'avg_bant': team_avg_bant
+            },
+            'top_performer': team_stats[0] if team_stats else None,
+            'total_team_calls': sum(u['total_calls'] for u in team_stats)
+        })
+        
+    except Exception as e:
+        print(f"[admin_team_comparison] Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/api/admin/trends', methods=['GET'])
 @require_admin
 def admin_trends():
@@ -2943,6 +3140,86 @@ def generate_pdf_report():
         )
     except Exception as e:
         print(f"PDF generation error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/export-calls-csv', methods=['GET'])
+def export_calls_csv():
+    """Export all user's calls as CSV"""
+    import csv
+    from io import StringIO
+    from flask import send_file
+    
+    user_id = get_user_id_from_token()
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    try:
+        client = get_supabase()
+        if not client:
+            return jsonify({'error': 'Database not available'}), 500
+        
+        # Get all calls for user
+        calls = client.table('calls').select('*').eq('user_id', user_id).order('created_at', desc=True).execute()
+        calls_data = calls.data or []
+        
+        # Get analyses for these calls
+        call_ids = [c['id'] for c in calls_data]
+        analyses = {}
+        if call_ids:
+            analyses_result = client.table('analyses').select('*').in_('call_id', call_ids).execute()
+            for a in (analyses_result.data or []):
+                analyses[a['call_id']] = a
+        
+        # Create CSV
+        output = StringIO()
+        writer = csv.writer(output)
+        
+        # Header row
+        writer.writerow([
+            'Call Name', 'Date', 'Duration (sec)', 'Status', 'Word Count', 'Speakers',
+            'Overall Score', 'MEDDIC Score', 'BANT Score', 'Seller Talk %',
+            'Deal Risk', 'BANT Qualified', 'Coaching Areas', 'Objection Types'
+        ])
+        
+        # Data rows
+        for call in calls_data:
+            analysis = analyses.get(call['id'], {})
+            writer.writerow([
+                call.get('file_name', ''),
+                call.get('created_at', '')[:10] if call.get('created_at') else '',
+                call.get('duration_seconds', 0),
+                call.get('status', ''),
+                call.get('word_count', 0),
+                call.get('speakers_count', 0),
+                analysis.get('overall_score', ''),
+                analysis.get('meddic_score', ''),
+                analysis.get('bant_score', ''),
+                analysis.get('seller_talk_percentage', ''),
+                analysis.get('deal_risk_level', ''),
+                'Yes' if analysis.get('bant_qualified') else 'No' if analysis else '',
+                ', '.join(analysis.get('coaching_areas', [])) if analysis.get('coaching_areas') else '',
+                ', '.join(analysis.get('objection_types', [])) if analysis.get('objection_types') else ''
+            ])
+        
+        # Prepare response
+        output.seek(0)
+        from io import BytesIO
+        bytes_output = BytesIO(output.getvalue().encode('utf-8-sig'))  # UTF-8 with BOM for Excel
+        
+        filename = f"calls_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+        
+        return send_file(
+            bytes_output,
+            mimetype='text/csv',
+            as_attachment=True,
+            download_name=filename
+        )
+        
+    except Exception as e:
+        print(f"CSV export error: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
@@ -4610,6 +4887,750 @@ def handle_stop_transcription():
         del streaming_connection_ready[client_sid]
     
     emit('transcription_stopped', {'status': 'stopped'})
+
+
+# ============ Sales Flow API Endpoints ============
+
+@app.route('/api/sales-flows', methods=['GET'])
+def get_sales_flows():
+    """Get all sales flows for the current user"""
+    user_id = get_user_id_from_token()
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    client = get_supabase()
+    if not client:
+        return jsonify({'error': 'Database not available'}), 500
+    
+    try:
+        # Get user's flows and public templates
+        result = client.table('sales_flows').select('*').or_(f'user_id.eq.{user_id},is_template.eq.true,is_public.eq.true').order('created_at', desc=True).execute()
+        return jsonify(result.data or [])
+    except Exception as e:
+        print(f"[get_sales_flows] Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/sales-flows/<flow_id>', methods=['GET'])
+def get_sales_flow(flow_id):
+    """Get a specific sales flow with all nodes and content"""
+    user_id = get_user_id_from_token()
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    client = get_supabase()
+    if not client:
+        return jsonify({'error': 'Database not available'}), 500
+    
+    try:
+        # Get the flow
+        flow_result = client.table('sales_flows').select('*').eq('id', flow_id).single().execute()
+        if not flow_result.data:
+            return jsonify({'error': 'Flow not found'}), 404
+        
+        flow = flow_result.data
+        
+        # Get all nodes for this flow
+        nodes_result = client.table('flow_nodes').select('*').eq('flow_id', flow_id).order('order_index').execute()
+        nodes = nodes_result.data or []
+        
+        # Get content for all nodes
+        node_ids = [n['id'] for n in nodes]
+        content_result = client.table('node_content').select('*').in_('node_id', node_ids).order('priority').execute() if node_ids else {'data': []}
+        all_content = content_result.data if hasattr(content_result, 'data') else []
+        
+        # Organize content by node
+        content_by_node = {}
+        for content in all_content:
+            node_id = content['node_id']
+            if node_id not in content_by_node:
+                content_by_node[node_id] = []
+            content_by_node[node_id].append(content)
+        
+        # Attach content to nodes
+        for node in nodes:
+            node['content'] = content_by_node.get(node['id'], [])
+        
+        flow['nodes'] = nodes
+        return jsonify(flow)
+    except Exception as e:
+        print(f"[get_sales_flow] Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/sales-flows', methods=['POST'])
+def create_sales_flow():
+    """Create a new sales flow"""
+    user_id = get_user_id_from_token()
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    client = get_supabase()
+    if not client:
+        return jsonify({'error': 'Database not available'}), 500
+    
+    data = request.get_json()
+    
+    try:
+        flow_data = {
+            'user_id': user_id,
+            'name': data.get('name', 'My Sales Flow'),
+            'description': data.get('description'),
+            'product_type': data.get('product_type'),
+            'industry': data.get('industry'),
+            'is_template': data.get('is_template', False),
+            'is_public': data.get('is_public', False)
+        }
+        
+        result = client.table('sales_flows').insert(flow_data).execute()
+        return jsonify(result.data[0] if result.data else {})
+    except Exception as e:
+        print(f"[create_sales_flow] Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/sales-flows/<flow_id>', methods=['PUT'])
+def update_sales_flow(flow_id):
+    """Update a sales flow"""
+    user_id = get_user_id_from_token()
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    client = get_supabase()
+    if not client:
+        return jsonify({'error': 'Database not available'}), 500
+    
+    data = request.get_json()
+    
+    try:
+        update_data = {k: v for k, v in data.items() if k in ['name', 'description', 'product_type', 'industry', 'is_public']}
+        update_data['updated_at'] = 'now()'
+        
+        result = client.table('sales_flows').update(update_data).eq('id', flow_id).eq('user_id', user_id).execute()
+        return jsonify(result.data[0] if result.data else {})
+    except Exception as e:
+        print(f"[update_sales_flow] Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/sales-flows/<flow_id>', methods=['DELETE'])
+def delete_sales_flow(flow_id):
+    """Delete a sales flow"""
+    user_id = get_user_id_from_token()
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    client = get_supabase()
+    if not client:
+        return jsonify({'error': 'Database not available'}), 500
+    
+    try:
+        client.table('sales_flows').delete().eq('id', flow_id).eq('user_id', user_id).execute()
+        return jsonify({'success': True})
+    except Exception as e:
+        print(f"[delete_sales_flow] Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/sales-flows/<flow_id>/nodes', methods=['POST'])
+def add_flow_node(flow_id):
+    """Add a node to a sales flow"""
+    user_id = get_user_id_from_token()
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    client = get_supabase()
+    if not client:
+        return jsonify({'error': 'Database not available'}), 500
+    
+    data = request.get_json()
+    
+    try:
+        node_data = {
+            'flow_id': flow_id,
+            'stage_type': data.get('stage_type', 'custom'),
+            'title': data.get('title', 'New Stage'),
+            'description': data.get('description'),
+            'position_x': data.get('position_x', 0),
+            'position_y': data.get('position_y', 0),
+            'order_index': data.get('order_index', 0),
+            'color': data.get('color', '#8b5cf6'),
+            'icon': data.get('icon', 'target')
+        }
+        
+        result = client.table('flow_nodes').insert(node_data).execute()
+        return jsonify(result.data[0] if result.data else {})
+    except Exception as e:
+        print(f"[add_flow_node] Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/flow-nodes/<node_id>/content', methods=['POST'])
+def add_node_content(node_id):
+    """Add content to a flow node"""
+    user_id = get_user_id_from_token()
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    client = get_supabase()
+    if not client:
+        return jsonify({'error': 'Database not available'}), 500
+    
+    data = request.get_json()
+    
+    try:
+        content_data = {
+            'node_id': node_id,
+            'content_type': data.get('content_type', 'script'),
+            'title': data.get('title'),
+            'content': data.get('content', ''),
+            'response': data.get('response'),
+            'category': data.get('category'),
+            'priority': data.get('priority', 0),
+            'tags': data.get('tags', [])
+        }
+        
+        result = client.table('node_content').insert(content_data).execute()
+        return jsonify(result.data[0] if result.data else {})
+    except Exception as e:
+        print(f"[add_node_content] Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/sales-flows/generate', methods=['POST'])
+def generate_sales_flow():
+    """Generate a complete sales flow using AI based on product/industry"""
+    user_id = get_user_id_from_token()
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    client = get_supabase()
+    if not client:
+        return jsonify({'error': 'Database not available'}), 500
+    
+    data = request.get_json()
+    product_type = data.get('product_type', 'General Product')
+    industry = data.get('industry', 'Sales')
+    language = data.get('language', 'en')
+    
+    try:
+        # Generate flow content using OpenAI
+        openai_client = OpenAI(api_key=OPENAI_API_KEY)
+        
+        prompt = f"""You are an expert sales trainer creating a comprehensive sales flowchart for: {product_type} in the {industry} industry.
+
+Generate a complete JSON structure with the following format:
+{{
+    "name": "Sales Flow for {product_type}",
+    "description": "Complete sales process for {product_type}",
+    "stages": [
+        {{
+            "stage_type": "opening",
+            "title": "Opening & Rapport",
+            "description": "Build initial connection and set the agenda",
+            "color": "#8b5cf6",
+            "content": {{
+                "scripts": [
+                    {{"title": "Pattern Interrupt Opener", "content": "Hey [Name], I know you weren't expecting this call, but I was hoping to get 30 seconds of your time. Fair enough?"}},
+                    {{"title": "Referral Opener", "content": "[Referral Name] mentioned you might be dealing with [common pain]. Mind if I ask you about that?"}}
+                ],
+                "questions": [
+                    {{"title": "Permission Question", "content": "Is now a good time to chat for a few minutes?", "category": "situational"}},
+                    {{"title": "Context Question", "content": "What prompted you to look into this?", "category": "situational"}}
+                ],
+                "tips": [
+                    {{"content": "Smile before speaking - it changes your tone"}},
+                    {{"content": "Match their energy level and pace"}}
+                ]
+            }}
+        }},
+        {{
+            "stage_type": "qualification",
+            "title": "Qualification (BANT)",
+            "description": "Determine if they're a good fit",
+            "color": "#3b82f6",
+            "content": {{
+                "scripts": [...],
+                "questions": [
+                    {{"title": "Budget Discovery", "content": "Have you set aside a budget for this project?", "category": "budget"}},
+                    {{"title": "Authority Check", "content": "Who else would be involved in making this decision?", "category": "authority"}},
+                    {{"title": "Need Verification", "content": "On a scale of 1-10, how important is solving this?", "category": "need"}},
+                    {{"title": "Timeline Question", "content": "When are you looking to have this completed?", "category": "timeline"}}
+                ],
+                "tips": [...]
+            }}
+        }},
+        {{
+            "stage_type": "discovery",
+            "title": "Discovery & Pain Points",
+            "description": "Uncover their problems and desires",
+            "color": "#10b981",
+            "content": {{
+                "scripts": [...],
+                "questions": [
+                    {{"title": "Current Situation", "content": "Tell me about your current [situation related to product]", "category": "situational"}},
+                    {{"title": "Problem Discovery", "content": "What's not working about your current approach?", "category": "problem"}},
+                    {{"title": "Impact Question", "content": "How is this affecting your [time/money/stress]?", "category": "implication"}},
+                    {{"title": "Ideal State", "content": "If we could solve this, what would that mean for you?", "category": "need_payoff"}}
+                ],
+                "tips": [...]
+            }}
+        }},
+        {{
+            "stage_type": "pain_amplification",
+            "title": "Pain Amplification",
+            "description": "Help them feel the urgency",
+            "color": "#f59e0b",
+            "content": {{
+                "scripts": [
+                    {{"title": "Future Pacing", "content": "If nothing changes in the next year, what does that look like for you?"}}
+                ],
+                "questions": [
+                    {{"title": "Cost of Inaction", "content": "What's this problem costing you - not just in money, but time and stress?", "category": "implication"}},
+                    {{"title": "Missed Opportunities", "content": "What are you missing out on because of this issue?", "category": "implication"}}
+                ],
+                "tips": [...]
+            }}
+        }},
+        {{
+            "stage_type": "solution",
+            "title": "Solution Presentation",
+            "description": "Present your solution mapped to their pain",
+            "color": "#06b6d4",
+            "content": {{
+                "scripts": [
+                    {{"title": "Pain-Solution Bridge", "content": "Based on what you've told me about [their pain], here's how we can help..."}}
+                ],
+                "questions": [...],
+                "tips": [...]
+            }}
+        }},
+        {{
+            "stage_type": "storytelling",
+            "title": "Storytelling & Social Proof",
+            "description": "Share success stories and build credibility",
+            "color": "#ec4899",
+            "content": {{
+                "stories": [
+                    {{"title": "Similar Customer Story", "content": "I had a customer last month, actually similar situation to yours..."}},
+                    {{"title": "Transformation Story", "content": "Before working with us, they were [pain]. Now they [result]."}}
+                ],
+                "tips": [...]
+            }}
+        }},
+        {{
+            "stage_type": "objections",
+            "title": "Objection Handling",
+            "description": "Address concerns and overcome resistance",
+            "color": "#ef4444",
+            "content": {{
+                "objections": [
+                    {{"title": "Too Expensive", "content": "That's more than I wanted to spend", "response": "I understand. Can I ask - compared to what? Let me show you the total cost of ownership..."}},
+                    {{"title": "Need to Think", "content": "I need to think about it", "response": "Absolutely, it's a big decision. Can I ask - what specifically do you want to think over?"}},
+                    {{"title": "Talk to Spouse", "content": "I need to talk to my spouse", "response": "Of course. Would it help if I joined you for that conversation? I can answer any questions they might have."}}
+                ],
+                "tips": [
+                    {{"content": "Use LAIR: Listen, Acknowledge, Isolate, Respond"}},
+                    {{"content": "Never argue - agree and redirect"}}
+                ]
+            }}
+        }},
+        {{
+            "stage_type": "closing",
+            "title": "Closing",
+            "description": "Ask for the commitment",
+            "color": "#22c55e",
+            "content": {{
+                "scripts": [
+                    {{"title": "Assumptive Close", "content": "So would [option A] or [option B] work better for you?"}},
+                    {{"title": "Summary Close", "content": "So we've established [need], [pain], and [solution]. Ready to move forward?"}},
+                    {{"title": "Direct Close", "content": "Based on everything we've discussed, I think this is the right fit. Shall we get started?"}}
+                ],
+                "questions": [
+                    {{"title": "Commitment Check", "content": "Is there any reason we shouldn't move forward today?", "category": "closing"}}
+                ],
+                "tips": [...]
+            }}
+        }},
+        {{
+            "stage_type": "next_steps",
+            "title": "Next Steps & Follow-up",
+            "description": "Secure the deal and set expectations",
+            "color": "#6366f1",
+            "content": {{
+                "scripts": [
+                    {{"title": "Confirmation", "content": "Perfect! Here's what happens next..."}},
+                    {{"title": "Referral Ask", "content": "Who else do you know that might benefit from this?"}}
+                ],
+                "tips": [...]
+            }}
+        }}
+    ]
+}}
+
+Make ALL content specific to {product_type} in the {industry} industry. Use realistic scenarios, actual numbers, and industry-specific terminology. Generate at least 3-5 items for each content type in each stage.
+
+{"Return content in Hebrew if the user requested Hebrew." if language == "he" else "Return content in English."}
+
+Return ONLY valid JSON, no markdown or explanation."""
+
+        response = openai_client.chat.completions.create(
+            model="gpt-4o",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7,
+            max_tokens=8000
+        )
+        
+        flow_content = response.choices[0].message.content
+        
+        # Clean up response if it has markdown
+        if flow_content.startswith('```'):
+            flow_content = flow_content.split('```')[1]
+            if flow_content.startswith('json'):
+                flow_content = flow_content[4:]
+        flow_content = flow_content.strip()
+        
+        flow_data = json.loads(flow_content)
+        
+        # Create the flow in database
+        flow_record = {
+            'user_id': user_id,
+            'name': flow_data.get('name', f'Sales Flow for {product_type}'),
+            'description': flow_data.get('description'),
+            'product_type': product_type,
+            'industry': industry
+        }
+        
+        flow_result = client.table('sales_flows').insert(flow_record).execute()
+        flow_id = flow_result.data[0]['id']
+        
+        # Create nodes and content
+        for idx, stage in enumerate(flow_data.get('stages', [])):
+            node_record = {
+                'flow_id': flow_id,
+                'stage_type': stage.get('stage_type'),
+                'title': stage.get('title'),
+                'description': stage.get('description'),
+                'order_index': idx,
+                'color': stage.get('color', '#8b5cf6'),
+                'icon': stage.get('icon', 'target')
+            }
+            
+            node_result = client.table('flow_nodes').insert(node_record).execute()
+            node_id = node_result.data[0]['id']
+            
+            # Add content for this node
+            content = stage.get('content', {})
+            
+            # Add scripts
+            for priority, script in enumerate(content.get('scripts', [])):
+                client.table('node_content').insert({
+                    'node_id': node_id,
+                    'content_type': 'script',
+                    'title': script.get('title'),
+                    'content': script.get('content'),
+                    'priority': priority
+                }).execute()
+            
+            # Add questions
+            for priority, question in enumerate(content.get('questions', [])):
+                client.table('node_content').insert({
+                    'node_id': node_id,
+                    'content_type': 'question',
+                    'title': question.get('title'),
+                    'content': question.get('content'),
+                    'category': question.get('category'),
+                    'priority': priority
+                }).execute()
+            
+            # Add stories
+            for priority, story in enumerate(content.get('stories', [])):
+                client.table('node_content').insert({
+                    'node_id': node_id,
+                    'content_type': 'story',
+                    'title': story.get('title'),
+                    'content': story.get('content'),
+                    'priority': priority
+                }).execute()
+            
+            # Add objections
+            for priority, objection in enumerate(content.get('objections', [])):
+                client.table('node_content').insert({
+                    'node_id': node_id,
+                    'content_type': 'objection',
+                    'title': objection.get('title'),
+                    'content': objection.get('content'),
+                    'response': objection.get('response'),
+                    'priority': priority
+                }).execute()
+            
+            # Add tips
+            for priority, tip in enumerate(content.get('tips', [])):
+                client.table('node_content').insert({
+                    'node_id': node_id,
+                    'content_type': 'tip',
+                    'title': tip.get('title', 'Tip'),
+                    'content': tip.get('content'),
+                    'priority': priority
+                }).execute()
+        
+        return jsonify({'success': True, 'flow_id': flow_id, 'flow': flow_data})
+        
+    except json.JSONDecodeError as e:
+        print(f"[generate_sales_flow] JSON parse error: {e}")
+        return jsonify({'error': 'Failed to parse AI response'}), 500
+    except Exception as e:
+        print(f"[generate_sales_flow] Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/sales-flows/<flow_id>/simulate', methods=['POST'])
+def generate_simulation(flow_id):
+    """Generate a simulated sales conversation for a flow"""
+    user_id = get_user_id_from_token()
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    client = get_supabase()
+    if not client:
+        return jsonify({'error': 'Database not available'}), 500
+    
+    data = request.get_json()
+    prospect_persona = data.get('prospect_persona', 'A busy homeowner who is skeptical but has a real need')
+    scenario = data.get('scenario', 'Initial discovery call')
+    language = data.get('language', 'en')
+    
+    try:
+        # Get the flow details
+        flow_result = client.table('sales_flows').select('*').eq('id', flow_id).single().execute()
+        if not flow_result.data:
+            return jsonify({'error': 'Flow not found'}), 404
+        
+        flow = flow_result.data
+        product_type = flow.get('product_type', 'product')
+        
+        # Generate simulation using OpenAI
+        openai_client = OpenAI(api_key=OPENAI_API_KEY)
+        
+        prompt = f"""Create a realistic sales conversation simulation for selling {product_type}.
+
+Prospect Persona: {prospect_persona}
+Scenario: {scenario}
+
+Generate a complete conversation that demonstrates the entire sales process from opening to closing. The conversation should:
+1. Feel natural and realistic
+2. Include common objections and how to handle them
+3. Show proper discovery techniques
+4. Demonstrate storytelling and social proof
+5. Include a successful close
+
+Return a JSON array with the following format:
+{{
+    "prospect_name": "John Smith",
+    "prospect_details": "45-year-old homeowner, married, busy professional",
+    "messages": [
+        {{"role": "seller", "text": "Hi John, this is [Name] from [Company]. Do you have a quick moment?", "stage": "opening", "notes": "Pattern interrupt opener"}},
+        {{"role": "prospect", "text": "Uh, who is this? I'm kind of busy.", "stage": "opening", "emotion": "skeptical"}},
+        {{"role": "seller", "text": "I totally understand - I'll be quick. I'm reaching out because...", "stage": "opening", "notes": "Acknowledge and pivot"}},
+        ...
+    ]
+}}
+
+Make the conversation 15-25 exchanges. Include realistic objections, hesitations, and breakthrough moments. Show the prospect gradually warming up.
+
+{"Return the conversation in Hebrew." if language == "he" else "Return in English."}
+
+Return ONLY valid JSON."""
+
+        response = openai_client.chat.completions.create(
+            model="gpt-4o",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.8,
+            max_tokens=4000
+        )
+        
+        simulation_content = response.choices[0].message.content
+        
+        # Clean up response
+        if simulation_content.startswith('```'):
+            simulation_content = simulation_content.split('```')[1]
+            if simulation_content.startswith('json'):
+                simulation_content = simulation_content[4:]
+        simulation_content = simulation_content.strip()
+        
+        simulation_data = json.loads(simulation_content)
+        
+        # Save simulation to database
+        simulation_record = {
+            'flow_id': flow_id,
+            'user_id': user_id,
+            'prospect_name': simulation_data.get('prospect_name', 'Prospect'),
+            'prospect_persona': simulation_data.get('prospect_details', prospect_persona),
+            'scenario': scenario,
+            'conversation': simulation_data.get('messages', []),
+            'status': 'completed'
+        }
+        
+        sim_result = client.table('flow_simulations').insert(simulation_record).execute()
+        
+        return jsonify({
+            'success': True,
+            'simulation_id': sim_result.data[0]['id'] if sim_result.data else None,
+            'simulation': simulation_data
+        })
+        
+    except Exception as e:
+        print(f"[generate_simulation] Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/simulations/<simulation_id>/audio', methods=['POST'])
+def generate_simulation_audio(simulation_id):
+    """Generate TTS audio for a simulation conversation"""
+    user_id = get_user_id_from_token()
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    client = get_supabase()
+    if not client:
+        return jsonify({'error': 'Database not available'}), 500
+    
+    data = request.get_json()
+    message_indices = data.get('message_indices')  # None = all, or list of indices
+    
+    try:
+        # Get simulation
+        sim_result = client.table('flow_simulations').select('*').eq('id', simulation_id).eq('user_id', user_id).single().execute()
+        if not sim_result.data:
+            return jsonify({'error': 'Simulation not found'}), 404
+        
+        simulation = sim_result.data
+        messages = simulation.get('conversation', [])
+        audio_urls = simulation.get('audio_urls', {}) or {}
+        
+        openai_client = OpenAI(api_key=OPENAI_API_KEY)
+        
+        # Generate audio for specified messages or all
+        indices_to_generate = message_indices if message_indices else range(len(messages))
+        
+        for idx in indices_to_generate:
+            if idx >= len(messages):
+                continue
+            
+            # Skip if already generated
+            if str(idx) in audio_urls:
+                continue
+            
+            msg = messages[idx]
+            text = msg.get('text', '')
+            role = msg.get('role', 'seller')
+            
+            # Use different voices for seller vs prospect
+            voice = 'nova' if role == 'seller' else 'echo'
+            
+            try:
+                # Generate TTS
+                speech_response = openai_client.audio.speech.create(
+                    model="tts-1-hd",
+                    voice=voice,
+                    input=text,
+                    speed=0.95
+                )
+                
+                # Save audio file
+                audio_filename = f"sim_{simulation_id}_{idx}.mp3"
+                audio_path = f"/tmp/{audio_filename}"
+                
+                with open(audio_path, 'wb') as f:
+                    for chunk in speech_response.iter_bytes():
+                        f.write(chunk)
+                
+                # Upload to storage or serve from temp
+                audio_urls[str(idx)] = f"/api/audio/simulation/{simulation_id}/{idx}"
+                
+            except Exception as audio_err:
+                print(f"[generate_simulation_audio] Error for message {idx}: {audio_err}")
+        
+        # Update simulation with audio URLs
+        client.table('flow_simulations').update({'audio_urls': audio_urls}).eq('id', simulation_id).execute()
+        
+        return jsonify({'success': True, 'audio_urls': audio_urls})
+        
+    except Exception as e:
+        print(f"[generate_simulation_audio] Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/audio/simulation/<simulation_id>/<int:message_idx>', methods=['GET'])
+def get_simulation_audio(simulation_id, message_idx):
+    """Serve audio file for a simulation message"""
+    from flask import send_file
+    
+    audio_path = f"/tmp/sim_{simulation_id}_{message_idx}.mp3"
+    
+    if os.path.exists(audio_path):
+        return send_file(audio_path, mimetype='audio/mpeg')
+    else:
+        return jsonify({'error': 'Audio not found'}), 404
+
+
+@app.route('/api/flow-content/tts', methods=['POST'])
+def generate_content_tts():
+    """Generate TTS for any flow content (scripts, questions, etc.)"""
+    user_id = get_user_id_from_token()
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    data = request.get_json()
+    text = data.get('text', '')
+    voice = data.get('voice', 'nova')  # nova, alloy, echo, fable, onyx, shimmer
+    
+    if not text:
+        return jsonify({'error': 'Text is required'}), 400
+    
+    try:
+        openai_client = OpenAI(api_key=OPENAI_API_KEY)
+        
+        response = openai_client.audio.speech.create(
+            model="tts-1-hd",
+            voice=voice,
+            input=text,
+            speed=0.9
+        )
+        
+        # Save to temp file
+        audio_filename = f"tts_{uuid.uuid4().hex[:8]}.mp3"
+        audio_path = f"/tmp/{audio_filename}"
+        
+        with open(audio_path, 'wb') as f:
+            for chunk in response.iter_bytes():
+                f.write(chunk)
+        
+        return jsonify({
+            'success': True,
+            'audio_url': f"/api/audio/tts/{audio_filename}"
+        })
+        
+    except Exception as e:
+        print(f"[generate_content_tts] Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/audio/tts/<filename>', methods=['GET'])
+def serve_tts_audio(filename):
+    """Serve TTS audio file"""
+    from flask import send_file
+    
+    audio_path = f"/tmp/{filename}"
+    
+    if os.path.exists(audio_path):
+        return send_file(audio_path, mimetype='audio/mpeg')
+    else:
+        return jsonify({'error': 'Audio not found'}), 404
 
 
 if __name__ == '__main__':

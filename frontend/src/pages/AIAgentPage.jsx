@@ -11,6 +11,14 @@ import axios from 'axios'
 import { io } from 'socket.io-client'
 import { supabase } from '../lib/supabase'
 import { API_URL } from '../lib/config'
+import { 
+  getAudioContext, 
+  resumeAudioContext, 
+  playTTS, 
+  createAudioElement, 
+  playAudioElement,
+  isIOS 
+} from '../lib/audioUtils'
 
 // ============================================
 // AI Agent Live Coach with AssemblyAI Real-Time Streaming
@@ -103,8 +111,15 @@ export default function AIAgentPage() {
       setMicPermission('granted')
       
       // Create audio context for level visualization (use native sample rate)
-      audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)()
+      // Use the cross-device compatible getAudioContext function
+      audioContextRef.current = await getAudioContext()
       console.log(`🎵 AudioContext created with native sample rate: ${audioContextRef.current.sampleRate}Hz`)
+      
+      // On iOS, AudioContext might be in suspended state - resume it
+      if (audioContextRef.current.state === 'suspended') {
+        await audioContextRef.current.resume()
+        console.log('🔊 AudioContext resumed for iOS')
+      }
       
       const source = audioContextRef.current.createMediaStreamSource(stream)
       analyserRef.current = audioContextRef.current.createAnalyser()
@@ -491,16 +506,21 @@ export default function AIAgentPage() {
     if (!text) return
     
     try {
-      const headers = await getAuthHeaders()
-      const response = await axios.post(`${API_URL}/api/tts`, {
-        text: text,
-        voice: 'nova'
-      }, { headers })
+      // Resume AudioContext on user gesture (required for iOS)
+      await resumeAudioContext()
       
-      if (response.data?.audio_url) {
-        const audio = new Audio(`${API_URL}${response.data.audio_url}`)
-        audio.play()
-      }
+      const headers = await getAuthHeaders()
+      
+      // Use cross-device compatible TTS playback
+      await playTTS(text, {
+        voice: 'nova',
+        hd: true,
+        speed: 0.9,
+        authHeaders: headers,
+        onError: (err) => {
+          console.error('TTS playback error:', err)
+        }
+      })
     } catch (err) {
       console.error('TTS error:', err)
     }
@@ -560,21 +580,31 @@ export default function AIAgentPage() {
     setStepStatus(prev => ({ ...prev, tts: 'testing' }))
     
     try {
+      // Resume AudioContext on user gesture (required for iOS)
+      await resumeAudioContext()
+      
       const headers = await getAuthHeaders()
       
-      const response = await axios.post(`${API_URL}/api/tts`, {
-        text: 'בדיקת מערכת. שלום, אני ה-AI Coach שלך.'
-      }, { headers })
+      // Use cross-device compatible TTS playback
+      await playTTS('בדיקת מערכת. שלום, אני ה-AI Coach שלך.', {
+        voice: 'nova',
+        hd: true,
+        speed: 0.9,
+        authHeaders: headers,
+        onStart: () => {
+          console.log('🔊 TTS playback started')
+        },
+        onEnd: () => {
+          setStepStatus(prev => ({ ...prev, tts: 'success' }))
+          console.log('✅ Step 4: TTS working')
+        },
+        onError: (err) => {
+          console.error('❌ TTS playback error:', err)
+          setStepStatus(prev => ({ ...prev, tts: 'error' }))
+        }
+      })
       
-      if (response.data?.audio_url) {
-        const audio = new Audio(`${API_URL}${response.data.audio_url}`)
-        await audio.play()
-        setStepStatus(prev => ({ ...prev, tts: 'success' }))
-        console.log('✅ Step 4: TTS working')
-        return true
-      } else {
-        throw new Error('No audio URL returned')
-      }
+      return true
       
     } catch (err) {
       console.error('❌ Step 4: TTS error:', err)

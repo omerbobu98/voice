@@ -5,7 +5,7 @@ import {
   BarChart3, TrendingUp, AlertTriangle, Target, Zap, Phone, PlayCircle, PauseCircle,
   ChevronRight, Sparkles, Shield, Award, PieChart, Activity, Volume2, Home, History,
   Settings, User, Menu, X, ChevronDown, Calendar, Hash, LogOut, FileDown, Edit3, Dumbbell, BookMarked,
-  Heart, Trash2, Search, ThumbsUp, ThumbsDown, Globe
+  Heart, Trash2, Search, ThumbsUp, ThumbsDown, Globe, Download, GitBranch
 } from 'lucide-react'
 import axios from 'axios'
 import { useAuth } from './contexts/AuthContext'
@@ -23,6 +23,7 @@ import AdminCallView from './pages/AdminCallView'
 import LiveCallPageMobile from './pages/LiveCallPageMobile'
 import AIAgentPage from './pages/AIAgentPage'
 import PracticePage from './pages/PracticePage'
+import SalesFlowPage from './pages/SalesFlowPage'
 import { API_URL } from './lib/config'
 import { AnalysisInsights } from './components/analysis'
 import AIAssistant from './components/AIAssistant'
@@ -42,6 +43,7 @@ const getStages = (lang) => [
 const getNavItems = (lang) => [
   { id: 'dashboard', label: t('nav.dashboard', lang), icon: Home },
   { id: 'ai-agent', label: t('nav.aiAgent', lang), icon: Brain, highlight: true, isRoute: true },
+  { id: 'sales-flow', label: t('nav.salesFlow', lang) || 'Sales Flow', icon: GitBranch, isRoute: true },
   { id: 'story-bank', label: t('nav.storyBank', lang), icon: BookMarked },
   { id: 'upload', label: t('nav.newCall', lang), icon: Upload },
   { id: 'calls', label: t('nav.callHistory', lang), icon: History },
@@ -759,11 +761,16 @@ function MainApp() {
   // Dashboard state
   const [dashboardStats, setDashboardStats] = useState(null)
   const [dashboardLoading, setDashboardLoading] = useState(false)
+  const [teamComparison, setTeamComparison] = useState(null)
   
   // Calls history state
   const [callsList, setCallsList] = useState([])
   const [callsLoading, setCallsLoading] = useState(false)
   const [selectedCall, setSelectedCall] = useState(null)
+  const [callsSearch, setCallsSearch] = useState('')
+  const [callsFilter, setCallsFilter] = useState('all') // all, analyzed, transcribed
+  const [selectedCalls, setSelectedCalls] = useState([]) // For bulk operations
+  const [bulkMode, setBulkMode] = useState(false)
   
   // Upload state
   const [file, setFile] = useState(null)
@@ -919,6 +926,16 @@ function MainApp() {
       const headers = await getAuthHeaders()
       const response = await axios.get(`${API_URL}/api/dashboard`, { headers })
       setDashboardStats(response.data)
+      
+      // Fetch team comparison for admins
+      if (isAdmin) {
+        try {
+          const teamRes = await axios.get(`${API_URL}/api/admin/team-comparison`, { headers })
+          setTeamComparison(teamRes.data)
+        } catch (teamErr) {
+          console.error('Error fetching team comparison:', teamErr)
+        }
+      }
     } catch (err) {
       console.error('Error fetching dashboard:', err)
     }
@@ -994,6 +1011,80 @@ function MainApp() {
       setActiveTab('upload')
     } catch (err) {
       console.error('Error fetching call:', err)
+    }
+  }
+
+  const handleDeleteCall = async (callId, callName) => {
+    const confirmMessage = T('calls.confirmDelete') || `Delete "${callName}"? This action cannot be undone.`
+    if (!confirm(confirmMessage)) return
+    
+    try {
+      const headers = await getAuthHeaders()
+      await axios.delete(`${API_URL}/api/calls/${callId}`, { headers })
+      
+      // Remove from local state
+      setCallsList(prev => prev.filter(c => c.id !== callId))
+      
+      // If this was the selected call, clear it
+      if (selectedCall?.call?.id === callId || result?.call_id === callId) {
+        setSelectedCall(null)
+        setResult(null)
+        setAnalysisResult(null)
+        setShowAnalysis(false)
+      }
+    } catch (err) {
+      console.error('Error deleting call:', err)
+      alert(T('calls.deleteError') || 'Failed to delete call. Please try again.')
+    }
+  }
+
+  const toggleCallSelection = (callId) => {
+    setSelectedCalls(prev => 
+      prev.includes(callId) 
+        ? prev.filter(id => id !== callId)
+        : [...prev, callId]
+    )
+  }
+
+  const selectAllCalls = () => {
+    if (selectedCalls.length === filteredCalls.length) {
+      setSelectedCalls([])
+    } else {
+      setSelectedCalls(filteredCalls.map(c => c.id))
+    }
+  }
+
+  const handleBulkDelete = async () => {
+    if (selectedCalls.length === 0) return
+    
+    const confirmMessage = T('calls.confirmBulkDelete') || `Delete ${selectedCalls.length} calls? This action cannot be undone.`
+    if (!confirm(confirmMessage)) return
+    
+    try {
+      const headers = await getAuthHeaders()
+      
+      // Delete calls one by one
+      for (const callId of selectedCalls) {
+        await axios.delete(`${API_URL}/api/calls/${callId}`, { headers })
+      }
+      
+      // Update local state
+      setCallsList(prev => prev.filter(c => !selectedCalls.includes(c.id)))
+      
+      // Clear selection and exit bulk mode
+      setSelectedCalls([])
+      setBulkMode(false)
+      
+      // Clear selected call if it was deleted
+      if (selectedCalls.includes(selectedCall?.call?.id) || selectedCalls.includes(result?.call_id)) {
+        setSelectedCall(null)
+        setResult(null)
+        setAnalysisResult(null)
+        setShowAnalysis(false)
+      }
+    } catch (err) {
+      console.error('Error bulk deleting calls:', err)
+      alert(T('calls.bulkDeleteError') || 'Failed to delete some calls. Please try again.')
     }
   }
 
@@ -1078,8 +1169,11 @@ function MainApp() {
         const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession()
         if (refreshError || !refreshData?.session?.access_token) {
           stopTimer()
+          // Force sign out and redirect to login
+          await supabase.auth.signOut()
           setError('Session expired. Please log in again.')
           setLoading(false)
+          // Redirect will happen automatically via ProtectedRoute
           return
         }
       }
@@ -1305,6 +1399,205 @@ function MainApp() {
               </div>
             </div>
           </div>
+
+          {/* Score Trend Chart */}
+          {dashboardStats.score_trends && dashboardStats.score_trends.length > 1 && (
+            <div className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] rounded-2xl p-6 border border-white/10">
+              <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                <Activity className="w-5 h-5 text-emerald-400" />
+                {T('dashboard.scoreTrend') || 'Score Trend'}
+              </h3>
+              <div className="h-48 flex items-end gap-1">
+                {dashboardStats.score_trends.map((point, idx) => {
+                  const height = Math.max(10, (point.score / 100) * 100)
+                  const isImproving = idx > 0 && point.score > dashboardStats.score_trends[idx - 1].score
+                  const color = point.score >= 70 ? 'bg-emerald-500' : point.score >= 50 ? 'bg-yellow-500' : 'bg-red-500'
+                  return (
+                    <div key={idx} className="flex-1 flex flex-col items-center gap-1 group relative">
+                      <div 
+                        className={`w-full ${color} rounded-t-sm transition-all hover:opacity-80 cursor-pointer`}
+                        style={{ height: `${height}%` }}
+                        title={`Call ${point.index}: ${point.score}/100 (${point.date})`}
+                      />
+                      {/* Tooltip on hover */}
+                      <div className="absolute bottom-full mb-2 hidden group-hover:block bg-gray-900 text-white text-xs px-2 py-1 rounded whitespace-nowrap z-10">
+                        {T('dashboard.call') || 'Call'} {point.index}: {point.score}/100
+                        <br />
+                        {point.date}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+              <div className="flex justify-between mt-2 text-xs text-gray-500">
+                <span>{T('dashboard.oldest') || 'Oldest'}</span>
+                <span>{T('dashboard.newest') || 'Newest'}</span>
+              </div>
+              {/* Trend indicator */}
+              {dashboardStats.score_trends.length >= 3 && (
+                <div className="mt-4 flex items-center justify-center gap-2">
+                  {(() => {
+                    const recent = dashboardStats.score_trends.slice(-3)
+                    const avgRecent = recent.reduce((sum, p) => sum + p.score, 0) / recent.length
+                    const older = dashboardStats.score_trends.slice(0, 3)
+                    const avgOlder = older.reduce((sum, p) => sum + p.score, 0) / older.length
+                    const trend = avgRecent - avgOlder
+                    if (trend > 5) {
+                      return (
+                        <>
+                          <TrendingUp className="w-5 h-5 text-emerald-400" />
+                          <span className="text-emerald-400 font-medium">{T('dashboard.improving') || 'Improving'} (+{Math.round(trend)})</span>
+                        </>
+                      )
+                    } else if (trend < -5) {
+                      return (
+                        <>
+                          <TrendingUp className="w-5 h-5 text-red-400 rotate-180" />
+                          <span className="text-red-400 font-medium">{T('dashboard.declining') || 'Declining'} ({Math.round(trend)})</span>
+                        </>
+                      )
+                    } else {
+                      return (
+                        <span className="text-gray-400 font-medium">{T('dashboard.stable') || 'Stable'}</span>
+                      )
+                    }
+                  })()}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Top Weaknesses Over Time */}
+          {dashboardStats.top_weaknesses && dashboardStats.top_weaknesses.length > 0 && (
+            <div className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] rounded-2xl p-6 border border-white/10">
+              <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                <Target className="w-5 h-5 text-orange-400" />
+                {T('dashboard.persistentWeaknesses') || 'Persistent Weaknesses'}
+              </h3>
+              <div className="space-y-3">
+                {dashboardStats.top_weaknesses.map((weakness, idx) => (
+                  <div key={idx} className="flex items-center justify-between p-3 bg-white/5 rounded-xl">
+                    <div className="flex items-center gap-3">
+                      <span className="w-6 h-6 bg-orange-500/20 text-orange-400 rounded-full flex items-center justify-center text-xs font-bold">
+                        {idx + 1}
+                      </span>
+                      <span className="text-white font-medium">{weakness.name}</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-gray-400 text-sm">
+                        {weakness.count} {T('dashboard.times') || 'times'}
+                      </span>
+                      <span className={`px-2 py-0.5 rounded text-xs ${
+                        weakness.count >= 5 ? 'bg-red-500/20 text-red-400' :
+                        weakness.count >= 3 ? 'bg-yellow-500/20 text-yellow-400' :
+                        'bg-gray-500/20 text-gray-400'
+                      }`}>
+                        {weakness.count >= 5 ? T('dashboard.critical') || 'Critical' :
+                         weakness.count >= 3 ? T('dashboard.recurring') || 'Recurring' :
+                         T('dashboard.occasional') || 'Occasional'}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Team Comparison - Admin Only */}
+          {isAdmin && teamComparison && teamComparison.team_members && teamComparison.team_members.length > 0 && (
+            <div className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] rounded-2xl p-6 border border-violet-500/30">
+              <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                <Users className="w-5 h-5 text-violet-400" />
+                {T('dashboard.teamComparison') || 'Team Comparison'}
+                <span className="ml-2 px-2 py-0.5 bg-violet-500/20 text-violet-400 rounded text-xs">Admin</span>
+              </h3>
+              
+              {/* Team Averages */}
+              <div className="grid grid-cols-3 gap-3 mb-6">
+                <div className="text-center p-3 bg-violet-500/10 rounded-xl border border-violet-500/20">
+                  <p className="text-2xl font-bold text-violet-400">{teamComparison.team_averages?.avg_score || 0}</p>
+                  <p className="text-xs text-gray-400">{T('dashboard.teamAvgScore') || 'Team Avg Score'}</p>
+                </div>
+                <div className="text-center p-3 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
+                  <p className="text-2xl font-bold text-emerald-400">{teamComparison.team_averages?.avg_meddic || 0}</p>
+                  <p className="text-xs text-gray-400">{T('dashboard.avgMeddic') || 'Avg MEDDIC'}</p>
+                </div>
+                <div className="text-center p-3 bg-blue-500/10 rounded-xl border border-blue-500/20">
+                  <p className="text-2xl font-bold text-blue-400">{teamComparison.team_averages?.avg_bant || 0}</p>
+                  <p className="text-xs text-gray-400">{T('dashboard.avgBant') || 'Avg BANT'}</p>
+                </div>
+              </div>
+
+              {/* Top Performer Banner */}
+              {teamComparison.top_performer && (
+                <div className="mb-4 p-4 bg-gradient-to-r from-yellow-500/10 to-orange-500/10 rounded-xl border border-yellow-500/30 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-yellow-500/20 rounded-full flex items-center justify-center">
+                      <Trophy className="w-5 h-5 text-yellow-400" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-yellow-400 font-medium">{T('dashboard.topPerformer') || 'Top Performer'}</p>
+                      <p className="text-white font-bold">{teamComparison.top_performer.name}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-2xl font-bold text-yellow-400">{teamComparison.top_performer.avg_score}</p>
+                    <p className="text-xs text-gray-400">{T('dashboard.avgScore') || 'Avg Score'}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Team Members List */}
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {teamComparison.team_members.map((member, idx) => (
+                  <div 
+                    key={member.user_id} 
+                    className={`flex items-center justify-between p-3 rounded-xl transition-colors ${
+                      idx === 0 ? 'bg-yellow-500/10 border border-yellow-500/20' : 'bg-white/5 hover:bg-white/10'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                        idx === 0 ? 'bg-yellow-500 text-yellow-900' :
+                        idx === 1 ? 'bg-gray-300 text-gray-700' :
+                        idx === 2 ? 'bg-orange-400 text-orange-900' :
+                        'bg-gray-600 text-gray-300'
+                      }`}>
+                        {idx + 1}
+                      </span>
+                      <div>
+                        <p className="text-white font-medium text-sm">{member.name}</p>
+                        <p className="text-xs text-gray-500">{member.total_calls} {T('dashboard.calls') || 'calls'}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <div className="text-center">
+                        <p className={`text-sm font-bold ${
+                          member.avg_score >= 70 ? 'text-emerald-400' :
+                          member.avg_score >= 50 ? 'text-yellow-400' : 'text-red-400'
+                        }`}>{member.avg_score}</p>
+                        <p className="text-[10px] text-gray-500">{T('dashboard.score') || 'Score'}</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-sm font-medium text-gray-300">{member.avg_talk_pct}%</p>
+                        <p className="text-[10px] text-gray-500">{T('dashboard.talkTime') || 'Talk'}</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-sm font-medium text-blue-400">{member.qualified_rate}%</p>
+                        <p className="text-[10px] text-gray-500">{T('dashboard.qualified') || 'Qual.'}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              {/* Total Team Calls */}
+              <div className="mt-4 pt-4 border-t border-white/10 flex justify-between text-sm">
+                <span className="text-gray-400">{T('dashboard.totalTeamCalls') || 'Total Team Calls'}</span>
+                <span className="text-white font-bold">{teamComparison.total_team_calls}</span>
+              </div>
+            </div>
+          )}
         </>
       ) : (
         <div className="text-center py-20">
@@ -1315,36 +1608,191 @@ function MainApp() {
   )
 
   // Render Calls History View
+  const filteredCalls = callsList.filter(call => {
+    // Search filter
+    const searchLower = callsSearch.toLowerCase()
+    const matchesSearch = !callsSearch || 
+      call.file_name?.toLowerCase().includes(searchLower) ||
+      new Date(call.created_at).toLocaleDateString().includes(searchLower)
+    
+    // Status filter
+    const matchesFilter = callsFilter === 'all' || call.status === callsFilter
+    
+    return matchesSearch && matchesFilter
+  })
+
+  const handleExportCSV = async () => {
+    try {
+      const headers = await getAuthHeaders()
+      const response = await axios.get(`${API_URL}/api/export-calls-csv`, {
+        headers,
+        responseType: 'blob'
+      })
+      
+      // Create download link
+      const url = window.URL.createObjectURL(new Blob([response.data]))
+      const link = document.createElement('a')
+      link.href = url
+      link.setAttribute('download', `calls_export_${new Date().toISOString().split('T')[0]}.csv`)
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+    } catch (err) {
+      console.error('CSV export error:', err)
+      alert(T('calls.exportError') || 'Failed to export calls. Please try again.')
+    }
+  }
+
   const renderCallsHistory = () => (
     <div className="space-y-4 sm:space-y-6" dir={dir}>
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <h2 className="text-xl sm:text-2xl font-bold text-white">{T('calls.callHistory')}</h2>
-        <button
-          onClick={() => setActiveTab('upload')}
-          className="px-3 sm:px-4 py-2 bg-violet-500 hover:bg-violet-600 text-white rounded-xl font-medium flex items-center gap-2 text-sm sm:text-base active:scale-95 transition-all flex-shrink-0"
-        >
-          <Upload className="w-4 h-4" />
-          <span className="hidden xs:inline">{T('nav.newCall')}</span>
-          <span className="xs:hidden">{T('common.upload')}</span>
-        </button>
+        <div className="flex items-center gap-2">
+          {callsList.length > 0 && (
+            <>
+              <button
+                onClick={() => {
+                  setBulkMode(!bulkMode)
+                  setSelectedCalls([])
+                }}
+                className={`px-3 py-2 ${bulkMode ? 'bg-violet-500 text-white' : 'bg-white/10 text-white'} hover:bg-violet-600 rounded-xl font-medium flex items-center gap-2 text-sm active:scale-95 transition-all`}
+                title={T('calls.bulkSelect') || 'Select multiple'}
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                <span className="hidden sm:inline">{bulkMode ? T('calls.cancel') || 'Cancel' : T('calls.select') || 'Select'}</span>
+              </button>
+              <button
+                onClick={handleExportCSV}
+                className="px-3 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl font-medium flex items-center gap-2 text-sm active:scale-95 transition-all"
+                title={T('calls.exportCSV') || 'Export to CSV'}
+              >
+                <Download className="w-4 h-4" />
+                <span className="hidden sm:inline">CSV</span>
+              </button>
+            </>
+          )}
+          <button
+            onClick={() => setActiveTab('upload')}
+            className="px-3 sm:px-4 py-2 bg-violet-500 hover:bg-violet-600 text-white rounded-xl font-medium flex items-center gap-2 text-sm sm:text-base active:scale-95 transition-all flex-shrink-0"
+          >
+            <Upload className="w-4 h-4" />
+            <span className="hidden xs:inline">{T('nav.newCall')}</span>
+            <span className="xs:hidden">{T('common.upload')}</span>
+          </button>
+        </div>
       </div>
+
+      {/* Bulk Actions Bar */}
+      {bulkMode && (
+        <div className="flex items-center justify-between p-3 bg-violet-500/10 border border-violet-500/30 rounded-xl">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={selectAllCalls}
+              className="flex items-center gap-2 text-sm text-white hover:text-violet-300"
+            >
+              <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
+                selectedCalls.length === filteredCalls.length && filteredCalls.length > 0
+                  ? 'bg-violet-500 border-violet-500' 
+                  : 'border-white/50'
+              }`}>
+                {selectedCalls.length === filteredCalls.length && filteredCalls.length > 0 && (
+                  <CheckCircle2 className="w-3 h-3 text-white" />
+                )}
+              </div>
+              {T('calls.selectAll') || 'Select all'}
+            </button>
+            <span className="text-sm text-gray-400">
+              {selectedCalls.length} {T('calls.selected') || 'selected'}
+            </span>
+          </div>
+          {selectedCalls.length > 0 && (
+            <button
+              onClick={handleBulkDelete}
+              className="px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg font-medium flex items-center gap-2 text-sm"
+            >
+              <Trash2 className="w-4 h-4" />
+              {T('calls.deleteSelected') || 'Delete'} ({selectedCalls.length})
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Search and Filter Bar */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+          <input
+            type="text"
+            value={callsSearch}
+            onChange={(e) => setCallsSearch(e.target.value)}
+            placeholder={T('calls.searchPlaceholder') || 'Search calls...'}
+            className="w-full pl-10 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/50"
+          />
+          {callsSearch && (
+            <button
+              onClick={() => setCallsSearch('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+        <select
+          value={callsFilter}
+          onChange={(e) => setCallsFilter(e.target.value)}
+          className="px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:border-violet-500/50 cursor-pointer"
+        >
+          <option value="all" className="bg-[#0a0a0f]">{T('calls.filterAll') || 'All Calls'}</option>
+          <option value="analyzed" className="bg-[#0a0a0f]">{T('calls.filterAnalyzed') || 'Analyzed'}</option>
+          <option value="transcribed" className="bg-[#0a0a0f]">{T('calls.filterTranscribed') || 'Transcribed Only'}</option>
+        </select>
+      </div>
+
+      {/* Results count */}
+      {(callsSearch || callsFilter !== 'all') && (
+        <p className="text-sm text-gray-500">
+          {T('calls.showingResults') || 'Showing'} {filteredCalls.length} {T('calls.of') || 'of'} {callsList.length} {T('calls.calls') || 'calls'}
+        </p>
+      )}
 
       {callsLoading ? (
         <div className="flex items-center justify-center py-20">
           <div className="w-8 h-8 border-4 border-violet-500 border-t-transparent rounded-full animate-spin" />
         </div>
-      ) : callsList.length > 0 ? (
+      ) : filteredCalls.length > 0 ? (
         <div className="space-y-3">
-          {callsList.map((call) => (
+          {filteredCalls.map((call) => (
             <div
               key={call.id}
-              onClick={() => viewCall(call.id)}
-              className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] rounded-xl sm:rounded-2xl p-4 sm:p-5 border border-white/10 cursor-pointer hover:border-violet-500/50 transition-colors active:scale-[0.99]"
+              onClick={() => bulkMode ? toggleCallSelection(call.id) : viewCall(call.id)}
+              className={`relative bg-gradient-to-b from-white/[0.08] to-white/[0.02] rounded-xl sm:rounded-2xl p-4 sm:p-5 border cursor-pointer transition-colors active:scale-[0.99] ${
+                selectedCalls.includes(call.id) 
+                  ? 'border-violet-500 bg-violet-500/10' 
+                  : 'border-white/10 hover:border-violet-500/50'
+              }`}
             >
               {/* Mobile: Stack layout, Desktop: Row layout */}
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                {/* Left side: Icon + Info */}
+                {/* Left side: Checkbox (bulk mode) + Icon + Info */}
                 <div className="flex items-start sm:items-center gap-3 sm:gap-4">
+                  {bulkMode && (
+                    <div 
+                      className={`w-6 h-6 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
+                        selectedCalls.includes(call.id)
+                          ? 'bg-violet-500 border-violet-500'
+                          : 'border-white/30 hover:border-violet-400'
+                      }`}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        toggleCallSelection(call.id)
+                      }}
+                    >
+                      {selectedCalls.includes(call.id) && (
+                        <CheckCircle2 className="w-4 h-4 text-white" />
+                      )}
+                    </div>
+                  )}
                   <div className="w-10 h-10 sm:w-12 sm:h-12 bg-violet-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
                     <Phone className="w-5 h-5 sm:w-6 sm:h-6 text-violet-400" />
                   </div>
@@ -1377,7 +1825,7 @@ function MainApp() {
                     </div>
                   </div>
                 </div>
-                {/* Right side: Status badge + Arrow - Desktop only */}
+                {/* Right side: Status badge + Delete + Arrow - Desktop only */}
                 <div className="hidden sm:flex items-center gap-3 flex-shrink-0">
                   <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                     call.status === 'analyzed' 
@@ -1386,13 +1834,50 @@ function MainApp() {
                   }`}>
                     {call.status === 'analyzed' ? T('calls.analyzed') : T('calls.notAnalyzed')}
                   </span>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleDeleteCall(call.id, call.file_name)
+                    }}
+                    className="p-2 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                    title={T('calls.delete') || 'Delete call'}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                   <ChevronRight className="w-5 h-5 text-gray-500" />
                 </div>
+                {/* Mobile delete button */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleDeleteCall(call.id, call.file_name)
+                  }}
+                  className="sm:hidden absolute top-3 right-3 p-2 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                  title={T('calls.delete') || 'Delete call'}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
               </div>
             </div>
           ))}
         </div>
+      ) : callsList.length > 0 ? (
+        // No results from search/filter
+        <div className="text-center py-20 bg-gradient-to-b from-white/[0.08] to-white/[0.02] rounded-2xl border border-white/10">
+          <Search className="w-12 h-12 text-gray-600 mx-auto mb-4" />
+          <p className="text-gray-500">{T('calls.noResultsFound') || 'No calls match your search'}</p>
+          <button
+            onClick={() => {
+              setCallsSearch('')
+              setCallsFilter('all')
+            }}
+            className="mt-4 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl font-medium"
+          >
+            {T('calls.clearFilters') || 'Clear filters'}
+          </button>
+        </div>
       ) : (
+        // No calls at all
         <div className="text-center py-20 bg-gradient-to-b from-white/[0.08] to-white/[0.02] rounded-2xl border border-white/10">
           <Phone className="w-12 h-12 text-gray-600 mx-auto mb-4" />
           <p className="text-gray-500">{T('calls.noCallsYet')}</p>
@@ -2387,7 +2872,13 @@ function App() {
           <AIAgentPage />
         </ProtectedRoute>
       } />
-            <Route path="*" element={<Navigate to="/" replace />} />
+      {/* Sales Flow Route */}
+      <Route path="/sales-flow" element={
+        <ProtectedRoute>
+          <SalesFlowPage />
+        </ProtectedRoute>
+      } />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
 }

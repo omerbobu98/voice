@@ -429,6 +429,62 @@ export default function PracticePage({ onBack }) {
         </button>
       </div>
       
+      {/* Gamification Banner */}
+      <div className="bg-gradient-to-r from-violet-500/10 via-fuchsia-500/10 to-pink-500/10 rounded-2xl border border-violet-500/20 p-4 sm:p-5">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          {/* Level & XP */}
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center shadow-lg shadow-violet-500/30">
+                <span className="text-2xl sm:text-3xl font-bold text-white">{stats?.level || 1}</span>
+              </div>
+              <div className="absolute -bottom-1 -right-1 bg-yellow-500 text-yellow-900 text-xs font-bold px-2 py-0.5 rounded-full">
+                LVL
+              </div>
+            </div>
+            <div>
+              <p className="text-lg sm:text-xl font-bold text-white">{stats?.total_xp || 0} XP</p>
+              <div className="w-32 sm:w-40 h-2 bg-slate-700 rounded-full mt-2 overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-violet-500 to-fuchsia-500 rounded-full transition-all duration-500"
+                  style={{ width: `${stats?.xp_in_level || 0}%` }}
+                />
+              </div>
+              <p className="text-xs text-slate-400 mt-1">{stats?.xp_to_next || 100} XP לרמה הבאה</p>
+            </div>
+          </div>
+          
+          {/* Streak */}
+          <div className="flex items-center gap-3 bg-orange-500/10 px-4 py-3 rounded-xl border border-orange-500/20">
+            <div className="text-3xl">🔥</div>
+            <div>
+              <p className="text-2xl font-bold text-orange-400">{stats?.streak || 0}</p>
+              <p className="text-xs text-slate-400">ימים ברצף</p>
+            </div>
+          </div>
+          
+          {/* Achievements Preview */}
+          {stats?.achievements && stats.achievements.length > 0 && (
+            <div className="flex items-center gap-2">
+              {stats.achievements.slice(0, 4).map((achievement, i) => (
+                <div 
+                  key={achievement.id}
+                  className="w-10 h-10 sm:w-12 sm:h-12 bg-slate-800/80 rounded-xl flex items-center justify-center text-xl sm:text-2xl border border-slate-700/50 hover:scale-110 transition-transform cursor-pointer"
+                  title={achievement.name}
+                >
+                  {achievement.icon}
+                </div>
+              ))}
+              {stats.achievements.length > 4 && (
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-slate-800/80 rounded-xl flex items-center justify-center text-sm font-bold text-slate-400 border border-slate-700/50">
+                  +{stats.achievements.length - 4}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <StatsCard

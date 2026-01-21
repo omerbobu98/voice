@@ -8,6 +8,7 @@ export const translations = {
   nav: {
     dashboard: { en: 'Dashboard', he: 'לוח בקרה' },
     aiAgent: { en: 'AI Agent', he: 'סוכן AI' },
+    salesFlow: { en: 'Sales Flow', he: 'תהליך מכירה' },
     storyBank: { en: 'Story Bank', he: 'בנק סיפורים' },
     newCall: { en: 'New Call', he: 'שיחה חדשה' },
     callHistory: { en: 'Call History', he: 'היסטוריית שיחות' },

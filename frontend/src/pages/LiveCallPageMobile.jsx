@@ -10,6 +10,13 @@ import {
 import axios from 'axios'
 import { supabase } from '../lib/supabase'
 import { API_URL } from '../lib/config'
+import { 
+  getAudioContext, 
+  resumeAudioContext, 
+  createAudioElement, 
+  playAudioElement,
+  isIOS 
+} from '../lib/audioUtils'
 
 const getAuthHeaders = async () => {
   const { data: { session } } = await supabase.auth.getSession()
@@ -247,7 +254,15 @@ export default function LiveCallPageMobile() {
       }
       
       if (token) {
-        audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 })
+        // Use cross-device compatible AudioContext
+        audioContextRef.current = await getAudioContext()
+        
+        // On iOS, AudioContext might be in suspended state - resume it
+        if (audioContextRef.current.state === 'suspended') {
+          await audioContextRef.current.resume()
+          console.log('🔊 AudioContext resumed for iOS')
+        }
+        
         const source = audioContextRef.current.createMediaStreamSource(stream)
         const processor = audioContextRef.current.createScriptProcessor(4096, 1, 1)
         
@@ -452,7 +467,8 @@ export default function LiveCallPageMobile() {
       }, { headers })
       
       if (response.data.audio_url) {
-        const audio = new Audio(`${API_URL}${response.data.audio_url}`)
+        // Use cross-device compatible audio element
+        const audio = createAudioElement(`${API_URL}${response.data.audio_url}`)
         coachingAudioRef.current = audio
         
         audio.onended = () => {
@@ -465,7 +481,15 @@ export default function LiveCallPageMobile() {
           }, 5000)
         }
         
-        audio.play()
+        // Use cross-device compatible playback
+        try {
+          await resumeAudioContext()
+          await playAudioElement(audio)
+        } catch (playErr) {
+          console.error('Audio playback error:', playErr)
+          setIsPlayingCoaching(false)
+          setCoachingQueue(prev => prev.slice(1))
+        }
       }
     } catch (err) {
       console.error('Error playing coaching audio:', err)

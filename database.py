@@ -723,6 +723,37 @@ def get_dashboard_stats(user_id: str = None) -> dict:
         improvement_areas = []
         risk_dist = {'low': 0, 'medium': 0, 'high': 0}
     
+    # Calculate score trends (last 20 calls)
+    score_trends = []
+    if analyses_data:
+        # Sort by created_at and take last 20
+        sorted_analyses = sorted(analyses_data, key=lambda x: x.get('created_at', ''))[-20:]
+        for idx, a in enumerate(sorted_analyses):
+            score_trends.append({
+                'index': idx + 1,
+                'score': a.get('overall_score', 0),
+                'date': a.get('created_at', '')[:10] if a.get('created_at') else '',
+                'call_id': a.get('call_id')
+            })
+    
+    # Calculate weakness trends (track coaching areas frequency)
+    weakness_trends = {}
+    if analyses_data:
+        sorted_analyses = sorted(analyses_data, key=lambda x: x.get('created_at', ''))
+        for a in sorted_analyses:
+            for area in a.get('coaching_areas', []):
+                if area not in weakness_trends:
+                    weakness_trends[area] = {'count': 0, 'first_seen': a.get('created_at'), 'last_seen': a.get('created_at')}
+                weakness_trends[area]['count'] += 1
+                weakness_trends[area]['last_seen'] = a.get('created_at')
+    
+    # Convert to sorted list
+    top_weaknesses = sorted(
+        [{'name': k, **v} for k, v in weakness_trends.items()],
+        key=lambda x: x['count'],
+        reverse=True
+    )[:5]
+    
     return {
         'total_calls': total_calls,
         'avg_duration_seconds': round(avg_duration),
@@ -734,7 +765,10 @@ def get_dashboard_stats(user_id: str = None) -> dict:
         'objection_counts': objection_counts,
         'improvement_areas': improvement_areas,
         'risk_distribution': risk_dist,
-        'recent_calls': calls_data[:5]
+        'recent_calls': calls_data[:5],
+        'score_trends': score_trends,
+        'top_weaknesses': top_weaknesses,
+        'total_analyzed': len(analyses_data)
     }
 
 

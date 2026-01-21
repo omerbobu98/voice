@@ -10,6 +10,13 @@ import {
 } from 'lucide-react'
 import { API_URL } from '../lib/config'
 import { supabase } from '../lib/supabase'
+import { 
+  CrossDeviceRecorder, 
+  playTTS, 
+  stopTTS,
+  getFileExtension,
+  resumeAudioContext 
+} from '../lib/audioUtils'
 
 // Helper to get auth token
 const getAuthToken = async () => {
@@ -235,24 +242,30 @@ export default function StoryBankPage() {
     await navigator.clipboard.writeText(text)
   }
   
-  // Recording functions
+  // Cross-device recorder instance
+  const recorderRef = useRef(null)
+  
+  // Recording functions - Cross-device compatible
   const startRecording = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      mediaRecorderRef.current = new MediaRecorder(stream)
-      audioChunksRef.current = []
+      // Resume AudioContext on user gesture (required for iOS)
+      await resumeAudioContext()
       
-      mediaRecorderRef.current.ondataavailable = (e) => {
-        audioChunksRef.current.push(e.data)
-      }
+      recorderRef.current = new CrossDeviceRecorder({
+        onStop: async (blob, mimeType) => {
+          const extension = getFileExtension(mimeType)
+          await transcribeRecording(blob, extension)
+        },
+        onError: (error) => {
+          console.error('Recording error:', error)
+          setIsRecording(false)
+          if (recordingIntervalRef.current) {
+            clearInterval(recordingIntervalRef.current)
+          }
+        }
+      })
       
-      mediaRecorderRef.current.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
-        await transcribeRecording(audioBlob)
-        stream.getTracks().forEach(track => track.stop())
-      }
-      
-      mediaRecorderRef.current.start()
+      await recorderRef.current.start()
       setIsRecording(true)
       setRecordingTime(0)
       
@@ -263,13 +276,13 @@ export default function StoryBankPage() {
       
     } catch (error) {
       console.error('Error starting recording:', error)
-      alert('Could not access microphone')
+      alert('Could not access microphone. Please check permissions.')
     }
   }
   
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop()
+  const stopRecording = async () => {
+    if (recorderRef.current && isRecording) {
+      await recorderRef.current.stop()
       setIsRecording(false)
       if (recordingIntervalRef.current) {
         clearInterval(recordingIntervalRef.current)
@@ -277,11 +290,11 @@ export default function StoryBankPage() {
     }
   }
   
-  const transcribeRecording = async (audioBlob) => {
+  const transcribeRecording = async (audioBlob, extension = 'webm') => {
     setTranscribing(true)
     try {
       const formData = new FormData()
-      formData.append('audio', audioBlob, 'recording.webm')
+      formData.append('audio', audioBlob, `recording.${extension}`)
       
       const response = await axios.post(`${API_URL}/api/transcribe-quick`, formData)
       if (response.data.text) {
@@ -334,25 +347,62 @@ export default function StoryBankPage() {
     setSavingManual(false)
   }
   
-  // Text-to-speech
-  const speakStory = (text, storyId) => {
+  // Text-to-speech - Cross-device compatible using OpenAI TTS with fallback
+  const currentAudioRef = useRef(null)
+  
+  const speakStory = async (text, storyId) => {
+    // If already playing this story, stop it
     if (speaking && playingStoryId === storyId) {
-      window.speechSynthesis.cancel()
+      if (currentAudioRef.current) {
+        currentAudioRef.current.pause()
+        currentAudioRef.current = null
+      }
+      stopTTS()
       setSpeaking(false)
       setPlayingStoryId(null)
       return
     }
     
-    window.speechSynthesis.cancel()
-    const utterance = new SpeechSynthesisUtterance(text)
-    utterance.lang = 'en-US'
-    utterance.rate = 0.9
+    // Stop any existing playback
+    if (currentAudioRef.current) {
+      currentAudioRef.current.pause()
+      currentAudioRef.current = null
+    }
+    stopTTS()
     
-    utterance.onstart = () => { setSpeaking(true); setPlayingStoryId(storyId) }
-    utterance.onend = () => { setSpeaking(false); setPlayingStoryId(null) }
-    utterance.onerror = () => { setSpeaking(false); setPlayingStoryId(null) }
+    setAudioLoading(true)
+    setSpeaking(true)
+    setPlayingStoryId(storyId)
     
-    window.speechSynthesis.speak(utterance)
+    try {
+      // Use unified TTS with automatic fallback
+      const token = await getAuthToken()
+      currentAudioRef.current = await playTTS(text, {
+        voice: 'nova',
+        hd: true,
+        speed: 0.9,
+        authHeaders: token ? { Authorization: `Bearer ${token}` } : {},
+        onStart: () => {
+          setAudioLoading(false)
+        },
+        onEnd: () => {
+          setSpeaking(false)
+          setPlayingStoryId(null)
+          currentAudioRef.current = null
+        },
+        onError: () => {
+          setSpeaking(false)
+          setPlayingStoryId(null)
+          setAudioLoading(false)
+          currentAudioRef.current = null
+        }
+      })
+    } catch (error) {
+      console.error('TTS error:', error)
+      setSpeaking(false)
+      setPlayingStoryId(null)
+      setAudioLoading(false)
+    }
   }
   
   const toggleManualEmotion = (emotionId) => {
