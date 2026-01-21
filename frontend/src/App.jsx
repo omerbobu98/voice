@@ -43,7 +43,7 @@ const getStages = (lang) => [
 const getNavItems = (lang) => [
   { id: 'dashboard', label: t('nav.dashboard', lang), icon: Home },
   { id: 'ai-agent', label: t('nav.aiAgent', lang), icon: Brain, highlight: true, isRoute: true },
-  { id: 'sales-flow', label: t('nav.salesFlow', lang) || 'Sales Flow', icon: GitBranch, isRoute: true },
+  { id: 'sales-flow', label: t('nav.salesFlow', lang) || 'Sales Flow', icon: GitBranch },
   { id: 'story-bank', label: t('nav.storyBank', lang), icon: BookMarked },
   { id: 'upload', label: t('nav.newCall', lang), icon: Upload },
   { id: 'calls', label: t('nav.callHistory', lang), icon: History },
@@ -2114,6 +2114,9 @@ function MainApp() {
           )}
           {activeTab === 'story-bank' && (
             <StoryBankContent />
+          )}
+          {activeTab === 'sales-flow' && (
+            <SalesFlowPage />
           )}
           {activeTab === 'upload' && (
             <>
