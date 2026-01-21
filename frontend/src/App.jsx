@@ -1070,7 +1070,32 @@ function MainApp() {
     startTimer()
 
     try {
-      const headers = await getAuthHeaders()
+      // Refresh session before upload to ensure token is valid
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      
+      if (sessionError || !session?.access_token) {
+        // Try to refresh the session
+        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession()
+        if (refreshError || !refreshData?.session?.access_token) {
+          stopTimer()
+          setError('Session expired. Please log in again.')
+          setLoading(false)
+          return
+        }
+      }
+      
+      const { data: { session: currentSession } } = await supabase.auth.getSession()
+      const headers = currentSession?.access_token 
+        ? { Authorization: `Bearer ${currentSession.access_token}` }
+        : {}
+      
+      if (!headers.Authorization) {
+        stopTimer()
+        setError('Please log in to upload files.')
+        setLoading(false)
+        return
+      }
+      
       const response = await axios.post(`${API_URL}/api/upload`, formData, {
         headers: { 'Content-Type': 'multipart/form-data', ...headers },
       })
