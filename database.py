@@ -207,7 +207,9 @@ def save_call(file_name: str, duration_seconds: int, word_count: int,
 
 
 def save_analysis(call_id: str, metrics: dict, analysis: dict, user_id: str = None) -> dict:
-    """Save analysis results for a call"""
+    """Save or update analysis results for a call.
+    If an analysis already exists for this call, it will be updated instead of creating a duplicate.
+    """
     client = get_supabase()
     if not client:
         print("[save_analysis] ERROR: No Supabase client available")
@@ -257,18 +259,32 @@ def save_analysis(call_id: str, metrics: dict, analysis: dict, user_id: str = No
     }
     
     try:
-        result = client.table('analyses').insert(data).execute()
+        # Check if analysis already exists for this call
+        existing = client.table('analyses').select('id').eq('call_id', call_id).execute()
+        
+        if existing.data and len(existing.data) > 0:
+            # Update existing analysis instead of creating duplicate
+            existing_id = existing.data[0]['id']
+            print(f"[save_analysis] Found existing analysis {existing_id}, updating instead of creating duplicate")
+            result = client.table('analyses').update(data).eq('id', existing_id).execute()
+            action = "Updated"
+        else:
+            # Insert new analysis
+            result = client.table('analyses').insert(data).execute()
+            action = "Created"
         
         if result.data:
-            print(f"[save_analysis] SUCCESS: Saved analysis {result.data[0].get('id')} for call {call_id}")
+            print(f"[save_analysis] SUCCESS: {action} analysis {result.data[0].get('id')} for call {call_id}")
             # Update call status
             client.table('calls').update({'status': 'analyzed'}).eq('id', call_id).execute()
             return result.data[0]
         else:
-            print(f"[save_analysis] ERROR: Insert returned no data. Result: {result}")
+            print(f"[save_analysis] ERROR: Operation returned no data. Result: {result}")
             return None
     except Exception as e:
-        print(f"[save_analysis] ERROR: Failed to insert analysis: {e}")
+        print(f"[save_analysis] ERROR: Failed to save analysis: {e}")
+        import traceback
+        traceback.print_exc()
         return None
 
 
@@ -308,7 +324,9 @@ def get_all_calls(user_id: str = None, limit: int = 50) -> list:
 
 
 def get_call_with_analysis(call_id: str, user_id: str = None) -> dict:
-    """Get a single call with its analysis, optionally filtered by user"""
+    """Get a single call with its latest analysis, optionally filtered by user.
+    If multiple analyses exist for the call, returns the most recent one.
+    """
     client = get_supabase()
     if not client:
         return None
@@ -323,9 +341,11 @@ def get_call_with_analysis(call_id: str, user_id: str = None) -> dict:
             return None
         
         try:
-            analysis = client.table('analyses').select('*').eq('call_id', call_id).maybe_single().execute()
-            analysis_data = analysis.data if analysis.data else None
-        except:
+            # Get the latest analysis for this call (ordered by created_at desc, limit 1)
+            analysis = client.table('analyses').select('*').eq('call_id', call_id).order('created_at', desc=True).limit(1).execute()
+            analysis_data = analysis.data[0] if analysis.data and len(analysis.data) > 0 else None
+        except Exception as e:
+            print(f"[get_call_with_analysis] Error fetching analysis: {e}")
             analysis_data = None
         
         return {

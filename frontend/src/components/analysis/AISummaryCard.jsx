@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { CheckCircle2, AlertTriangle, Copy, Check, ChevronDown, ChevronUp } from 'lucide-react'
+import { CheckCircle2, AlertTriangle, Copy, Check, ChevronDown, ChevronUp, Volume2 } from 'lucide-react'
 
-export default function AISummaryCard({ analysisResult, result }) {
+export default function AISummaryCard({ analysisResult, result, TTSButton }) {
   const [copied, setCopied] = useState(null)
   const [expandedSection, setExpandedSection] = useState('summary')
 
@@ -126,6 +126,12 @@ export default function AISummaryCard({ analysisResult, result }) {
               {callSummary.one_liner || 'Analysis summary not available'}
             </p>
           </div>
+          {/* TTS Button for summary */}
+          {TTSButton && callSummary.one_liner && (
+            <div className="mt-3">
+              <TTSButton text={callSummary.one_liner} label="🔊 Listen to Summary" />
+            </div>
+          )}
         </div>
 
         {/* Key Topics */}

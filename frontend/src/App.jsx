@@ -446,7 +446,7 @@ function StoryBankContent() {
   }
 
   const deleteStory = async (id) => {
-    if (!confirm('למחוק את הסיפור?')) return
+    if (!confirm(T('storyBank.deleteStory') || 'Delete this story?')) return
     try {
       const { data: { session } } = await supabase.auth.getSession()
       await axios.delete(`${API_URL}/api/story-bank/${id}`, {

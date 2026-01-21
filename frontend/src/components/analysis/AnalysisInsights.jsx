@@ -377,7 +377,7 @@ export default function AnalysisInsights({
           <div className="space-y-4">
             {/* Top Row - Summary & Skill */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <AISummaryCard analysisResult={analysisResult} result={result} />
+              <AISummaryCard analysisResult={analysisResult} result={result} TTSButton={TTSButton} />
               <SkillRadarChart 
                 analysisResult={analysisResult} 
                 onSkillClick={handleSkillClick}
