@@ -5113,166 +5113,129 @@ def generate_sales_flow():
     industry = data.get('industry', 'Sales')
     language = data.get('language', 'en')
     
+    print(f"[generate_sales_flow] Starting generation for: {product_type} in {industry}")
+    
     try:
         # Generate flow content using OpenAI
         openai_client = OpenAI(api_key=OPENAI_API_KEY)
         
-        prompt = f"""You are an expert sales trainer creating a comprehensive sales flowchart for: {product_type} in the {industry} industry.
+        lang_instruction = "Generate ALL content in Hebrew." if language == "he" else "Generate ALL content in English."
+        
+        prompt = f"""Create a complete sales flow for selling {product_type} in the {industry} industry.
 
-Generate a complete JSON structure with the following format:
+{lang_instruction}
+
+Return a JSON object with this EXACT structure (fill in ALL arrays with 2-4 specific items each):
+
 {{
-    "name": "Sales Flow for {product_type}",
-    "description": "Complete sales process for {product_type}",
-    "stages": [
-        {{
-            "stage_type": "opening",
-            "title": "Opening & Rapport",
-            "description": "Build initial connection and set the agenda",
-            "color": "#8b5cf6",
-            "content": {{
-                "scripts": [
-                    {{"title": "Pattern Interrupt Opener", "content": "Hey [Name], I know you weren't expecting this call, but I was hoping to get 30 seconds of your time. Fair enough?"}},
-                    {{"title": "Referral Opener", "content": "[Referral Name] mentioned you might be dealing with [common pain]. Mind if I ask you about that?"}}
-                ],
-                "questions": [
-                    {{"title": "Permission Question", "content": "Is now a good time to chat for a few minutes?", "category": "situational"}},
-                    {{"title": "Context Question", "content": "What prompted you to look into this?", "category": "situational"}}
-                ],
-                "tips": [
-                    {{"content": "Smile before speaking - it changes your tone"}},
-                    {{"content": "Match their energy level and pace"}}
-                ]
-            }}
-        }},
-        {{
-            "stage_type": "qualification",
-            "title": "Qualification (BANT)",
-            "description": "Determine if they're a good fit",
-            "color": "#3b82f6",
-            "content": {{
-                "scripts": [...],
-                "questions": [
-                    {{"title": "Budget Discovery", "content": "Have you set aside a budget for this project?", "category": "budget"}},
-                    {{"title": "Authority Check", "content": "Who else would be involved in making this decision?", "category": "authority"}},
-                    {{"title": "Need Verification", "content": "On a scale of 1-10, how important is solving this?", "category": "need"}},
-                    {{"title": "Timeline Question", "content": "When are you looking to have this completed?", "category": "timeline"}}
-                ],
-                "tips": [...]
-            }}
-        }},
-        {{
-            "stage_type": "discovery",
-            "title": "Discovery & Pain Points",
-            "description": "Uncover their problems and desires",
-            "color": "#10b981",
-            "content": {{
-                "scripts": [...],
-                "questions": [
-                    {{"title": "Current Situation", "content": "Tell me about your current [situation related to product]", "category": "situational"}},
-                    {{"title": "Problem Discovery", "content": "What's not working about your current approach?", "category": "problem"}},
-                    {{"title": "Impact Question", "content": "How is this affecting your [time/money/stress]?", "category": "implication"}},
-                    {{"title": "Ideal State", "content": "If we could solve this, what would that mean for you?", "category": "need_payoff"}}
-                ],
-                "tips": [...]
-            }}
-        }},
-        {{
-            "stage_type": "pain_amplification",
-            "title": "Pain Amplification",
-            "description": "Help them feel the urgency",
-            "color": "#f59e0b",
-            "content": {{
-                "scripts": [
-                    {{"title": "Future Pacing", "content": "If nothing changes in the next year, what does that look like for you?"}}
-                ],
-                "questions": [
-                    {{"title": "Cost of Inaction", "content": "What's this problem costing you - not just in money, but time and stress?", "category": "implication"}},
-                    {{"title": "Missed Opportunities", "content": "What are you missing out on because of this issue?", "category": "implication"}}
-                ],
-                "tips": [...]
-            }}
-        }},
-        {{
-            "stage_type": "solution",
-            "title": "Solution Presentation",
-            "description": "Present your solution mapped to their pain",
-            "color": "#06b6d4",
-            "content": {{
-                "scripts": [
-                    {{"title": "Pain-Solution Bridge", "content": "Based on what you've told me about [their pain], here's how we can help..."}}
-                ],
-                "questions": [...],
-                "tips": [...]
-            }}
-        }},
-        {{
-            "stage_type": "storytelling",
-            "title": "Storytelling & Social Proof",
-            "description": "Share success stories and build credibility",
-            "color": "#ec4899",
-            "content": {{
-                "stories": [
-                    {{"title": "Similar Customer Story", "content": "I had a customer last month, actually similar situation to yours..."}},
-                    {{"title": "Transformation Story", "content": "Before working with us, they were [pain]. Now they [result]."}}
-                ],
-                "tips": [...]
-            }}
-        }},
-        {{
-            "stage_type": "objections",
-            "title": "Objection Handling",
-            "description": "Address concerns and overcome resistance",
-            "color": "#ef4444",
-            "content": {{
-                "objections": [
-                    {{"title": "Too Expensive", "content": "That's more than I wanted to spend", "response": "I understand. Can I ask - compared to what? Let me show you the total cost of ownership..."}},
-                    {{"title": "Need to Think", "content": "I need to think about it", "response": "Absolutely, it's a big decision. Can I ask - what specifically do you want to think over?"}},
-                    {{"title": "Talk to Spouse", "content": "I need to talk to my spouse", "response": "Of course. Would it help if I joined you for that conversation? I can answer any questions they might have."}}
-                ],
-                "tips": [
-                    {{"content": "Use LAIR: Listen, Acknowledge, Isolate, Respond"}},
-                    {{"content": "Never argue - agree and redirect"}}
-                ]
-            }}
-        }},
-        {{
-            "stage_type": "closing",
-            "title": "Closing",
-            "description": "Ask for the commitment",
-            "color": "#22c55e",
-            "content": {{
-                "scripts": [
-                    {{"title": "Assumptive Close", "content": "So would [option A] or [option B] work better for you?"}},
-                    {{"title": "Summary Close", "content": "So we've established [need], [pain], and [solution]. Ready to move forward?"}},
-                    {{"title": "Direct Close", "content": "Based on everything we've discussed, I think this is the right fit. Shall we get started?"}}
-                ],
-                "questions": [
-                    {{"title": "Commitment Check", "content": "Is there any reason we shouldn't move forward today?", "category": "closing"}}
-                ],
-                "tips": [...]
-            }}
-        }},
-        {{
-            "stage_type": "next_steps",
-            "title": "Next Steps & Follow-up",
-            "description": "Secure the deal and set expectations",
-            "color": "#6366f1",
-            "content": {{
-                "scripts": [
-                    {{"title": "Confirmation", "content": "Perfect! Here's what happens next..."}},
-                    {{"title": "Referral Ask", "content": "Who else do you know that might benefit from this?"}}
-                ],
-                "tips": [...]
-            }}
-        }}
-    ]
+  "name": "Sales Flow for {product_type}",
+  "description": "Complete sales process for {product_type} in {industry}",
+  "stages": [
+    {{
+      "stage_type": "opening",
+      "title": "Opening & Rapport",
+      "description": "Build initial connection",
+      "color": "#8b5cf6",
+      "content": {{
+        "scripts": [{{"title": "Script name", "content": "Full script text specific to {product_type}"}}],
+        "questions": [{{"title": "Question name", "content": "Question text", "category": "situational"}}],
+        "tips": [{{"content": "Practical tip for this stage"}}]
+      }}
+    }},
+    {{
+      "stage_type": "qualification",
+      "title": "Qualification (BANT)",
+      "description": "Determine if prospect is a good fit",
+      "color": "#3b82f6",
+      "content": {{
+        "scripts": [{{"title": "Script name", "content": "Qualification script"}}],
+        "questions": [{{"title": "Budget Question", "content": "Budget question specific to {product_type}", "category": "budget"}}],
+        "tips": [{{"content": "Qualification tip"}}]
+      }}
+    }},
+    {{
+      "stage_type": "discovery",
+      "title": "Discovery & Pain Points",
+      "description": "Uncover problems and desires",
+      "color": "#10b981",
+      "content": {{
+        "scripts": [{{"title": "Discovery script", "content": "Script for uncovering pain"}}],
+        "questions": [{{"title": "Pain question", "content": "Discovery question about {product_type}", "category": "problem"}}],
+        "tips": [{{"content": "Discovery tip"}}]
+      }}
+    }},
+    {{
+      "stage_type": "pain_amplification",
+      "title": "Pain Amplification",
+      "description": "Help them feel the urgency",
+      "color": "#f59e0b",
+      "content": {{
+        "scripts": [{{"title": "Urgency script", "content": "Script to amplify pain"}}],
+        "questions": [{{"title": "Cost question", "content": "What is this costing you?", "category": "implication"}}],
+        "tips": [{{"content": "Pain amplification tip"}}]
+      }}
+    }},
+    {{
+      "stage_type": "solution",
+      "title": "Solution Presentation",
+      "description": "Present your {product_type} solution",
+      "color": "#06b6d4",
+      "content": {{
+        "scripts": [{{"title": "Solution script", "content": "How our {product_type} solves your problem"}}],
+        "questions": [{{"title": "Fit question", "content": "Would this work for you?", "category": "need_payoff"}}],
+        "tips": [{{"content": "Presentation tip"}}]
+      }}
+    }},
+    {{
+      "stage_type": "storytelling",
+      "title": "Storytelling & Social Proof",
+      "description": "Share success stories",
+      "color": "#ec4899",
+      "content": {{
+        "stories": [{{"title": "Customer success story", "content": "Full story about a real customer who bought {product_type}"}}],
+        "tips": [{{"content": "Storytelling tip"}}]
+      }}
+    }},
+    {{
+      "stage_type": "objections",
+      "title": "Objection Handling",
+      "description": "Address concerns",
+      "color": "#ef4444",
+      "content": {{
+        "objections": [{{"title": "Price objection", "content": "It's too expensive", "response": "Response to price objection for {product_type}"}}],
+        "tips": [{{"content": "Objection handling tip"}}]
+      }}
+    }},
+    {{
+      "stage_type": "closing",
+      "title": "Closing",
+      "description": "Ask for the commitment",
+      "color": "#22c55e",
+      "content": {{
+        "scripts": [{{"title": "Close script", "content": "Closing script for {product_type}"}}],
+        "questions": [{{"title": "Closing question", "content": "Closing question", "category": "closing"}}],
+        "tips": [{{"content": "Closing tip"}}]
+      }}
+    }},
+    {{
+      "stage_type": "next_steps",
+      "title": "Next Steps",
+      "description": "Secure the deal",
+      "color": "#6366f1",
+      "content": {{
+        "scripts": [{{"title": "Next steps script", "content": "Here's what happens next..."}}],
+        "tips": [{{"content": "Follow-up tip"}}]
+      }}
+    }}
+  ]
 }}
 
-Make ALL content specific to {product_type} in the {industry} industry. Use realistic scenarios, actual numbers, and industry-specific terminology. Generate at least 3-5 items for each content type in each stage.
-
-{"Return content in Hebrew if the user requested Hebrew." if language == "he" else "Return content in English."}
-
-Return ONLY valid JSON, no markdown or explanation."""
+IMPORTANT RULES:
+1. Replace ALL placeholder text with specific content for {product_type} in {industry}
+2. Each array (scripts, questions, tips, stories, objections) must have 2-4 real items
+3. Use realistic scenarios, specific numbers, and industry terminology
+4. Return ONLY the JSON object, no markdown code blocks, no explanation
+5. Ensure valid JSON syntax"""
 
         response = openai_client.chat.completions.create(
             model="gpt-4o",
@@ -5282,15 +5245,27 @@ Return ONLY valid JSON, no markdown or explanation."""
         )
         
         flow_content = response.choices[0].message.content
+        print(f"[generate_sales_flow] Got AI response, length: {len(flow_content)}")
         
-        # Clean up response if it has markdown
-        if flow_content.startswith('```'):
-            flow_content = flow_content.split('```')[1]
-            if flow_content.startswith('json'):
-                flow_content = flow_content[4:]
+        # Clean up response - handle various markdown formats
+        flow_content = flow_content.strip()
+        if flow_content.startswith('```json'):
+            flow_content = flow_content[7:]
+        elif flow_content.startswith('```'):
+            flow_content = flow_content[3:]
+        if flow_content.endswith('```'):
+            flow_content = flow_content[:-3]
         flow_content = flow_content.strip()
         
+        # Find JSON object boundaries
+        start_idx = flow_content.find('{')
+        end_idx = flow_content.rfind('}')
+        if start_idx != -1 and end_idx != -1:
+            flow_content = flow_content[start_idx:end_idx + 1]
+        
+        print(f"[generate_sales_flow] Parsing JSON...")
         flow_data = json.loads(flow_content)
+        print(f"[generate_sales_flow] Parsed successfully, stages: {len(flow_data.get('stages', []))}")
         
         # Create the flow in database
         flow_record = {
