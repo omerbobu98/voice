@@ -5610,95 +5610,70 @@ def serve_tts_audio(filename):
 
 # ============ Conversation Tree API Endpoints (NEW) ============
 
-TREE_GENERATION_PROMPT = """You are an elite sales trainer creating a comprehensive conversation decision tree for training salespeople.
+TREE_GENERATION_PROMPT = """Create a sales conversation tree for {product_type} in {industry}. Language: {language}
 
-PRODUCT: {product_type}
-INDUSTRY: {industry}
-LANGUAGE: {language}
-TREE DEPTH: {depth} levels
+Return JSON with this structure - generate {depth} levels deep, ~15 nodes total:
 
-CREATE A BRANCHING CONVERSATION TREE with these requirements:
-
-## TREE STRUCTURE
-- Start with ONE root node (seller's opening)
-- Each seller action should have 2-4 realistic customer responses
-- Include: engaged responses, skeptical responses, objections, time constraints
-- Go {depth} levels deep with meaningful branches
-- End branches with outcome nodes (ready_for_next_step, needs_followup, lost)
-
-## SELLER NODES (speaker: "seller") must include:
-1. **content**: Full word-for-word script (50-150 words) - exactly what to say
-2. **short_content**: Brief 5-10 word summary for display
-3. **title**: Clear action title
-4. **stage**: One of: opening, discovery, qualification, pain_amplification, solution, objection, closing
-5. **coaching_tips**: Array of 3-4 specific, actionable tips
-6. **why_it_works**: 2-3 sentences explaining the psychology/sales principle behind this approach
-7. **common_mistakes**: Array of 2-3 specific mistakes salespeople make at this point
-8. **practice_tip**: One specific exercise to master this skill
-
-## CUSTOMER NODES (speaker: "customer") must include:
-1. **content**: Realistic customer dialogue (what they actually say)
-2. **short_content**: Brief summary
-3. **title**: Response type title
-4. **branch_label**: Short label for the edge (e.g., "Shows Interest", "Price Objection")
-5. **success_probability**: 0.0-1.0 (how likely this leads to a sale)
-6. **customer_mindset**: 2-3 sentences about what the customer is thinking/feeling
-7. **signals_to_notice**: Array of 3-4 verbal/body language cues to watch for
-
-## SALES METHODOLOGY TO USE:
-- **LAIR Method** for objections: Listen, Acknowledge, Isolate, Respond
-- **Pain Amplification**: Quantify problems in dollars and time
-- **Social Proof**: Reference neighbors, similar situations
-- **Value Before Price**: Never discuss cost before establishing value
-- **Open-Ended Questions**: Start with "Tell me about...", "How does that affect..."
-- **Assumptive Language**: "When we get started..." not "If you decide..."
-
-## CONTENT QUALITY REQUIREMENTS:
-- Scripts must be SPECIFIC to {product_type}, not generic
-- Include actual dollar amounts, timeframes, specific benefits
-- Coaching tips must be immediately actionable
-- Psychology explanations should teach WHY something works
-- Common mistakes should be things salespeople ACTUALLY do wrong
-
-## JSON OUTPUT FORMAT:
 {{
-  "name": "[Product] Sales Conversation Tree",
-  "description": "Interactive training for [product] sales conversations",
-  "nodes": [
-    {{
-      "id": "root",
-      "speaker": "seller",
-      "node_type": "root",
-      "title": "Opening Introduction",
-      "content": "[Full opening script...]",
-      "short_content": "[Brief summary]",
-      "stage": "opening",
-      "coaching_tips": ["[Tip 1]", "[Tip 2]", "[Tip 3]"],
-      "why_it_works": "[Psychology explanation...]",
-      "common_mistakes": ["[Mistake 1]", "[Mistake 2]"],
-      "practice_tip": "[Specific exercise...]",
-      "children": [
-        {{
-          "id": "response-1",
-          "speaker": "customer",
-          "node_type": "response",
-          "title": "Customer Shows Interest",
-          "content": "[What customer says...]",
-          "short_content": "[Brief]",
-          "branch_label": "Shows Interest",
-          "success_probability": 0.7,
-          "customer_mindset": "[What they're thinking...]",
-          "signals_to_notice": ["[Signal 1]", "[Signal 2]"],
-          "children": [...more nodes...]
-        }}
-      ]
-    }}
-  ]
+  "name": "{product_type} Sales Tree",
+  "description": "Sales training for {product_type}",
+  "nodes": [{{
+    "id": "root",
+    "speaker": "seller",
+    "node_type": "root",
+    "title": "Opening",
+    "content": "Full script 50-100 words",
+    "short_content": "Brief summary",
+    "stage": "opening",
+    "coaching_tips": ["tip1", "tip2", "tip3"],
+    "why_it_works": "Psychology explanation",
+    "common_mistakes": ["mistake1", "mistake2"],
+    "practice_tip": "Exercise to practice",
+    "children": [
+      {{
+        "id": "interested-1",
+        "speaker": "customer",
+        "node_type": "response", 
+        "title": "Shows Interest",
+        "content": "What customer says",
+        "short_content": "Brief",
+        "branch_label": "Interested",
+        "success_probability": 0.7,
+        "customer_mindset": "What they think",
+        "signals_to_notice": ["signal1", "signal2"],
+        "children": [/* seller action with more customer responses */]
+      }},
+      {{
+        "id": "skeptical-1",
+        "speaker": "customer",
+        "node_type": "response",
+        "title": "Skeptical",
+        "content": "Doubt expression",
+        "short_content": "Brief",
+        "branch_label": "Skeptical", 
+        "success_probability": 0.4,
+        "customer_mindset": "Doubt",
+        "signals_to_notice": ["signal"],
+        "children": []
+      }},
+      {{
+        "id": "objection-1",
+        "speaker": "customer",
+        "node_type": "response",
+        "title": "Price Objection",
+        "content": "Price concern",
+        "short_content": "Brief",
+        "branch_label": "Price Question",
+        "success_probability": 0.3,
+        "customer_mindset": "Budget concern",
+        "signals_to_notice": ["signal"],
+        "children": []
+      }}
+    ]
+  }}]
 }}
 
-RETURN ONLY VALID JSON. No markdown, no explanation, no code blocks.
-
-Generate a complete, professional-quality sales training tree for {product_type} in the {industry} industry."""
+Make content SPECIFIC to {product_type}. Include real scripts, psychology, and actionable tips. Return ONLY valid JSON."""
 
 
 @app.route('/api/conversation-trees', methods=['GET'])
@@ -5816,6 +5791,9 @@ def create_conversation_tree():
 @app.route('/api/conversation-trees/generate', methods=['POST'])
 def generate_conversation_tree():
     """Generate a complete branching conversation tree using AI"""
+    import time
+    start_time = time.time()
+    
     user_id = get_user_id_from_token()
     if not user_id:
         return jsonify({'error': 'Authentication required'}), 401
@@ -5825,12 +5803,19 @@ def generate_conversation_tree():
     product_type = data.get('product_type', 'general product')
     industry = data.get('industry', 'general')
     language = data.get('language', 'en')
-    depth = data.get('depth', 4)
+    depth = min(data.get('depth', 3), 3)  # Cap at 3 for faster generation
     name = data.get('name', f'Sales Flow - {product_type}')
+    
+    print(f"[generate_tree] Starting for {product_type}, depth={depth}, user={user_id}")
     
     try:
         client = get_supabase()
+        if not client:
+            print("[generate_tree] ERROR: Supabase client is None")
+            return jsonify({'error': 'Database connection failed'}), 500
+        
         openai_client = OpenAI(api_key=OPENAI_API_KEY)
+        print(f"[generate_tree] Clients initialized ({time.time()-start_time:.1f}s)")
         
         # Generate tree structure using AI
         prompt = TREE_GENERATION_PROMPT.format(
