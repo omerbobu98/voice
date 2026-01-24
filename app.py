@@ -5807,19 +5807,30 @@ def generate_conversation_tree():
             return jsonify({'error': f'Failed to parse AI response: {str(je)}'}), 500
         
         # Create tree in database
-        tree_data = {
-            'user_id': user_id,
-            'name': name,
-            'description': tree_structure.get('description', ''),
-            'product_type': product_type,
-            'industry': industry,
-            'language': language,
-            'is_template': False,
-            'is_public': False,
-        }
-        
-        tree_result = client.table('conversation_trees').insert(tree_data).execute()
-        tree_id = tree_result.data[0]['id']
+        print(f"[generate_tree] Creating tree in database...")
+        try:
+            tree_data = {
+                'user_id': user_id,
+                'name': name,
+                'description': tree_structure.get('description', '')[:500] if tree_structure.get('description') else '',
+                'product_type': product_type,
+                'industry': industry,
+                'language': language,
+                'is_template': False,
+                'is_public': False,
+            }
+            
+            tree_result = client.table('conversation_trees').insert(tree_data).execute()
+            if not tree_result.data:
+                print(f"[generate_tree] Failed to create tree - no data returned")
+                return jsonify({'error': 'Failed to create tree in database'}), 500
+            tree_id = tree_result.data[0]['id']
+            print(f"[generate_tree] Created tree with ID: {tree_id}")
+        except Exception as db_err:
+            print(f"[generate_tree] Database error creating tree: {db_err}")
+            import traceback
+            traceback.print_exc()
+            return jsonify({'error': f'Database error: {str(db_err)}'}), 500
         
         # Recursively insert nodes
         node_count = 0
@@ -5878,10 +5889,23 @@ def generate_conversation_tree():
             return inserted_node_id
         
         # Insert all nodes starting from root
-        root_nodes = tree_structure.get('nodes', [])
-        root_node_id = None
-        for root_node in root_nodes:
-            root_node_id = insert_node(root_node)
+        print(f"[generate_tree] Inserting nodes...")
+        try:
+            root_nodes = tree_structure.get('nodes', [])
+            root_node_id = None
+            for root_node in root_nodes:
+                root_node_id = insert_node(root_node)
+            print(f"[generate_tree] Inserted {node_count} nodes, max depth {max_depth}")
+        except Exception as node_err:
+            print(f"[generate_tree] Error inserting nodes: {node_err}")
+            import traceback
+            traceback.print_exc()
+            # Clean up the tree we created
+            try:
+                client.table('conversation_trees').delete().eq('id', tree_id).execute()
+            except:
+                pass
+            return jsonify({'error': f'Failed to create nodes: {str(node_err)}'}), 500
         
         # Update tree with stats
         client.table('conversation_trees').update({
