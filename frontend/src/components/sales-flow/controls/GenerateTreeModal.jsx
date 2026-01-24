@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Sparkles, Loader2 } from 'lucide-react';
+import { X, Sparkles, Loader2, Cpu, Zap } from 'lucide-react';
 
 const productTypes = [
   { value: 'cool_life_paint', label: 'Cool Life Paint' },
@@ -29,8 +29,9 @@ const GenerateTreeModal = ({ isOpen, onClose, onGenerate, isGenerating }) => {
     name: '',
     productType: 'cool_life_paint',
     industry: 'home_improvement',
-    language: 'en',
+    language: 'he',
     depth: 4,
+    use_ai: true, // Use AI generation by default
   });
 
   if (!isOpen) return null;
@@ -120,8 +121,8 @@ const GenerateTreeModal = ({ isOpen, onClose, onGenerate, isGenerating }) => {
                 onChange={(e) => setFormData({ ...formData, language: e.target.value })}
                 className="w-full px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
               >
-                <option value="en">English</option>
                 <option value="he">עברית (Hebrew)</option>
+                <option value="en">English</option>
               </select>
             </div>
 
@@ -138,6 +139,41 @@ const GenerateTreeModal = ({ isOpen, onClose, onGenerate, isGenerating }) => {
                 <option value={4}>4 levels (~35 nodes)</option>
                 <option value={5}>5 levels (~50+ nodes)</option>
               </select>
+            </div>
+          </div>
+
+          {/* AI Generation Toggle */}
+          <div className="p-4 bg-gradient-to-r from-purple-900/30 to-blue-900/30 border border-purple-500/30 rounded-xl">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className={`p-2 rounded-lg ${formData.use_ai ? 'bg-purple-500/30' : 'bg-gray-700'}`}>
+                  <Cpu className={`w-5 h-5 ${formData.use_ai ? 'text-purple-400' : 'text-gray-400'}`} />
+                </div>
+                <div>
+                  <div className="text-sm font-medium text-white flex items-center gap-2">
+                    GPT-4o AI Generation
+                    {formData.use_ai && <Zap className="w-4 h-4 text-yellow-400" />}
+                  </div>
+                  <div className="text-xs text-gray-400">
+                    {formData.use_ai 
+                      ? 'Creates unique content with advanced AI (slower but more detailed)'
+                      : 'Uses pre-built DISC colors template (faster)'}
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, use_ai: !formData.use_ai })}
+                className={`relative w-12 h-6 rounded-full transition-colors ${
+                  formData.use_ai ? 'bg-purple-600' : 'bg-gray-600'
+                }`}
+              >
+                <div
+                  className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${
+                    formData.use_ai ? 'translate-x-7' : 'translate-x-1'
+                  }`}
+                />
+              </button>
             </div>
           </div>
 

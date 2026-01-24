@@ -5610,70 +5610,100 @@ def serve_tts_audio(filename):
 
 # ============ Conversation Tree API Endpoints (NEW) ============
 
-TREE_GENERATION_PROMPT = """Create a sales conversation tree for {product_type} in {industry}. Language: {language}
+TREE_GENERATION_PROMPT = """You are creating a COMPREHENSIVE sales training conversation tree for {product_type} in {industry}.
+Language: {language} (provide content in BOTH Hebrew and English where indicated)
 
-Return JSON with this structure - generate {depth} levels deep, ~15 nodes total:
+IMPORTANT SALES METHODOLOGY TO INCORPORATE:
+1. DISC Personality Colors Model - Branch the tree by customer personality type:
+   - 🔴 RED (Dominant): Direct, results-focused, impatient, wants bottom line fast
+   - 🟡 YELLOW (Influential): Social, talkative, emotional, needs social proof
+   - 🟢 GREEN (Steady): Patient, family-focused, risk-averse, needs security
+   - 🔵 BLUE (Conscientious): Analytical, detail-oriented, needs data and proof
 
+2. Sales Process Stages:
+   - Opening & Disarm (build rapport, ask "What made you interested?")
+   - Discovery Mode (pain questions, listen more than talk, collect "yes" answers)
+   - P.S. (Plant Seeds) - hint at future discounts/deals
+   - P.C. (Price Condition) - set high price expectation early
+   - Product Presentation (energy savings, lifetime warranty, government programs)
+   - Objection Handling (price, need estimates, spouse approval, moving soon)
+   - Cool Down & Lock (build personal connection, manage expectations)
+
+3. Key Objection Responses:
+   - "Too expensive" → "Is it the monthly payment or the total that concerns you?"
+   - "Need other estimates" → "What would you compare - quality, warranty, trust?"
+   - "Need spouse approval" → Offer to call them now or schedule together
+   - "Moving soon" → "Perfect timing - upgrades help sell faster and higher"
+
+Generate a tree with 4 MAIN BRANCHES (one for each DISC color), each with 3-4 levels deep.
+Total ~25-35 nodes. Each node must have DETAILED content.
+
+JSON STRUCTURE:
 {{
   "name": "{product_type} Sales Tree",
-  "description": "Sales training for {product_type}",
+  "description": "מערכת הדרכה מקיפה / Comprehensive training system",
   "nodes": [{{
     "id": "root",
     "speaker": "seller",
     "node_type": "root",
-    "title": "Opening",
-    "content": "Full script 50-100 words",
-    "short_content": "Brief summary",
+    "title": "🎯 Step 1: Identify Customer Type / שלב 1: זיהוי סוג הלקוח",
+    "content": "BILINGUAL: Full opening script 100+ words explaining how to identify personality type...",
+    "short_content": "Identify customer personality",
     "stage": "opening",
-    "coaching_tips": ["tip1", "tip2", "tip3"],
-    "why_it_works": "Psychology explanation",
-    "common_mistakes": ["mistake1", "mistake2"],
-    "practice_tip": "Exercise to practice",
+    "coaching_tips": ["Tip in English", "טיפ בעברית", "Another tip"],
+    "why_it_works": "Psychology explanation in both languages",
+    "common_mistakes": ["Mistake 1", "טעות 1"],
+    "practice_tip": "Specific exercise",
     "children": [
       {{
-        "id": "interested-1",
+        "id": "red-customer",
+        "speaker": "customer",
+        "node_type": "response",
+        "title": "🔴 Red Customer - The Dominant / לקוח אדום - הדומיננטי",
+        "content": "What a RED customer typically says...",
+        "short_content": "Direct, wants results fast",
+        "branch_label": "🔴 Red",
+        "success_probability": 0.6,
+        "customer_mindset": "Detailed explanation of what RED thinks...",
+        "signals_to_notice": ["Fast speech", "Direct questions", "Impatient body language"],
+        "children": [/* seller approach for RED, then RED responses */]
+      }},
+      {{
+        "id": "yellow-customer",
+        "speaker": "customer", 
+        "node_type": "response",
+        "title": "🟡 Yellow Customer - The Social / לקוח צהוב - החברותי",
+        "branch_label": "🟡 Yellow",
+        "children": [/* ... */]
+      }},
+      {{
+        "id": "green-customer",
         "speaker": "customer",
         "node_type": "response", 
-        "title": "Shows Interest",
-        "content": "What customer says",
-        "short_content": "Brief",
-        "branch_label": "Interested",
-        "success_probability": 0.7,
-        "customer_mindset": "What they think",
-        "signals_to_notice": ["signal1", "signal2"],
-        "children": [/* seller action with more customer responses */]
+        "title": "🟢 Green Customer - The Steady / לקוח ירוק - היציב",
+        "branch_label": "🟢 Green",
+        "children": [/* ... */]
       }},
       {{
-        "id": "skeptical-1",
+        "id": "blue-customer",
         "speaker": "customer",
         "node_type": "response",
-        "title": "Skeptical",
-        "content": "Doubt expression",
-        "short_content": "Brief",
-        "branch_label": "Skeptical", 
-        "success_probability": 0.4,
-        "customer_mindset": "Doubt",
-        "signals_to_notice": ["signal"],
-        "children": []
-      }},
-      {{
-        "id": "objection-1",
-        "speaker": "customer",
-        "node_type": "response",
-        "title": "Price Objection",
-        "content": "Price concern",
-        "short_content": "Brief",
-        "branch_label": "Price Question",
-        "success_probability": 0.3,
-        "customer_mindset": "Budget concern",
-        "signals_to_notice": ["signal"],
-        "children": []
+        "title": "🔵 Blue Customer - The Analytical / לקוח כחול - האנליטי",
+        "branch_label": "🔵 Blue",
+        "children": [/* ... */]
       }}
     ]
   }}]
 }}
 
-Make content SPECIFIC to {product_type}. Include real scripts, psychology, and actionable tips. Return ONLY valid JSON."""
+For {product_type}, include SPECIFIC content about:
+- Energy savings calculations (e.g., "$500/month bill → 15% savings = $75/month = $900/year")
+- Lifetime warranty details
+- Government programs (SB 350, Title 24)
+- Product benefits specific to {product_type}
+
+MAKE EVERY NODE EXTREMELY DETAILED with real scripts, exact phrases to use, and psychological explanations.
+Return ONLY valid JSON - no markdown, no explanation."""
 
 
 @app.route('/api/conversation-trees', methods=['GET'])
@@ -5789,18 +5819,19 @@ def create_conversation_tree():
 
 
 def get_template_tree(product_type, industry):
-    """Generate a comprehensive branching tree based on DISC personality colors model"""
+    """Generate a comprehensive branching tree based on DISC personality colors model - BILINGUAL"""
     product_display = product_type.replace('_', ' ').title()
     
     return {
         "name": f"{product_display} Sales Tree",
-        "description": f"מערכת הדרכה מקיפה למכירת {product_display} - מבוססת על מודל הצבעים (אדום, צהוב, ירוק, כחול)",
+        "description": f"מערכת הדרכה מקיפה למכירת {product_display} - מבוססת על מודל הצבעים | Comprehensive training system based on DISC colors model",
         "nodes": [{
             "id": "root",
             "speaker": "seller",
             "node_type": "root",
-            "title": "🎯 שלב 1: זיהוי טיפוס הלקוח",
-            "content": f"""ברוכים הבאים! לפני שנתחיל לדבר על {product_display}, המשימה הראשונה שלך היא לזהות את טיפוס האישיות של הלקוח.
+            "title": "🎯 Step 1: Identify Customer Type | שלב 1: זיהוי טיפוס הלקוח",
+            "content": f"""🇮🇱 עברית:
+ברוכים הבאים! לפני שנתחיל לדבר על {product_display}, המשימה הראשונה שלך היא לזהות את טיפוס האישיות של הלקוח.
 
 שאל שאלה פתוחה: "ספר/י לי קצת על עצמך ועל הבית - מה הכי חשוב לך?"
 
@@ -5810,22 +5841,33 @@ def get_template_tree(product_type, industry):
 • האם הם ישירים או עוקפים?
 • שפת הגוף שלהם
 
-על פי התשובה, זהה את הצבע שלהם ובחר את הענף המתאים.""",
-            "short_content": "זהה את טיפוס הלקוח לפי צבע",
+🇺🇸 English:
+Welcome! Before we start talking about {product_display}, your first task is to identify the customer's personality type.
+
+Ask an open question: "Tell me a bit about yourself and your home - what's most important to you?"
+
+Listen carefully and notice:
+• Their speaking speed
+• Do they focus on facts or emotions?
+• Are they direct or indirect?
+• Their body language
+
+Based on the answer, identify their color and choose the appropriate branch.""",
+            "short_content": "Identify customer personality | זהה את טיפוס הלקוח",
             "stage": "opening",
             "coaching_tips": [
-                "הקשב 80% מהזמן, דבר 20%",
-                "אל תמהר לזהות - תן להם לדבר לפחות 2 דקות",
-                "שים לב לשפת גוף: ידיים שלובות = סגור, רגליים צולבות = מתגונן",
-                "רשום הערות מנטליות על מילות מפתח שהם משתמשים"
+                "Listen 80%, talk 20% | הקשב 80% מהזמן, דבר 20%",
+                "Don't rush - let them talk for at least 2 minutes | אל תמהר - תן להם לדבר לפחות 2 דקות",
+                "Watch body language: crossed arms = closed, crossed legs = defensive | שים לב לשפת גוף",
+                "Take mental notes on keywords they use | רשום הערות מנטליות על מילות מפתח"
             ],
-            "why_it_works": "כל אדם מעבד מידע אחרת. אם תדבר עם אדום כמו שמדברים עם ירוק - תאבד אותו תוך 30 שניות. זיהוי נכון = התאמה נכונה = מכירה.",
+            "why_it_works": "Everyone processes information differently. If you talk to a Red like you would a Green - you'll lose them in 30 seconds. Correct identification = correct adaptation = sale. | כל אדם מעבד מידע אחרת. זיהוי נכון = התאמה נכונה = מכירה.",
             "common_mistakes": [
-                "להניח שכולם כמוך",
-                "לקפוץ למצגת לפני שמבינים מי מולך",
-                "להתעלם מסימנים ברורים של חוסר נוחות"
+                "Assuming everyone is like you | להניח שכולם כמוך",
+                "Jumping to presentation before understanding who's in front of you | לקפוץ למצגת לפני שמבינים מי מולך",
+                "Ignoring clear signs of discomfort | להתעלם מסימנים ברורים של חוסר נוחות"
             ],
-            "practice_tip": "בשבוע הקרוב, נסה לזהות את הצבע של 10 אנשים שאתה פוגש (לא רק לקוחות). רשום ותאמת.",
+            "practice_tip": "This week, try to identify the color of 10 people you meet (not just customers). Write down and verify. | בשבוע הקרוב, נסה לזהות את הצבע של 10 אנשים שאתה פוגש.",
             "children": [
                 {
                     "id": "red-customer",
@@ -6407,7 +6449,7 @@ def get_template_tree(product_type, industry):
 
 @app.route('/api/conversation-trees/generate', methods=['POST'])
 def generate_conversation_tree():
-    """Generate a complete branching conversation tree - uses templates for reliability"""
+    """Generate a complete branching conversation tree using GPT-4o AI or templates"""
     user_id = get_user_id_from_token()
     if not user_id:
         return jsonify({'error': 'Authentication required'}), 401
@@ -6418,16 +6460,55 @@ def generate_conversation_tree():
     industry = data.get('industry', 'general')
     language = data.get('language', 'en')
     name = data.get('name', f'Sales Flow - {product_type}')
+    use_ai = data.get('use_ai', False)  # Option to use AI generation
     
-    print(f"[generate_tree] Creating tree for {product_type}, user={user_id}")
+    print(f"[generate_tree] Creating tree for {product_type}, user={user_id}, use_ai={use_ai}")
     
     try:
         client = get_supabase()
         if not client:
             return jsonify({'error': 'Database connection failed'}), 500
         
-        # Use template-based generation for reliability
-        tree_structure = get_template_tree(product_type, industry)
+        tree_structure = None
+        
+        # Try AI generation if requested
+        if use_ai and OPENAI_API_KEY:
+            try:
+                print(f"[generate_tree] Using GPT-4o AI generation...")
+                openai_client = OpenAI(api_key=OPENAI_API_KEY)
+                
+                prompt = TREE_GENERATION_PROMPT.format(
+                    product_type=product_type,
+                    industry=industry,
+                    language='Hebrew and English (bilingual)' if language == 'he' else 'English with Hebrew translations',
+                    depth=4
+                )
+                
+                response = openai_client.chat.completions.create(
+                    model="gpt-4o",
+                    messages=[
+                        {"role": "system", "content": """You are an elite sales training expert creating comprehensive conversation trees.
+You MUST return ONLY valid JSON - no markdown, no explanation, no code blocks.
+Include DETAILED scripts, psychology explanations, and actionable coaching tips.
+Split the tree into 4 main branches by DISC personality colors (Red, Yellow, Green, Blue).
+Each node must have rich content in both Hebrew and English."""},
+                        {"role": "user", "content": prompt}
+                    ],
+                    temperature=0.7,
+                    max_tokens=12000,
+                    response_format={"type": "json_object"}
+                )
+                
+                response_text = response.choices[0].message.content.strip()
+                tree_structure = json.loads(response_text)
+                print(f"[generate_tree] AI generation successful, got {len(str(tree_structure))} chars")
+            except Exception as ai_err:
+                print(f"[generate_tree] AI generation failed, falling back to template: {ai_err}")
+                tree_structure = None
+        
+        # Fall back to template-based generation
+        if not tree_structure:
+            tree_structure = get_template_tree(product_type, industry)
         
         # Create tree in database
         print(f"[generate_tree] Creating tree in database...")
