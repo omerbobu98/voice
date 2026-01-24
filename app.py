@@ -5610,97 +5610,24 @@ def serve_tts_audio(filename):
 
 # ============ Conversation Tree API Endpoints (NEW) ============
 
-TREE_GENERATION_PROMPT = """You are an elite sales coach creating a comprehensive training conversation tree.
+TREE_GENERATION_PROMPT = """Create a sales training conversation tree as valid JSON.
 
-Product: {product_type}
-Industry: {industry}
-Language: {language}
-Depth: {depth} levels
+Product: {product_type} | Industry: {industry} | Language: {language}
 
-Create a TRAINING-FOCUSED conversation tree that teaches salespeople exactly what to say and why.
+Generate a tree with {depth} levels and 15-25 nodes total.
 
-CRITICAL REQUIREMENTS FOR EACH SELLER NODE:
-1. "content" = FULL SCRIPT - exact words to say, word-for-word
-2. "why_it_works" = Psychology behind why this approach works
-3. "common_mistakes" = Array of 2-3 mistakes to avoid
-4. "practice_tip" = One actionable exercise to practice this
-5. "coaching_tips" = Array of 3-4 specific tips
+RULES:
+1. Return ONLY valid JSON - no markdown, no explanation
+2. Every node needs: speaker, node_type, title, content, short_content
+3. Seller nodes need: stage, coaching_tips (array), why_it_works, common_mistakes (array), practice_tip
+4. Customer nodes need: branch_label, success_probability (0.0-1.0), customer_mindset, signals_to_notice (array)
+5. Use stages: opening, discovery, qualification, pain_amplification, solution, objection, closing
+6. node_type values: root (first node only), action (seller), response (customer), outcome (end nodes)
 
-CRITICAL REQUIREMENTS FOR EACH CUSTOMER NODE:
-1. "content" = Realistic customer response (what they actually say)
-2. "customer_mindset" = What the customer is thinking/feeling
-3. "signals_to_notice" = What to look for in their tone/body language
-4. "branch_label" = Short label for this response type
+JSON STRUCTURE:
+{{"name":"Tree Name","description":"Description","nodes":[{{"speaker":"seller","node_type":"root","title":"Opening","content":"Full script here","short_content":"Brief summary","stage":"opening","coaching_tips":["tip1","tip2"],"why_it_works":"Psychology explanation","common_mistakes":["mistake1","mistake2"],"practice_tip":"Exercise to practice","children":[{{"speaker":"customer","node_type":"response","title":"Customer Response","content":"What customer says","short_content":"Brief","branch_label":"Response Type","success_probability":0.7,"customer_mindset":"What they think","signals_to_notice":["signal1","signal2"],"children":[]}}]}}]}}
 
-TREE STRUCTURE (3-4 branches per seller action):
-- Root: Opening/Introduction
-- Level 1-2: Discovery & Qualification  
-- Level 3: Pain Amplification & Solution
-- Level 4: Objection Handling
-- Level 5: Closing & Next Steps
-- End nodes: Outcomes (sale, follow_up, lost)
-
-STAGES TO USE: opening, discovery, qualification, pain_amplification, solution, objection, closing, next_steps
-
-Return ONLY valid JSON:
-{{
-  "name": "Sales Mastery: {product_type}",
-  "description": "Complete training flow for {industry} sales",
-  "nodes": [
-    {{
-      "speaker": "seller",
-      "node_type": "root",
-      "title": "Power Opening",
-      "content": "Hi! I'm [Name] with [Company]. I noticed you've been looking at options for [specific need]. Many homeowners in [area] have been dealing with [common problem]. I'm curious - what's been your biggest frustration with your current situation?",
-      "short_content": "Engage with curiosity",
-      "stage": "opening",
-      "why_it_works": "Opens with curiosity not pitch. Acknowledges their research. Creates relatability with local reference. Invites them to share pain.",
-      "common_mistakes": ["Starting with 'I want to tell you about...'", "Jumping straight to product features", "Not acknowledging their time is valuable"],
-      "practice_tip": "Record yourself doing this opening 5 times. Listen back - do you sound curious or salesy?",
-      "coaching_tips": ["Smile when you speak - they can hear it", "Pause after the question - let silence work for you", "Match their energy level", "Use their name if you know it"],
-      "children": [
-        {{
-          "speaker": "customer",
-          "node_type": "response",
-          "title": "Engaged - Shares Problem",
-          "content": "Actually, yes! We've been dealing with [specific issue] for months now. It's been really frustrating because...",
-          "short_content": "Opens up about pain",
-          "branch_label": "Engaged",
-          "success_probability": 0.75,
-          "customer_mindset": "Relieved someone understands. Hopeful but cautious. Wants to be heard.",
-          "signals_to_notice": ["Leaning forward", "Detailed responses", "Emotional language", "Asking questions back"],
-          "children": [...]
-        }},
-        {{
-          "speaker": "customer",
-          "node_type": "response",
-          "title": "Skeptical - Guard Up",
-          "content": "I'm just looking around. Not really interested in a sales pitch right now.",
-          "short_content": "Defensive response",
-          "branch_label": "Skeptical",
-          "success_probability": 0.4,
-          "customer_mindset": "Had bad experiences with salespeople. Protecting themselves. Testing you.",
-          "signals_to_notice": ["Arms crossed", "Short answers", "Looking away", "Checking phone"],
-          "children": [...]
-        }},
-        {{
-          "speaker": "customer",
-          "node_type": "response",
-          "title": "Price-Focused",
-          "content": "How much does this cost? I've gotten a few quotes already.",
-          "short_content": "Jumps to price",
-          "branch_label": "Price Question",
-          "success_probability": 0.35,
-          "customer_mindset": "Comparison shopping. Might have budget concerns. Trying to qualify you out quickly.",
-          "signals_to_notice": ["Impatient tone", "Comparing to competitors", "Mentions budget"],
-          "children": [...]
-        }}
-      ]
-    }}
-  ]
-}}
-
-Generate exactly {depth} levels with 25-40 total nodes. Every seller node MUST have why_it_works, common_mistakes, practice_tip, and coaching_tips. Every customer node MUST have customer_mindset and signals_to_notice."""
+Generate a complete tree for selling {product_type}. Make content specific and actionable."""
 
 
 @app.route('/api/conversation-trees', methods=['GET'])
@@ -5841,25 +5768,36 @@ def generate_conversation_tree():
             depth=depth
         )
         
+        print(f"[generate_tree] Starting generation for {product_type}")
+        
         response = openai_client.chat.completions.create(
-            model="gpt-4o",
+            model="gpt-4.1",
             messages=[
-                {"role": "system", "content": "You are an expert sales trainer. Return ONLY valid JSON, no markdown code blocks."},
+                {"role": "system", "content": "You are an expert sales trainer. Return ONLY valid JSON. No markdown, no explanation, no code blocks. Start with { and end with }"},
                 {"role": "user", "content": prompt}
             ],
-            temperature=0.8,
-            max_tokens=8000
+            temperature=0.7,
+            max_tokens=8000,
+            response_format={"type": "json_object"}
         )
         
         response_text = response.choices[0].message.content.strip()
+        print(f"[generate_tree] Got response, length: {len(response_text)}")
         
-        # Clean response if wrapped in markdown
+        # Clean response if wrapped in markdown (shouldn't happen with json_object format)
         if response_text.startswith('```'):
-            response_text = response_text.split('\n', 1)[1]
-            if response_text.endswith('```'):
-                response_text = response_text[:-3]
+            lines = response_text.split('\n')
+            response_text = '\n'.join(lines[1:-1]) if lines[-1].strip() == '```' else '\n'.join(lines[1:])
         
-        tree_structure = json.loads(response_text)
+        # Remove any leading/trailing whitespace or newlines
+        response_text = response_text.strip()
+        
+        try:
+            tree_structure = json.loads(response_text)
+        except json.JSONDecodeError as je:
+            print(f"[generate_tree] JSON parse error: {je}")
+            print(f"[generate_tree] Response preview: {response_text[:500]}")
+            return jsonify({'error': f'Failed to parse AI response: {str(je)}'}), 500
         
         # Create tree in database
         tree_data = {
@@ -6043,7 +5981,7 @@ def get_tree_node(node_id):
 
 @app.route('/api/node-chat', methods=['POST'])
 def node_chat():
-    """Chat with AI about a specific node"""
+    """Chat with AI about a specific node - works with both DB nodes and sample data"""
     user_id = get_user_id_from_token()
     if not user_id:
         return jsonify({'error': 'Authentication required'}), 401
@@ -6051,72 +5989,106 @@ def node_chat():
     data = request.get_json()
     node_id = data.get('node_id')
     message = data.get('message')
+    node_data = data.get('node_data')  # Frontend can pass full node data for sample nodes
     
-    if not node_id or not message:
-        return jsonify({'error': 'node_id and message required'}), 400
+    if not message:
+        return jsonify({'error': 'message required'}), 400
     
     try:
-        client = get_supabase_client()
         openai_client = OpenAI(api_key=OPENAI_API_KEY)
+        node = None
+        tree_info = {}
+        is_sample_node = False
         
-        # Get node context
-        node_result = client.table('tree_nodes').select('*, conversation_trees(product_type, industry)').eq('id', node_id).maybe_single().execute()
+        # Check if node_data was passed (for sample/demo nodes)
+        if node_data:
+            node = node_data
+            is_sample_node = True
+            tree_info = {'product_type': 'cool_life_paint', 'industry': 'home_improvement'}
+        elif node_id:
+            # Try to look up in database (only works for valid UUIDs)
+            try:
+                client = get_supabase_client()
+                node_result = client.table('tree_nodes').select('*, conversation_trees(product_type, industry)').eq('id', node_id).maybe_single().execute()
+                if node_result.data:
+                    node = node_result.data
+                    tree_info = node.get('conversation_trees', {})
+            except Exception as db_err:
+                print(f"[node_chat] DB lookup failed (likely sample node): {db_err}")
         
-        if not node_result.data:
-            return jsonify({'error': 'Node not found'}), 404
+        if not node:
+            # Use a generic context if no node found
+            node = {'title': 'Sales Conversation', 'content': 'General sales coaching', 'stage': 'general', 'speaker': 'seller'}
         
-        node = node_result.data
-        tree = node.get('conversation_trees', {})
-        
-        # Build context
-        system_prompt = f"""You are an expert sales coach helping with a {tree.get('product_type', 'product')} sales conversation.
+        # Build comprehensive coaching prompt
+        system_prompt = f"""You are an elite sales coach with 20+ years experience. You're helping a salesperson master this specific conversation point.
 
-Current conversation point:
-- Stage: {node.get('stage', 'unknown')}
-- Speaker: {node.get('speaker', 'unknown')}
-- Title: {node.get('title', '')}
-- Context: {node.get('content', '')}
+=== CURRENT CONVERSATION POINT ===
+Title: {node.get('title', 'Sales Conversation')}
+Stage: {node.get('stage', 'general')}
+Speaker: {node.get('speaker', 'seller')}
+Product: {tree_info.get('product_type', 'home improvement products')}
+Industry: {tree_info.get('industry', 'home improvement')}
 
-Provide helpful, specific coaching that is:
-1. Actionable with example phrases they can use
-2. Specific to this exact moment in the conversation
-3. Aware of common objections and how to handle them
+Full Script/Context:
+{node.get('content', node.get('shortContent', 'No specific content'))}
 
-If they ask for a script, give them 2-3 variations.
-If they ask about handling objections, use the LAIR method (Listen, Acknowledge, Isolate, Respond).
-Keep responses concise but helpful."""
+{f"Why This Works: {node.get('whyItWorks', node.get('why_it_works', ''))}" if node.get('whyItWorks') or node.get('why_it_works') else ''}
+{f"Coaching Tips: {', '.join(node.get('coachingTips', node.get('coaching_tips', [])))}" if node.get('coachingTips') or node.get('coaching_tips') else ''}
+
+=== YOUR ROLE ===
+Help this salesperson master this exact moment in the sales conversation. Be:
+1. SPECIFIC - Give exact words and phrases they can use
+2. PRACTICAL - Include 2-3 script variations when helpful
+3. EMPOWERING - Explain the psychology behind why techniques work
+4. ENCOURAGING - Build their confidence while pointing out areas to improve
+
+When they practice, give them feedback on:
+- Tone and energy
+- Key phrases they nailed or missed
+- How to handle if the customer responds differently
+
+Use the LAIR method for objections: Listen, Acknowledge, Isolate, Respond.
+Keep answers focused and actionable. No fluff."""
         
         response = openai_client.chat.completions.create(
-            model="gpt-4o",
+            model="gpt-4.1",
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": message}
             ],
             temperature=0.7,
-            max_tokens=1000
+            max_tokens=1500
         )
         
         ai_response = response.choices[0].message.content
         
-        # Save chat history
-        chat_result = client.table('tree_node_ai_chats').select('*').eq('user_id', user_id).eq('node_id', node_id).maybe_single().execute()
-        
-        if chat_result.data:
-            messages = chat_result.data.get('messages', [])
-            messages.append({'role': 'user', 'content': message, 'timestamp': datetime.now().isoformat()})
-            messages.append({'role': 'assistant', 'content': ai_response, 'timestamp': datetime.now().isoformat()})
-            client.table('tree_node_ai_chats').update({'messages': messages, 'updated_at': 'now()'}).eq('id', chat_result.data['id']).execute()
-        else:
-            messages = [
-                {'role': 'user', 'content': message, 'timestamp': datetime.now().isoformat()},
-                {'role': 'assistant', 'content': ai_response, 'timestamp': datetime.now().isoformat()}
-            ]
-            client.table('tree_node_ai_chats').insert({'user_id': user_id, 'node_id': node_id, 'messages': messages}).execute()
+        # Only save chat history for real DB nodes (not sample data)
+        if not is_sample_node and node_id:
+            try:
+                client = get_supabase_client()
+                chat_result = client.table('tree_node_ai_chats').select('*').eq('user_id', user_id).eq('node_id', node_id).maybe_single().execute()
+                
+                if chat_result.data:
+                    messages = chat_result.data.get('messages', [])
+                    messages.append({'role': 'user', 'content': message, 'timestamp': datetime.now().isoformat()})
+                    messages.append({'role': 'assistant', 'content': ai_response, 'timestamp': datetime.now().isoformat()})
+                    client.table('tree_node_ai_chats').update({'messages': messages, 'updated_at': 'now()'}).eq('id', chat_result.data['id']).execute()
+                else:
+                    messages = [
+                        {'role': 'user', 'content': message, 'timestamp': datetime.now().isoformat()},
+                        {'role': 'assistant', 'content': ai_response, 'timestamp': datetime.now().isoformat()}
+                    ]
+                    client.table('tree_node_ai_chats').insert({'user_id': user_id, 'node_id': node_id, 'messages': messages}).execute()
+            except Exception as save_err:
+                print(f"[node_chat] Failed to save chat history: {save_err}")
         
         return jsonify({'response': ai_response})
         
     except Exception as e:
         print(f"[node_chat] Error: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 

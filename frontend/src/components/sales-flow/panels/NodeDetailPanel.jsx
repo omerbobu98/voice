@@ -162,6 +162,7 @@ const NodeDetailPanel = ({ node, onClose, treeInfo }) => {
         {
           node_id: node.id,
           message: userMessage,
+          node_data: data,  // Pass full node data for sample/demo nodes
         },
         { headers }
       );
