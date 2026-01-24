@@ -18,6 +18,13 @@ export const sampleTreeData = {
         'Use their name within first 30 seconds',
         'Ask an open-ended question to get them talking'
       ],
+      why_it_works: "This opening works because it thanks them (creates reciprocity), positions you as helpful not salesy, and immediately gets THEM talking about THEIR needs. The question at the end puts control in their hands, which builds trust.",
+      common_mistakes: [
+        "Starting with 'Let me tell you about our product...'",
+        "Launching into features before building rapport",
+        "Not asking any questions in the first 60 seconds"
+      ],
+      practice_tip: "Record yourself doing this opening 5 times. Play it back - do you sound genuinely curious or like you're reading a script? Practice until it sounds natural.",
       children: [
         {
           id: 'engaged-1',
@@ -28,6 +35,8 @@ export const sampleTreeData = {
           short_content: "Shows interest in energy savings",
           branch_label: 'Shows Interest',
           success_probability: 0.7,
+          customer_mindset: "Hopeful but cautious. They have a real problem (high bills) and someone they trust referred them. They want a solution but have likely been disappointed before.",
+          signals_to_notice: ["Mentions specific problem (bills)", "References trusted source (neighbor)", "Leans forward", "Makes eye contact", "Asks follow-up questions"],
           children: [
             {
               id: 'seller-discovery-1',
@@ -37,7 +46,14 @@ export const sampleTreeData = {
               content: "That's exactly why most of my customers reach out! Tell me more - how much are you spending on electricity during peak summer months?",
               short_content: "Dig deeper into energy pain point",
               stage: 'discovery',
-              coaching_tips: ['Get specific numbers', 'Show empathy for their frustration'],
+              coaching_tips: ['Get specific numbers', 'Show empathy for their frustration', 'Wait for full answer before responding', 'Nod to show active listening'],
+              why_it_works: "By asking for specific numbers, you accomplish three things: 1) Get quantifiable data for ROI calculations, 2) Make the pain feel real and tangible, 3) Show you care about THEIR situation, not just making a sale.",
+              common_mistakes: [
+                "Accepting vague answers like 'a lot' without digging deeper",
+                "Rushing to pitch before fully understanding their pain",
+                "Making it about the product instead of their problem"
+              ],
+              practice_tip: "Practice asking follow-up questions that start with 'Tell me more about...' or 'How does that affect...' to dig deeper into pain points.",
               children: [
                 {
                   id: 'customer-pain-1',

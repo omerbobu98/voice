@@ -5610,80 +5610,89 @@ def serve_tts_audio(filename):
 
 # ============ Conversation Tree API Endpoints (NEW) ============
 
-TREE_GENERATION_PROMPT = """You are an expert sales trainer creating an interactive conversation decision tree.
+TREE_GENERATION_PROMPT = """You are an elite sales coach creating a comprehensive training conversation tree.
 
-Create a complete sales conversation tree for selling {product_type} in the {industry} industry.
+Product: {product_type}
+Industry: {industry}
 Language: {language}
+Depth: {depth} levels
 
-The tree should have {depth} levels of depth with realistic branching at each decision point.
+Create a TRAINING-FOCUSED conversation tree that teaches salespeople exactly what to say and why.
 
-IMPORTANT STRUCTURE RULES:
-1. Start with a root node (seller's opening)
-2. Each seller action should have 2-4 possible customer responses
-3. Customer responses vary: interested, skeptical, objecting, asking questions
-4. Include common objections: price, timing, need to think, competitor comparison
-5. End branches with outcomes: sale closed, follow-up scheduled, or lost
-6. Make content specific to {product_type}
-7. Include coaching tips at key decision points
+CRITICAL REQUIREMENTS FOR EACH SELLER NODE:
+1. "content" = FULL SCRIPT - exact words to say, word-for-word
+2. "why_it_works" = Psychology behind why this approach works
+3. "common_mistakes" = Array of 2-3 mistakes to avoid
+4. "practice_tip" = One actionable exercise to practice this
+5. "coaching_tips" = Array of 3-4 specific tips
 
-Return ONLY valid JSON (no markdown, no explanation) with this exact structure:
+CRITICAL REQUIREMENTS FOR EACH CUSTOMER NODE:
+1. "content" = Realistic customer response (what they actually say)
+2. "customer_mindset" = What the customer is thinking/feeling
+3. "signals_to_notice" = What to look for in their tone/body language
+4. "branch_label" = Short label for this response type
+
+TREE STRUCTURE (3-4 branches per seller action):
+- Root: Opening/Introduction
+- Level 1-2: Discovery & Qualification  
+- Level 3: Pain Amplification & Solution
+- Level 4: Objection Handling
+- Level 5: Closing & Next Steps
+- End nodes: Outcomes (sale, follow_up, lost)
+
+STAGES TO USE: opening, discovery, qualification, pain_amplification, solution, objection, closing, next_steps
+
+Return ONLY valid JSON:
 {{
-  "name": "Sales Conversation Tree for {product_type}",
-  "description": "Interactive conversation flow for {industry}",
+  "name": "Sales Mastery: {product_type}",
+  "description": "Complete training flow for {industry} sales",
   "nodes": [
     {{
-      "id": "root",
       "speaker": "seller",
       "node_type": "root",
-      "title": "Opening Introduction",
-      "content": "Full opening script with specific language...",
-      "short_content": "Brief version for node display",
+      "title": "Power Opening",
+      "content": "Hi! I'm [Name] with [Company]. I noticed you've been looking at options for [specific need]. Many homeowners in [area] have been dealing with [common problem]. I'm curious - what's been your biggest frustration with your current situation?",
+      "short_content": "Engage with curiosity",
       "stage": "opening",
-      "coaching_tips": ["Tip 1", "Tip 2"],
+      "why_it_works": "Opens with curiosity not pitch. Acknowledges their research. Creates relatability with local reference. Invites them to share pain.",
+      "common_mistakes": ["Starting with 'I want to tell you about...'", "Jumping straight to product features", "Not acknowledging their time is valuable"],
+      "practice_tip": "Record yourself doing this opening 5 times. Listen back - do you sound curious or salesy?",
+      "coaching_tips": ["Smile when you speak - they can hear it", "Pause after the question - let silence work for you", "Match their energy level", "Use their name if you know it"],
       "children": [
         {{
-          "id": "engaged_1",
           "speaker": "customer",
           "node_type": "response",
-          "title": "Customer Shows Interest",
-          "content": "Customer's response text...",
-          "short_content": "Shows interest",
-          "branch_label": "Shows Interest",
-          "success_probability": 0.7,
-          "children": [
-            {{
-              "id": "seller_discovery_1",
-              "speaker": "seller",
-              "node_type": "action",
-              "title": "Discovery Question",
-              "content": "Seller's next action...",
-              "short_content": "Ask discovery question",
-              "stage": "discovery",
-              "coaching_tips": ["Coaching tip"],
-              "children": [...]
-            }}
-          ]
-        }},
-        {{
-          "id": "skeptical_1",
-          "speaker": "customer",
-          "node_type": "response",
-          "title": "Customer Skeptical",
-          "content": "I'm not sure about this...",
-          "short_content": "Expresses doubt",
-          "branch_label": "Skeptical",
-          "success_probability": 0.4,
+          "title": "Engaged - Shares Problem",
+          "content": "Actually, yes! We've been dealing with [specific issue] for months now. It's been really frustrating because...",
+          "short_content": "Opens up about pain",
+          "branch_label": "Engaged",
+          "success_probability": 0.75,
+          "customer_mindset": "Relieved someone understands. Hopeful but cautious. Wants to be heard.",
+          "signals_to_notice": ["Leaning forward", "Detailed responses", "Emotional language", "Asking questions back"],
           "children": [...]
         }},
         {{
-          "id": "objection_1",
           "speaker": "customer",
           "node_type": "response",
-          "title": "Price Objection",
-          "content": "That sounds expensive...",
-          "short_content": "Objects to price",
-          "branch_label": "Price Objection",
-          "success_probability": 0.3,
+          "title": "Skeptical - Guard Up",
+          "content": "I'm just looking around. Not really interested in a sales pitch right now.",
+          "short_content": "Defensive response",
+          "branch_label": "Skeptical",
+          "success_probability": 0.4,
+          "customer_mindset": "Had bad experiences with salespeople. Protecting themselves. Testing you.",
+          "signals_to_notice": ["Arms crossed", "Short answers", "Looking away", "Checking phone"],
+          "children": [...]
+        }},
+        {{
+          "speaker": "customer",
+          "node_type": "response",
+          "title": "Price-Focused",
+          "content": "How much does this cost? I've gotten a few quotes already.",
+          "short_content": "Jumps to price",
+          "branch_label": "Price Question",
+          "success_probability": 0.35,
+          "customer_mindset": "Comparison shopping. Might have budget concerns. Trying to qualify you out quickly.",
+          "signals_to_notice": ["Impatient tone", "Comparing to competitors", "Mentions budget"],
           "children": [...]
         }}
       ]
@@ -5691,9 +5700,7 @@ Return ONLY valid JSON (no markdown, no explanation) with this exact structure:
   ]
 }}
 
-Generate a tree with approximately 30-50 nodes total across {depth} levels.
-Make the content specific, actionable, and realistic for {product_type} sales.
-"""
+Generate exactly {depth} levels with 25-40 total nodes. Every seller node MUST have why_it_works, common_mistakes, practice_tip, and coaching_tips. Every customer node MUST have customer_mindset and signals_to_notice."""
 
 
 @app.route('/api/conversation-trees', methods=['GET'])
@@ -5879,14 +5886,15 @@ def generate_conversation_tree():
             node_count += 1
             max_depth = max(max_depth, depth)
             
+            content = node_data.get('content', '')
             node = {
                 'tree_id': tree_id,
                 'parent_node_id': parent_id,
                 'speaker': node_data.get('speaker', 'seller'),
                 'node_type': node_data.get('node_type', 'action'),
                 'title': node_data.get('title', 'Untitled'),
-                'content': node_data.get('content', ''),
-                'short_content': node_data.get('short_content', node_data.get('content', '')[:100]),
+                'content': content,
+                'short_content': node_data.get('short_content', content[:100] if content else ''),
                 'stage': node_data.get('stage'),
                 'coaching_tips': node_data.get('coaching_tips', []),
                 'success_probability': node_data.get('success_probability', 0.5),
@@ -5894,6 +5902,11 @@ def generate_conversation_tree():
                 'branch_condition': node_data.get('branch_condition'),
                 'depth_level': depth,
                 'ai_generated': True,
+                'why_it_works': node_data.get('why_it_works'),
+                'common_mistakes': node_data.get('common_mistakes', []),
+                'practice_tip': node_data.get('practice_tip'),
+                'customer_mindset': node_data.get('customer_mindset'),
+                'signals_to_notice': node_data.get('signals_to_notice', []),
             }
             
             node_result = client.table('tree_nodes').insert(node).execute()

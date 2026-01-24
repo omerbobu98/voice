@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, MessageCircle, Lightbulb, User, Volume2, Square, Loader2, Send } from 'lucide-react';
+import { X, MessageCircle, Lightbulb, User, Volume2, Square, Loader2, Send, Brain, AlertTriangle, Target, Eye, Dumbbell } from 'lucide-react';
 import axios from 'axios';
 import { API_URL } from '../../../lib/config';
 import { supabase } from '../../../lib/supabase';
@@ -248,6 +248,69 @@ const NodeDetailPanel = ({ node, onClose, treeInfo }) => {
                     </li>
                   ))}
                 </ul>
+              </div>
+            )}
+
+            {data.whyItWorks && (
+              <div className="p-3 bg-emerald-900/20 rounded-lg border border-emerald-700/30">
+                <div className="flex items-center gap-2 mb-2">
+                  <Brain className="w-4 h-4 text-emerald-400" />
+                  <span className="text-sm font-medium text-emerald-400">Why This Works</span>
+                </div>
+                <p className="text-sm text-gray-300">{data.whyItWorks}</p>
+              </div>
+            )}
+
+            {data.commonMistakes && data.commonMistakes.length > 0 && (
+              <div className="p-3 bg-red-900/20 rounded-lg border border-red-700/30">
+                <div className="flex items-center gap-2 mb-2">
+                  <AlertTriangle className="w-4 h-4 text-red-400" />
+                  <span className="text-sm font-medium text-red-400">Common Mistakes to Avoid</span>
+                </div>
+                <ul className="space-y-1">
+                  {data.commonMistakes.map((mistake, index) => (
+                    <li key={index} className="text-sm text-gray-300 flex items-start gap-2">
+                      <span className="text-red-400">✗</span>
+                      <span>{mistake}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {data.practiceTip && (
+              <div className="p-3 bg-blue-900/20 rounded-lg border border-blue-700/30">
+                <div className="flex items-center gap-2 mb-2">
+                  <Dumbbell className="w-4 h-4 text-blue-400" />
+                  <span className="text-sm font-medium text-blue-400">Practice Exercise</span>
+                </div>
+                <p className="text-sm text-gray-300">{data.practiceTip}</p>
+              </div>
+            )}
+
+            {data.customerMindset && (
+              <div className="p-3 bg-purple-900/20 rounded-lg border border-purple-700/30">
+                <div className="flex items-center gap-2 mb-2">
+                  <Brain className="w-4 h-4 text-purple-400" />
+                  <span className="text-sm font-medium text-purple-400">Customer's Mindset</span>
+                </div>
+                <p className="text-sm text-gray-300 italic">"{data.customerMindset}"</p>
+              </div>
+            )}
+
+            {data.signalsToNotice && data.signalsToNotice.length > 0 && (
+              <div className="p-3 bg-cyan-900/20 rounded-lg border border-cyan-700/30">
+                <div className="flex items-center gap-2 mb-2">
+                  <Eye className="w-4 h-4 text-cyan-400" />
+                  <span className="text-sm font-medium text-cyan-400">Signals to Notice</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {data.signalsToNotice.map((signal, index) => (
+                    <span key={index} className="px-2 py-1 bg-cyan-900/30 text-cyan-300 text-xs rounded-full">
+                      {signal}
+                    </span>
+                  ))}
+                </div>
               </div>
             )}
           </>

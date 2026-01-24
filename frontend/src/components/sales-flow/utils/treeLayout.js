@@ -116,6 +116,11 @@ export function convertTreeDataToFlow(treeData) {
         successProbability: nodeData.success_probability || nodeData.successProbability,
         coachingTips: nodeData.coaching_tips || nodeData.coachingTips,
         outcomeType: nodeData.outcome_type || nodeData.outcomeType,
+        whyItWorks: nodeData.why_it_works || nodeData.whyItWorks,
+        commonMistakes: nodeData.common_mistakes || nodeData.commonMistakes,
+        practiceTip: nodeData.practice_tip || nodeData.practiceTip,
+        customerMindset: nodeData.customer_mindset || nodeData.customerMindset,
+        signalsToNotice: nodeData.signals_to_notice || nodeData.signalsToNotice,
       },
       position: { x: 0, y: 0 },
     };
