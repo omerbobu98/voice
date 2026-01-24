@@ -5788,12 +5788,188 @@ def create_conversation_tree():
         return jsonify({'error': str(e)}), 500
 
 
+def get_template_tree(product_type, industry):
+    """Generate a template-based tree structure for reliable tree creation"""
+    product_display = product_type.replace('_', ' ').title()
+    
+    return {
+        "name": f"{product_display} Sales Tree",
+        "description": f"Interactive sales training for {product_display} in {industry}",
+        "nodes": [{
+            "id": "root",
+            "speaker": "seller",
+            "node_type": "root",
+            "title": "Opening Introduction",
+            "content": f"Hi! Thanks for taking the time to meet with me today. I'm here to show you how {product_display} can transform your home and save you money. Before I get started, tell me - what made you interested in learning about our solutions?",
+            "short_content": "Build rapport and discover interest",
+            "stage": "opening",
+            "coaching_tips": ["Smile and maintain eye contact", "Use their name within first 30 seconds", "Ask an open-ended question to get them talking", "Mirror their body language subtly"],
+            "why_it_works": "This opening creates reciprocity by thanking them, positions you as helpful not salesy, and immediately gets THEM talking about THEIR needs. The question puts control in their hands, building trust.",
+            "common_mistakes": ["Starting with 'Let me tell you about our product...'", "Launching into features before building rapport", "Not asking any questions in the first 60 seconds"],
+            "practice_tip": "Record yourself doing this opening 5 times. Play it back - do you sound genuinely curious or like you're reading a script?",
+            "children": [
+                {
+                    "id": "interested-1",
+                    "speaker": "customer",
+                    "node_type": "response",
+                    "title": "Customer Shows Interest",
+                    "content": "Well, we've been dealing with some issues and a neighbor mentioned you helped them. I wanted to learn more.",
+                    "short_content": "Shows interest, references neighbor",
+                    "branch_label": "Shows Interest",
+                    "success_probability": 0.7,
+                    "customer_mindset": "Hopeful but cautious. They have a real problem and someone they trust referred them. They want a solution but have likely been disappointed before.",
+                    "signals_to_notice": ["Mentions specific problem", "References trusted source", "Leans forward", "Makes eye contact"],
+                    "children": [{
+                        "id": "seller-discovery-1",
+                        "speaker": "seller",
+                        "node_type": "action",
+                        "title": "Discovery Questions",
+                        "content": f"That's exactly why most of my customers reach out! Tell me more - what specific challenges have you been facing? How long has this been going on?",
+                        "short_content": "Dig deeper into pain points",
+                        "stage": "discovery",
+                        "coaching_tips": ["Get specific details", "Show empathy", "Wait for full answer before responding", "Take notes"],
+                        "why_it_works": "By asking for specifics, you get data for ROI calculations, make the pain tangible, and show you care about THEIR situation.",
+                        "common_mistakes": ["Accepting vague answers", "Rushing to pitch", "Making it about the product"],
+                        "practice_tip": "Practice follow-up questions that start with 'Tell me more about...' or 'How does that affect...'",
+                        "children": [{
+                            "id": "customer-pain-1",
+                            "speaker": "customer",
+                            "node_type": "response",
+                            "title": "Reveals Pain Point",
+                            "content": "It's been going on for about 2 years now. We've tried a few things but nothing really worked. It's costing us a lot.",
+                            "short_content": "Shares specific pain and costs",
+                            "branch_label": "Shares Pain",
+                            "success_probability": 0.8,
+                            "customer_mindset": "Opening up, feeling heard. Starting to trust you because you're listening.",
+                            "signals_to_notice": ["Shares specific timeframes", "Mentions failed attempts", "Quantifies cost"],
+                            "children": [{
+                                "id": "seller-amplify-1",
+                                "speaker": "seller",
+                                "node_type": "action",
+                                "title": "Amplify the Pain",
+                                "content": "Two years - that's a long time to deal with this! If you don't mind me asking, what would you estimate you've spent trying to solve this? And what would it mean for your family if we could finally fix this for good?",
+                                "short_content": "Calculate total cost, future vision",
+                                "stage": "pain_amplification",
+                                "coaching_tips": ["Use specific numbers", "Paint picture of opportunity cost", "Connect to emotional impact"],
+                                "why_it_works": "Amplifying pain makes the problem feel urgent and the solution more valuable.",
+                                "common_mistakes": ["Moving too fast to solution", "Not quantifying the pain"],
+                                "practice_tip": "Practice calculating costs out loud: monthly × 12 × years = total wasted",
+                                "children": [{
+                                    "id": "outcome-ready",
+                                    "speaker": "customer",
+                                    "node_type": "outcome",
+                                    "title": "Ready for Solution",
+                                    "content": "Wow, I never thought about it that way. What exactly can you do to help?",
+                                    "short_content": "Engaged, wants to hear solution",
+                                    "branch_label": "Ready",
+                                    "success_probability": 0.85,
+                                    "customer_mindset": "Pain is clear, ready to hear how you can help.",
+                                    "signals_to_notice": ["Asks about solution", "Forward body language"]
+                                }]
+                            }]
+                        }]
+                    }]
+                },
+                {
+                    "id": "skeptical-1",
+                    "speaker": "customer",
+                    "node_type": "response",
+                    "title": "Customer Skeptical",
+                    "content": "I've heard about products like this before. They all claim to work but do they really?",
+                    "short_content": "Expresses doubt",
+                    "branch_label": "Skeptical",
+                    "success_probability": 0.4,
+                    "customer_mindset": "Has been burned before. Needs proof, not promises. Defensive posture.",
+                    "signals_to_notice": ["Arms crossed", "Leaning back", "Skeptical tone", "References past disappointments"],
+                    "children": [{
+                        "id": "seller-proof-1",
+                        "speaker": "seller",
+                        "node_type": "action",
+                        "title": "Provide Social Proof",
+                        "content": "That's a great question, and honestly, you SHOULD be skeptical! Let me show you some real results from customers right here in your area. This is the Johnson family on Oak Street - see the difference?",
+                        "short_content": "Validate skepticism, show proof",
+                        "stage": "solution",
+                        "coaching_tips": ["Validate their skepticism", "Use local examples", "Show visual proof", "Let results speak"],
+                        "why_it_works": "Agreeing with their skepticism disarms them. Local proof is more believable than distant claims.",
+                        "common_mistakes": ["Getting defensive", "Making more claims without proof"],
+                        "practice_tip": "Always have 3 local success stories ready with specific results.",
+                        "children": []
+                    }]
+                },
+                {
+                    "id": "objection-price-1",
+                    "speaker": "customer",
+                    "node_type": "response",
+                    "title": "Price Objection Early",
+                    "content": "Before we go any further - how much does this cost? I don't want to waste your time if it's out of our budget.",
+                    "short_content": "Asks about price immediately",
+                    "branch_label": "Price Question",
+                    "success_probability": 0.3,
+                    "customer_mindset": "Afraid of being sold something expensive. Wants to qualify you out quickly.",
+                    "signals_to_notice": ["Direct eye contact", "Arms crossed", "Rushed tone"],
+                    "children": [{
+                        "id": "seller-defer-1",
+                        "speaker": "seller",
+                        "node_type": "action",
+                        "title": "Defer Price, Build Value",
+                        "content": "I appreciate you being upfront! The investment depends on your specific situation and needs. But before we talk numbers, let me make sure this is even the right solution for you - would that be fair?",
+                        "short_content": "Defer price, establish value first",
+                        "stage": "objection",
+                        "coaching_tips": ["Never give price before value", "Use 'investment' not 'cost'", "Get permission to continue", "Stay calm and confident"],
+                        "why_it_works": "Deferring price while showing respect for their time builds trust. Getting permission keeps them engaged.",
+                        "common_mistakes": ["Giving a number immediately", "Getting defensive", "Losing confidence"],
+                        "practice_tip": "Practice the LAIR method: Listen, Acknowledge, Isolate, Respond.",
+                        "children": [
+                            {
+                                "id": "customer-agrees-1",
+                                "speaker": "customer",
+                                "node_type": "response",
+                                "title": "Agrees to Continue",
+                                "content": "Sure, that makes sense. Go ahead.",
+                                "short_content": "Agrees to hear more",
+                                "branch_label": "Agrees",
+                                "success_probability": 0.6,
+                                "customer_mindset": "Willing to give you a chance. Guard is lowering.",
+                                "signals_to_notice": ["Relaxed posture", "Nodding"],
+                                "children": []
+                            },
+                            {
+                                "id": "customer-insists-1",
+                                "speaker": "customer",
+                                "node_type": "response",
+                                "title": "Insists on Price",
+                                "content": "No, I really need a ballpark figure first.",
+                                "short_content": "Insists on knowing price",
+                                "branch_label": "Insists",
+                                "success_probability": 0.35,
+                                "customer_mindset": "Has a hard budget limit. Needs to know if this is even possible.",
+                                "signals_to_notice": ["Firm tone", "Won't move forward"],
+                                "children": []
+                            }
+                        ]
+                    }]
+                },
+                {
+                    "id": "busy-1",
+                    "speaker": "customer",
+                    "node_type": "response",
+                    "title": "Customer Busy",
+                    "content": "Look, I only have about 10 minutes. Can you give me the quick version?",
+                    "short_content": "Limited time",
+                    "branch_label": "Limited Time",
+                    "success_probability": 0.25,
+                    "customer_mindset": "Genuinely busy or using time as an excuse. Either way, need to be efficient.",
+                    "signals_to_notice": ["Checking watch/phone", "Standing", "Rushed speech"],
+                    "children": []
+                }
+            ]
+        }]
+    }
+
+
 @app.route('/api/conversation-trees/generate', methods=['POST'])
 def generate_conversation_tree():
-    """Generate a complete branching conversation tree using AI"""
-    import time
-    start_time = time.time()
-    
+    """Generate a complete branching conversation tree - uses templates for reliability"""
     user_id = get_user_id_from_token()
     if not user_id:
         return jsonify({'error': 'Authentication required'}), 401
@@ -5803,73 +5979,17 @@ def generate_conversation_tree():
     product_type = data.get('product_type', 'general product')
     industry = data.get('industry', 'general')
     language = data.get('language', 'en')
-    depth = min(data.get('depth', 3), 3)  # Cap at 3 for faster generation
     name = data.get('name', f'Sales Flow - {product_type}')
     
-    print(f"[generate_tree] Starting for {product_type}, depth={depth}, user={user_id}")
+    print(f"[generate_tree] Creating tree for {product_type}, user={user_id}")
     
     try:
         client = get_supabase()
         if not client:
-            print("[generate_tree] ERROR: Supabase client is None")
             return jsonify({'error': 'Database connection failed'}), 500
         
-        openai_client = OpenAI(api_key=OPENAI_API_KEY)
-        print(f"[generate_tree] Clients initialized ({time.time()-start_time:.1f}s)")
-        
-        # Generate tree structure using AI
-        prompt = TREE_GENERATION_PROMPT.format(
-            product_type=product_type,
-            industry=industry,
-            language='Hebrew' if language == 'he' else 'English',
-            depth=depth
-        )
-        
-        print(f"[generate_tree] Starting generation for {product_type}")
-        
-        try:
-            print(f"[generate_tree] Calling OpenAI GPT-4o-mini...")
-            response = openai_client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[
-                    {"role": "system", "content": """You are an elite sales trainer. Return ONLY valid JSON.
-Generate comprehensive sales training trees with:
-- Detailed scripts (what to say word-for-word)
-- Psychology explanations (why it works)
-- Coaching tips (actionable advice)
-- Common mistakes (what to avoid)
-- Customer mindset (what they're thinking)
-Start with { and end with }. No markdown."""},
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.7,
-                max_tokens=8000,
-                response_format={"type": "json_object"}
-            )
-            print(f"[generate_tree] OpenAI call successful, tokens used: {response.usage.total_tokens if response.usage else 'unknown'}")
-        except Exception as openai_err:
-            print(f"[generate_tree] OpenAI error: {openai_err}")
-            import traceback
-            traceback.print_exc()
-            return jsonify({'error': f'AI generation failed: {str(openai_err)}'}), 500
-        
-        response_text = response.choices[0].message.content.strip()
-        print(f"[generate_tree] Got response, length: {len(response_text)}")
-        
-        # Clean response if wrapped in markdown (shouldn't happen with json_object format)
-        if response_text.startswith('```'):
-            lines = response_text.split('\n')
-            response_text = '\n'.join(lines[1:-1]) if lines[-1].strip() == '```' else '\n'.join(lines[1:])
-        
-        # Remove any leading/trailing whitespace or newlines
-        response_text = response_text.strip()
-        
-        try:
-            tree_structure = json.loads(response_text)
-        except json.JSONDecodeError as je:
-            print(f"[generate_tree] JSON parse error: {je}")
-            print(f"[generate_tree] Response preview: {response_text[:500]}")
-            return jsonify({'error': f'Failed to parse AI response: {str(je)}'}), 500
+        # Use template-based generation for reliability
+        tree_structure = get_template_tree(product_type, industry)
         
         # Create tree in database
         print(f"[generate_tree] Creating tree in database...")
