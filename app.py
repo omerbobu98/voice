@@ -5608,6 +5608,644 @@ def serve_tts_audio(filename):
         return jsonify({'error': 'Audio not found'}), 404
 
 
+# ============ Conversation Tree API Endpoints (NEW) ============
+
+TREE_GENERATION_PROMPT = """You are an expert sales trainer creating an interactive conversation decision tree.
+
+Create a complete sales conversation tree for selling {product_type} in the {industry} industry.
+Language: {language}
+
+The tree should have {depth} levels of depth with realistic branching at each decision point.
+
+IMPORTANT STRUCTURE RULES:
+1. Start with a root node (seller's opening)
+2. Each seller action should have 2-4 possible customer responses
+3. Customer responses vary: interested, skeptical, objecting, asking questions
+4. Include common objections: price, timing, need to think, competitor comparison
+5. End branches with outcomes: sale closed, follow-up scheduled, or lost
+6. Make content specific to {product_type}
+7. Include coaching tips at key decision points
+
+Return ONLY valid JSON (no markdown, no explanation) with this exact structure:
+{{
+  "name": "Sales Conversation Tree for {product_type}",
+  "description": "Interactive conversation flow for {industry}",
+  "nodes": [
+    {{
+      "id": "root",
+      "speaker": "seller",
+      "node_type": "root",
+      "title": "Opening Introduction",
+      "content": "Full opening script with specific language...",
+      "short_content": "Brief version for node display",
+      "stage": "opening",
+      "coaching_tips": ["Tip 1", "Tip 2"],
+      "children": [
+        {{
+          "id": "engaged_1",
+          "speaker": "customer",
+          "node_type": "response",
+          "title": "Customer Shows Interest",
+          "content": "Customer's response text...",
+          "short_content": "Shows interest",
+          "branch_label": "Shows Interest",
+          "success_probability": 0.7,
+          "children": [
+            {{
+              "id": "seller_discovery_1",
+              "speaker": "seller",
+              "node_type": "action",
+              "title": "Discovery Question",
+              "content": "Seller's next action...",
+              "short_content": "Ask discovery question",
+              "stage": "discovery",
+              "coaching_tips": ["Coaching tip"],
+              "children": [...]
+            }}
+          ]
+        }},
+        {{
+          "id": "skeptical_1",
+          "speaker": "customer",
+          "node_type": "response",
+          "title": "Customer Skeptical",
+          "content": "I'm not sure about this...",
+          "short_content": "Expresses doubt",
+          "branch_label": "Skeptical",
+          "success_probability": 0.4,
+          "children": [...]
+        }},
+        {{
+          "id": "objection_1",
+          "speaker": "customer",
+          "node_type": "response",
+          "title": "Price Objection",
+          "content": "That sounds expensive...",
+          "short_content": "Objects to price",
+          "branch_label": "Price Objection",
+          "success_probability": 0.3,
+          "children": [...]
+        }}
+      ]
+    }}
+  ]
+}}
+
+Generate a tree with approximately 30-50 nodes total across {depth} levels.
+Make the content specific, actionable, and realistic for {product_type} sales.
+"""
+
+
+@app.route('/api/conversation-trees', methods=['GET'])
+def get_conversation_trees():
+    """Get all conversation trees for the current user"""
+    user_id = get_user_id_from_token()
+    if not user_id:
+        return jsonify({'error': 'Authentication required', 'trees': []}), 401
+    
+    try:
+        client = get_supabase_client()
+        
+        result = client.table('conversation_trees').select('*').or_(
+            f'user_id.eq.{user_id},is_public.eq.true,is_template.eq.true'
+        ).order('created_at', desc=True).execute()
+        
+        return jsonify({'trees': result.data or []})
+        
+    except Exception as e:
+        print(f"[get_conversation_trees] Error: {e}")
+        return jsonify({'error': str(e), 'trees': []}), 500
+
+
+@app.route('/api/conversation-trees/<tree_id>', methods=['GET'])
+def get_conversation_tree(tree_id):
+    """Get a specific conversation tree with all nodes and edges"""
+    user_id = get_user_id_from_token()
+    
+    try:
+        client = get_supabase_client()
+        
+        # Get tree
+        tree_result = client.table('conversation_trees').select('*').eq('id', tree_id).maybe_single().execute()
+        
+        if not tree_result.data:
+            return jsonify({'error': 'Tree not found'}), 404
+        
+        tree = tree_result.data
+        
+        # Check access
+        if tree['user_id'] != user_id and not tree.get('is_public') and not tree.get('is_template'):
+            return jsonify({'error': 'Access denied'}), 403
+        
+        # Get nodes
+        nodes_result = client.table('tree_nodes').select('*').eq('tree_id', tree_id).order('depth_level').execute()
+        
+        # Get edges
+        edges_result = client.table('node_edges').select('*').eq('tree_id', tree_id).execute()
+        
+        # Get content for all nodes
+        node_ids = [n['id'] for n in (nodes_result.data or [])]
+        content_result = client.table('tree_node_content').select('*').in_('node_id', node_ids).execute() if node_ids else None
+        
+        # Build node tree structure
+        nodes_by_id = {n['id']: {**n, 'children': [], 'content': []} for n in (nodes_result.data or [])}
+        
+        # Attach content to nodes
+        if content_result and content_result.data:
+            for content in content_result.data:
+                if content['node_id'] in nodes_by_id:
+                    nodes_by_id[content['node_id']]['content'].append(content)
+        
+        # Build parent-child relationships
+        for node in (nodes_result.data or []):
+            if node.get('parent_node_id') and node['parent_node_id'] in nodes_by_id:
+                nodes_by_id[node['parent_node_id']]['children'].append(nodes_by_id[node['id']])
+        
+        # Find root nodes
+        root_nodes = [n for n in nodes_by_id.values() if not n.get('parent_node_id')]
+        
+        tree['nodes'] = root_nodes
+        tree['edges'] = edges_result.data or []
+        tree['all_nodes'] = list(nodes_by_id.values())
+        
+        return jsonify(tree)
+        
+    except Exception as e:
+        print(f"[get_conversation_tree] Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/conversation-trees', methods=['POST'])
+def create_conversation_tree():
+    """Create a new conversation tree"""
+    user_id = get_user_id_from_token()
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    data = request.get_json()
+    
+    try:
+        client = get_supabase_client()
+        
+        tree_data = {
+            'user_id': user_id,
+            'name': data.get('name', 'My Conversation Tree'),
+            'description': data.get('description', ''),
+            'product_type': data.get('product_type', 'general'),
+            'industry': data.get('industry', 'general'),
+            'language': data.get('language', 'en'),
+            'is_template': data.get('is_template', False),
+            'is_public': data.get('is_public', False),
+        }
+        
+        result = client.table('conversation_trees').insert(tree_data).execute()
+        
+        return jsonify(result.data[0] if result.data else {})
+        
+    except Exception as e:
+        print(f"[create_conversation_tree] Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/conversation-trees/generate', methods=['POST'])
+def generate_conversation_tree():
+    """Generate a complete branching conversation tree using AI"""
+    user_id = get_user_id_from_token()
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    data = request.get_json()
+    
+    product_type = data.get('product_type', 'general product')
+    industry = data.get('industry', 'general')
+    language = data.get('language', 'en')
+    depth = data.get('depth', 4)
+    name = data.get('name', f'Sales Flow - {product_type}')
+    
+    try:
+        client = get_supabase_client()
+        openai_client = OpenAI(api_key=OPENAI_API_KEY)
+        
+        # Generate tree structure using AI
+        prompt = TREE_GENERATION_PROMPT.format(
+            product_type=product_type,
+            industry=industry,
+            language='Hebrew' if language == 'he' else 'English',
+            depth=depth
+        )
+        
+        response = openai_client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": "You are an expert sales trainer. Return ONLY valid JSON, no markdown code blocks."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.8,
+            max_tokens=8000
+        )
+        
+        response_text = response.choices[0].message.content.strip()
+        
+        # Clean response if wrapped in markdown
+        if response_text.startswith('```'):
+            response_text = response_text.split('\n', 1)[1]
+            if response_text.endswith('```'):
+                response_text = response_text[:-3]
+        
+        tree_structure = json.loads(response_text)
+        
+        # Create tree in database
+        tree_data = {
+            'user_id': user_id,
+            'name': name,
+            'description': tree_structure.get('description', ''),
+            'product_type': product_type,
+            'industry': industry,
+            'language': language,
+            'is_template': False,
+            'is_public': False,
+        }
+        
+        tree_result = client.table('conversation_trees').insert(tree_data).execute()
+        tree_id = tree_result.data[0]['id']
+        
+        # Recursively insert nodes
+        node_count = 0
+        max_depth = 0
+        
+        def insert_node(node_data, parent_id=None, depth=0):
+            nonlocal node_count, max_depth
+            
+            node_count += 1
+            max_depth = max(max_depth, depth)
+            
+            node = {
+                'tree_id': tree_id,
+                'parent_node_id': parent_id,
+                'speaker': node_data.get('speaker', 'seller'),
+                'node_type': node_data.get('node_type', 'action'),
+                'title': node_data.get('title', 'Untitled'),
+                'content': node_data.get('content', ''),
+                'short_content': node_data.get('short_content', node_data.get('content', '')[:100]),
+                'stage': node_data.get('stage'),
+                'coaching_tips': node_data.get('coaching_tips', []),
+                'success_probability': node_data.get('success_probability', 0.5),
+                'branch_label': node_data.get('branch_label'),
+                'branch_condition': node_data.get('branch_condition'),
+                'depth_level': depth,
+                'ai_generated': True,
+            }
+            
+            node_result = client.table('tree_nodes').insert(node).execute()
+            inserted_node_id = node_result.data[0]['id']
+            
+            # Create edge from parent
+            if parent_id:
+                edge_type = 'success' if node_data.get('success_probability', 0.5) >= 0.6 else 'objection' if node_data.get('success_probability', 0.5) < 0.35 else 'default'
+                edge = {
+                    'tree_id': tree_id,
+                    'from_node_id': parent_id,
+                    'to_node_id': inserted_node_id,
+                    'label': node_data.get('branch_label'),
+                    'edge_type': edge_type,
+                    'probability': node_data.get('success_probability', 0.33),
+                }
+                client.table('node_edges').insert(edge).execute()
+            
+            # Process children
+            children = node_data.get('children', [])
+            for child in children:
+                insert_node(child, inserted_node_id, depth + 1)
+            
+            return inserted_node_id
+        
+        # Insert all nodes starting from root
+        root_nodes = tree_structure.get('nodes', [])
+        root_node_id = None
+        for root_node in root_nodes:
+            root_node_id = insert_node(root_node)
+        
+        # Update tree with stats
+        client.table('conversation_trees').update({
+            'root_node_id': root_node_id,
+            'total_nodes': node_count,
+            'max_depth': max_depth
+        }).eq('id', tree_id).execute()
+        
+        # Fetch and return complete tree
+        return get_conversation_tree(tree_id)
+        
+    except json.JSONDecodeError as e:
+        print(f"[generate_conversation_tree] JSON Error: {e}")
+        print(f"[generate_conversation_tree] Response was: {response_text[:500]}")
+        return jsonify({'error': 'Failed to parse AI response'}), 500
+    except Exception as e:
+        print(f"[generate_conversation_tree] Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/conversation-trees/<tree_id>', methods=['PUT'])
+def update_conversation_tree(tree_id):
+    """Update a conversation tree"""
+    user_id = get_user_id_from_token()
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    data = request.get_json()
+    
+    try:
+        client = get_supabase_client()
+        
+        update_data = {
+            'updated_at': 'now()'
+        }
+        if 'name' in data:
+            update_data['name'] = data['name']
+        if 'description' in data:
+            update_data['description'] = data['description']
+        if 'is_public' in data:
+            update_data['is_public'] = data['is_public']
+        
+        result = client.table('conversation_trees').update(update_data).eq('id', tree_id).eq('user_id', user_id).execute()
+        
+        return jsonify({'success': True, 'tree': result.data[0] if result.data else None})
+        
+    except Exception as e:
+        print(f"[update_conversation_tree] Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/conversation-trees/<tree_id>', methods=['DELETE'])
+def delete_conversation_tree(tree_id):
+    """Delete a conversation tree"""
+    user_id = get_user_id_from_token()
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    try:
+        client = get_supabase_client()
+        
+        client.table('conversation_trees').delete().eq('id', tree_id).eq('user_id', user_id).execute()
+        
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        print(f"[delete_conversation_tree] Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/tree-nodes/<node_id>', methods=['GET'])
+def get_tree_node(node_id):
+    """Get a single node with its content"""
+    user_id = get_user_id_from_token()
+    
+    try:
+        client = get_supabase_client()
+        
+        node_result = client.table('tree_nodes').select('*, conversation_trees!inner(user_id, is_public, is_template)').eq('id', node_id).maybe_single().execute()
+        
+        if not node_result.data:
+            return jsonify({'error': 'Node not found'}), 404
+        
+        node = node_result.data
+        tree = node.get('conversation_trees', {})
+        
+        if tree.get('user_id') != user_id and not tree.get('is_public') and not tree.get('is_template'):
+            return jsonify({'error': 'Access denied'}), 403
+        
+        # Get content
+        content_result = client.table('tree_node_content').select('*').eq('node_id', node_id).execute()
+        node['content'] = content_result.data or []
+        
+        # Get children
+        children_result = client.table('tree_nodes').select('*').eq('parent_node_id', node_id).execute()
+        node['children'] = children_result.data or []
+        
+        return jsonify(node)
+        
+    except Exception as e:
+        print(f"[get_tree_node] Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/node-chat', methods=['POST'])
+def node_chat():
+    """Chat with AI about a specific node"""
+    user_id = get_user_id_from_token()
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    data = request.get_json()
+    node_id = data.get('node_id')
+    message = data.get('message')
+    
+    if not node_id or not message:
+        return jsonify({'error': 'node_id and message required'}), 400
+    
+    try:
+        client = get_supabase_client()
+        openai_client = OpenAI(api_key=OPENAI_API_KEY)
+        
+        # Get node context
+        node_result = client.table('tree_nodes').select('*, conversation_trees(product_type, industry)').eq('id', node_id).maybe_single().execute()
+        
+        if not node_result.data:
+            return jsonify({'error': 'Node not found'}), 404
+        
+        node = node_result.data
+        tree = node.get('conversation_trees', {})
+        
+        # Build context
+        system_prompt = f"""You are an expert sales coach helping with a {tree.get('product_type', 'product')} sales conversation.
+
+Current conversation point:
+- Stage: {node.get('stage', 'unknown')}
+- Speaker: {node.get('speaker', 'unknown')}
+- Title: {node.get('title', '')}
+- Context: {node.get('content', '')}
+
+Provide helpful, specific coaching that is:
+1. Actionable with example phrases they can use
+2. Specific to this exact moment in the conversation
+3. Aware of common objections and how to handle them
+
+If they ask for a script, give them 2-3 variations.
+If they ask about handling objections, use the LAIR method (Listen, Acknowledge, Isolate, Respond).
+Keep responses concise but helpful."""
+        
+        response = openai_client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": message}
+            ],
+            temperature=0.7,
+            max_tokens=1000
+        )
+        
+        ai_response = response.choices[0].message.content
+        
+        # Save chat history
+        chat_result = client.table('tree_node_ai_chats').select('*').eq('user_id', user_id).eq('node_id', node_id).maybe_single().execute()
+        
+        if chat_result.data:
+            messages = chat_result.data.get('messages', [])
+            messages.append({'role': 'user', 'content': message, 'timestamp': datetime.now().isoformat()})
+            messages.append({'role': 'assistant', 'content': ai_response, 'timestamp': datetime.now().isoformat()})
+            client.table('tree_node_ai_chats').update({'messages': messages, 'updated_at': 'now()'}).eq('id', chat_result.data['id']).execute()
+        else:
+            messages = [
+                {'role': 'user', 'content': message, 'timestamp': datetime.now().isoformat()},
+                {'role': 'assistant', 'content': ai_response, 'timestamp': datetime.now().isoformat()}
+            ]
+            client.table('tree_node_ai_chats').insert({'user_id': user_id, 'node_id': node_id, 'messages': messages}).execute()
+        
+        return jsonify({'response': ai_response})
+        
+    except Exception as e:
+        print(f"[node_chat] Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/practice-sessions/tree', methods=['POST'])
+def create_tree_practice_session():
+    """Start a new practice session on a tree"""
+    user_id = get_user_id_from_token()
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    data = request.get_json()
+    tree_id = data.get('tree_id')
+    mode = data.get('mode', 'explore')
+    
+    if not tree_id:
+        return jsonify({'error': 'tree_id required'}), 400
+    
+    try:
+        client = get_supabase_client()
+        
+        # Get tree's root node
+        tree_result = client.table('conversation_trees').select('root_node_id').eq('id', tree_id).maybe_single().execute()
+        
+        session = {
+            'user_id': user_id,
+            'tree_id': tree_id,
+            'mode': mode,
+            'status': 'in_progress',
+            'current_node_id': tree_result.data.get('root_node_id') if tree_result.data else None,
+            'path_taken': [],
+            'decisions_made': [],
+        }
+        
+        result = client.table('tree_practice_sessions').insert(session).execute()
+        
+        return jsonify(result.data[0] if result.data else {})
+        
+    except Exception as e:
+        print(f"[create_tree_practice_session] Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/simulation/respond', methods=['POST'])
+def simulation_respond():
+    """AI generates customer response in simulation mode"""
+    user_id = get_user_id_from_token()
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    data = request.get_json()
+    session_id = data.get('session_id')
+    node_id = data.get('node_id')
+    user_message = data.get('message')
+    
+    try:
+        client = get_supabase_client()
+        openai_client = OpenAI(api_key=OPENAI_API_KEY)
+        
+        # Get session and node context
+        session_result = client.table('tree_practice_sessions').select('*, conversation_trees(product_type, industry)').eq('id', session_id).maybe_single().execute()
+        node_result = client.table('tree_nodes').select('*').eq('id', node_id).maybe_single().execute()
+        
+        if not session_result.data or not node_result.data:
+            return jsonify({'error': 'Session or node not found'}), 404
+        
+        session = session_result.data
+        node = node_result.data
+        tree = session.get('conversation_trees', {})
+        transcript = session.get('simulation_transcript', [])
+        
+        # Build customer persona prompt
+        system_prompt = f"""You are playing the role of a customer in a sales roleplay simulation.
+
+Product being sold: {tree.get('product_type', 'a product')}
+Industry: {tree.get('industry', 'general')}
+
+Current conversation stage: {node.get('stage', 'unknown')}
+Customer response type expected: {node.get('branch_label', 'natural response')}
+
+Previous exchanges: {json.dumps(transcript[-6:]) if transcript else 'None yet'}
+
+Respond as this customer would NATURALLY respond:
+- If the salesperson is doing well, show interest but don't make it too easy
+- If they're making mistakes, express realistic concerns
+- Stay in character as a realistic prospect
+- Keep responses conversational (1-3 sentences)
+- Be somewhat skeptical but fair
+
+Return JSON with:
+{{"response": "Your customer response", "emotion": "interested|skeptical|frustrated|engaged|ready_to_buy|walking_away"}}"""
+        
+        response = openai_client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": f"The salesperson says: \"{user_message}\""}
+            ],
+            temperature=0.8,
+            max_tokens=300
+        )
+        
+        response_text = response.choices[0].message.content.strip()
+        if response_text.startswith('```'):
+            response_text = response_text.split('\n', 1)[1].rsplit('```', 1)[0]
+        
+        ai_data = json.loads(response_text)
+        
+        # Update transcript
+        transcript.append({'role': 'seller', 'text': user_message, 'timestamp': datetime.now().isoformat(), 'node_id': node_id})
+        transcript.append({'role': 'customer', 'text': ai_data.get('response', ''), 'timestamp': datetime.now().isoformat(), 'emotion': ai_data.get('emotion', 'neutral')})
+        
+        client.table('tree_practice_sessions').update({'simulation_transcript': transcript}).eq('id', session_id).execute()
+        
+        # Generate TTS for response
+        audio_url = None
+        try:
+            speech_response = openai_client.audio.speech.create(
+                model="tts-1-hd",
+                voice="echo",
+                input=ai_data.get('response', ''),
+                speed=0.95
+            )
+            audio_filename = f"sim_response_{uuid.uuid4().hex[:8]}.mp3"
+            audio_path = f"/tmp/{audio_filename}"
+            with open(audio_path, 'wb') as f:
+                for chunk in speech_response.iter_bytes():
+                    f.write(chunk)
+            audio_url = f"/api/audio/tts/{audio_filename}"
+        except Exception as audio_err:
+            print(f"[simulation_respond] TTS Error: {audio_err}")
+        
+        return jsonify({
+            'response': ai_data.get('response', ''),
+            'emotion': ai_data.get('emotion', 'neutral'),
+            'audio_url': audio_url
+        })
+        
+    except Exception as e:
+        print(f"[simulation_respond] Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
 if __name__ == '__main__':
     print(f"[Server] Starting on port 5001 with Socket.IO support")
     print(f"[Server] Deepgram configured: {bool(DEEPGRAM_API_KEY)} (speaker diarization)")
