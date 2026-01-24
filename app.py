@@ -5780,11 +5780,12 @@ def generate_conversation_tree():
                 ],
                 temperature=0.7,
                 max_tokens=4000,
-                response_format={"type": "json_object"},
-                timeout=45
+                response_format={"type": "json_object"}
             )
         except Exception as openai_err:
             print(f"[generate_tree] OpenAI error: {openai_err}")
+            import traceback
+            traceback.print_exc()
             return jsonify({'error': f'AI generation failed: {str(openai_err)}'}), 500
         
         response_text = response.choices[0].message.content.strip()
