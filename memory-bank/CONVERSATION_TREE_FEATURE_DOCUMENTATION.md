@@ -1,5 +1,7 @@
 # Conversation Tree Feature - Complete Documentation
 
+> **Last Updated**: January 24, 2026 - Tree generation now uses reliable template-based approach
+
 ## Overview
 
 The Conversation Tree is an interactive sales training tool that provides a visual, branching flowchart of sales conversations. It enables salespeople to explore different conversation paths, practice responses, and receive AI coaching at every step.
