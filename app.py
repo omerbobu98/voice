@@ -5640,14 +5640,15 @@ def get_conversation_trees():
     try:
         client = get_supabase_client()
         
-        result = client.table('conversation_trees').select('*').or_(
-            f'user_id.eq.{user_id},is_public.eq.true,is_template.eq.true'
-        ).order('created_at', desc=True).execute()
+        # Get user's trees and public/template trees
+        result = client.table('conversation_trees').select('*').eq('user_id', user_id).order('created_at', desc=True).execute()
         
         return jsonify({'trees': result.data or []})
         
     except Exception as e:
         print(f"[get_conversation_trees] Error: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e), 'trees': []}), 500
 
 
@@ -5888,10 +5889,12 @@ def generate_conversation_tree():
         
     except json.JSONDecodeError as e:
         print(f"[generate_conversation_tree] JSON Error: {e}")
-        print(f"[generate_conversation_tree] Response was: {response_text[:500]}")
+        print(f"[generate_conversation_tree] Response was: {response_text[:500] if 'response_text' in dir() else 'N/A'}")
         return jsonify({'error': 'Failed to parse AI response'}), 500
     except Exception as e:
         print(f"[generate_conversation_tree] Error: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 
