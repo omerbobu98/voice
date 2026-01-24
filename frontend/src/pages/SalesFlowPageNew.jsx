@@ -84,12 +84,16 @@ const SalesFlowPage = () => {
 
   const handleGenerateTree = async (formData) => {
     setIsGenerating(true);
+    setError(null);
     try {
       const headers = await getAuthHeaders();
       const response = await axios.post(
         `${API_URL}/api/conversation-trees/generate`,
         formData,
-        { headers }
+        { 
+          headers,
+          timeout: 120000 // 2 minute timeout for AI generation
+        }
       );
       
       setTrees(prev => [response.data, ...prev]);
@@ -97,7 +101,13 @@ const SalesFlowPage = () => {
       setShowGenerateModal(false);
     } catch (err) {
       console.error('Error generating tree:', err);
-      setError('Failed to generate conversation tree');
+      if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
+        setError('Generation is taking longer than expected. Please try again with a smaller tree depth.');
+      } else if (err.response?.data?.error) {
+        setError(err.response.data.error);
+      } else {
+        setError('Failed to generate conversation tree. Please try again.');
+      }
     } finally {
       setIsGenerating(false);
     }

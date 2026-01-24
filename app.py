@@ -5843,21 +5843,25 @@ def generate_conversation_tree():
         print(f"[generate_tree] Starting generation for {product_type}")
         
         try:
-            print(f"[generate_tree] Calling OpenAI GPT-4o...")
+            print(f"[generate_tree] Calling OpenAI GPT-4o-mini...")
             response = openai_client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4o-mini",
                 messages=[
-                    {"role": "system", "content": """You are an elite sales trainer creating professional training content. 
-Return ONLY valid JSON - no markdown, no explanation, no code blocks.
-The JSON must start with { and end with }.
-Generate comprehensive, actionable sales training content with real scripts, psychology explanations, and coaching tips."""},
+                    {"role": "system", "content": """You are an elite sales trainer. Return ONLY valid JSON.
+Generate comprehensive sales training trees with:
+- Detailed scripts (what to say word-for-word)
+- Psychology explanations (why it works)
+- Coaching tips (actionable advice)
+- Common mistakes (what to avoid)
+- Customer mindset (what they're thinking)
+Start with { and end with }. No markdown."""},
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.7,
-                max_tokens=16000,
+                max_tokens=8000,
                 response_format={"type": "json_object"}
             )
-            print(f"[generate_tree] OpenAI call successful")
+            print(f"[generate_tree] OpenAI call successful, tokens used: {response.usage.total_tokens if response.usage else 'unknown'}")
         except Exception as openai_err:
             print(f"[generate_tree] OpenAI error: {openai_err}")
             import traceback
