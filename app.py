@@ -5610,24 +5610,95 @@ def serve_tts_audio(filename):
 
 # ============ Conversation Tree API Endpoints (NEW) ============
 
-TREE_GENERATION_PROMPT = """Create a sales training conversation tree as valid JSON.
+TREE_GENERATION_PROMPT = """You are an elite sales trainer creating a comprehensive conversation decision tree for training salespeople.
 
-Product: {product_type} | Industry: {industry} | Language: {language}
+PRODUCT: {product_type}
+INDUSTRY: {industry}
+LANGUAGE: {language}
+TREE DEPTH: {depth} levels
 
-Generate a tree with {depth} levels and 15-25 nodes total.
+CREATE A BRANCHING CONVERSATION TREE with these requirements:
 
-RULES:
-1. Return ONLY valid JSON - no markdown, no explanation
-2. Every node needs: speaker, node_type, title, content, short_content
-3. Seller nodes need: stage, coaching_tips (array), why_it_works, common_mistakes (array), practice_tip
-4. Customer nodes need: branch_label, success_probability (0.0-1.0), customer_mindset, signals_to_notice (array)
-5. Use stages: opening, discovery, qualification, pain_amplification, solution, objection, closing
-6. node_type values: root (first node only), action (seller), response (customer), outcome (end nodes)
+## TREE STRUCTURE
+- Start with ONE root node (seller's opening)
+- Each seller action should have 2-4 realistic customer responses
+- Include: engaged responses, skeptical responses, objections, time constraints
+- Go {depth} levels deep with meaningful branches
+- End branches with outcome nodes (ready_for_next_step, needs_followup, lost)
 
-JSON STRUCTURE:
-{{"name":"Tree Name","description":"Description","nodes":[{{"speaker":"seller","node_type":"root","title":"Opening","content":"Full script here","short_content":"Brief summary","stage":"opening","coaching_tips":["tip1","tip2"],"why_it_works":"Psychology explanation","common_mistakes":["mistake1","mistake2"],"practice_tip":"Exercise to practice","children":[{{"speaker":"customer","node_type":"response","title":"Customer Response","content":"What customer says","short_content":"Brief","branch_label":"Response Type","success_probability":0.7,"customer_mindset":"What they think","signals_to_notice":["signal1","signal2"],"children":[]}}]}}]}}
+## SELLER NODES (speaker: "seller") must include:
+1. **content**: Full word-for-word script (50-150 words) - exactly what to say
+2. **short_content**: Brief 5-10 word summary for display
+3. **title**: Clear action title
+4. **stage**: One of: opening, discovery, qualification, pain_amplification, solution, objection, closing
+5. **coaching_tips**: Array of 3-4 specific, actionable tips
+6. **why_it_works**: 2-3 sentences explaining the psychology/sales principle behind this approach
+7. **common_mistakes**: Array of 2-3 specific mistakes salespeople make at this point
+8. **practice_tip**: One specific exercise to master this skill
 
-Generate a complete tree for selling {product_type}. Make content specific and actionable."""
+## CUSTOMER NODES (speaker: "customer") must include:
+1. **content**: Realistic customer dialogue (what they actually say)
+2. **short_content**: Brief summary
+3. **title**: Response type title
+4. **branch_label**: Short label for the edge (e.g., "Shows Interest", "Price Objection")
+5. **success_probability**: 0.0-1.0 (how likely this leads to a sale)
+6. **customer_mindset**: 2-3 sentences about what the customer is thinking/feeling
+7. **signals_to_notice**: Array of 3-4 verbal/body language cues to watch for
+
+## SALES METHODOLOGY TO USE:
+- **LAIR Method** for objections: Listen, Acknowledge, Isolate, Respond
+- **Pain Amplification**: Quantify problems in dollars and time
+- **Social Proof**: Reference neighbors, similar situations
+- **Value Before Price**: Never discuss cost before establishing value
+- **Open-Ended Questions**: Start with "Tell me about...", "How does that affect..."
+- **Assumptive Language**: "When we get started..." not "If you decide..."
+
+## CONTENT QUALITY REQUIREMENTS:
+- Scripts must be SPECIFIC to {product_type}, not generic
+- Include actual dollar amounts, timeframes, specific benefits
+- Coaching tips must be immediately actionable
+- Psychology explanations should teach WHY something works
+- Common mistakes should be things salespeople ACTUALLY do wrong
+
+## JSON OUTPUT FORMAT:
+{{
+  "name": "[Product] Sales Conversation Tree",
+  "description": "Interactive training for [product] sales conversations",
+  "nodes": [
+    {{
+      "id": "root",
+      "speaker": "seller",
+      "node_type": "root",
+      "title": "Opening Introduction",
+      "content": "[Full opening script...]",
+      "short_content": "[Brief summary]",
+      "stage": "opening",
+      "coaching_tips": ["[Tip 1]", "[Tip 2]", "[Tip 3]"],
+      "why_it_works": "[Psychology explanation...]",
+      "common_mistakes": ["[Mistake 1]", "[Mistake 2]"],
+      "practice_tip": "[Specific exercise...]",
+      "children": [
+        {{
+          "id": "response-1",
+          "speaker": "customer",
+          "node_type": "response",
+          "title": "Customer Shows Interest",
+          "content": "[What customer says...]",
+          "short_content": "[Brief]",
+          "branch_label": "Shows Interest",
+          "success_probability": 0.7,
+          "customer_mindset": "[What they're thinking...]",
+          "signals_to_notice": ["[Signal 1]", "[Signal 2]"],
+          "children": [...more nodes...]
+        }}
+      ]
+    }}
+  ]
+}}
+
+RETURN ONLY VALID JSON. No markdown, no explanation, no code blocks.
+
+Generate a complete, professional-quality sales training tree for {product_type} in the {industry} industry."""
 
 
 @app.route('/api/conversation-trees', methods=['GET'])
@@ -5772,16 +5843,21 @@ def generate_conversation_tree():
         print(f"[generate_tree] Starting generation for {product_type}")
         
         try:
+            print(f"[generate_tree] Calling OpenAI GPT-4o...")
             response = openai_client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-4o",
                 messages=[
-                    {"role": "system", "content": "You are an expert sales trainer. Return ONLY valid JSON. No markdown, no explanation, no code blocks. Start with { and end with }"},
+                    {"role": "system", "content": """You are an elite sales trainer creating professional training content. 
+Return ONLY valid JSON - no markdown, no explanation, no code blocks.
+The JSON must start with { and end with }.
+Generate comprehensive, actionable sales training content with real scripts, psychology explanations, and coaching tips."""},
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.7,
-                max_tokens=4000,
+                max_tokens=16000,
                 response_format={"type": "json_object"}
             )
+            print(f"[generate_tree] OpenAI call successful")
         except Exception as openai_err:
             print(f"[generate_tree] OpenAI error: {openai_err}")
             import traceback
