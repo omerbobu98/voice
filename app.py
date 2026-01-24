@@ -5789,178 +5789,616 @@ def create_conversation_tree():
 
 
 def get_template_tree(product_type, industry):
-    """Generate a template-based tree structure for reliable tree creation"""
+    """Generate a comprehensive branching tree based on DISC personality colors model"""
     product_display = product_type.replace('_', ' ').title()
     
     return {
         "name": f"{product_display} Sales Tree",
-        "description": f"Interactive sales training for {product_display} in {industry}",
+        "description": f"מערכת הדרכה מקיפה למכירת {product_display} - מבוססת על מודל הצבעים (אדום, צהוב, ירוק, כחול)",
         "nodes": [{
             "id": "root",
             "speaker": "seller",
             "node_type": "root",
-            "title": "Opening Introduction",
-            "content": f"Hi! Thanks for taking the time to meet with me today. I'm here to show you how {product_display} can transform your home and save you money. Before I get started, tell me - what made you interested in learning about our solutions?",
-            "short_content": "Build rapport and discover interest",
+            "title": "🎯 שלב 1: זיהוי טיפוס הלקוח",
+            "content": f"""ברוכים הבאים! לפני שנתחיל לדבר על {product_display}, המשימה הראשונה שלך היא לזהות את טיפוס האישיות של הלקוח.
+
+שאל שאלה פתוחה: "ספר/י לי קצת על עצמך ועל הבית - מה הכי חשוב לך?"
+
+הקשב היטב לתשובה ושים לב ל:
+• מהירות הדיבור שלהם
+• האם הם מתמקדים בעובדות או ברגשות?
+• האם הם ישירים או עוקפים?
+• שפת הגוף שלהם
+
+על פי התשובה, זהה את הצבע שלהם ובחר את הענף המתאים.""",
+            "short_content": "זהה את טיפוס הלקוח לפי צבע",
             "stage": "opening",
-            "coaching_tips": ["Smile and maintain eye contact", "Use their name within first 30 seconds", "Ask an open-ended question to get them talking", "Mirror their body language subtly"],
-            "why_it_works": "This opening creates reciprocity by thanking them, positions you as helpful not salesy, and immediately gets THEM talking about THEIR needs. The question puts control in their hands, building trust.",
-            "common_mistakes": ["Starting with 'Let me tell you about our product...'", "Launching into features before building rapport", "Not asking any questions in the first 60 seconds"],
-            "practice_tip": "Record yourself doing this opening 5 times. Play it back - do you sound genuinely curious or like you're reading a script?",
+            "coaching_tips": [
+                "הקשב 80% מהזמן, דבר 20%",
+                "אל תמהר לזהות - תן להם לדבר לפחות 2 דקות",
+                "שים לב לשפת גוף: ידיים שלובות = סגור, רגליים צולבות = מתגונן",
+                "רשום הערות מנטליות על מילות מפתח שהם משתמשים"
+            ],
+            "why_it_works": "כל אדם מעבד מידע אחרת. אם תדבר עם אדום כמו שמדברים עם ירוק - תאבד אותו תוך 30 שניות. זיהוי נכון = התאמה נכונה = מכירה.",
+            "common_mistakes": [
+                "להניח שכולם כמוך",
+                "לקפוץ למצגת לפני שמבינים מי מולך",
+                "להתעלם מסימנים ברורים של חוסר נוחות"
+            ],
+            "practice_tip": "בשבוע הקרוב, נסה לזהות את הצבע של 10 אנשים שאתה פוגש (לא רק לקוחות). רשום ותאמת.",
             "children": [
                 {
-                    "id": "interested-1",
+                    "id": "red-customer",
                     "speaker": "customer",
                     "node_type": "response",
-                    "title": "Customer Shows Interest",
-                    "content": "Well, we've been dealing with some issues and a neighbor mentioned you helped them. I wanted to learn more.",
-                    "short_content": "Shows interest, references neighbor",
-                    "branch_label": "Shows Interest",
-                    "success_probability": 0.7,
-                    "customer_mindset": "Hopeful but cautious. They have a real problem and someone they trust referred them. They want a solution but have likely been disappointed before.",
-                    "signals_to_notice": ["Mentions specific problem", "References trusted source", "Leans forward", "Makes eye contact"],
-                    "children": [{
-                        "id": "seller-discovery-1",
-                        "speaker": "seller",
-                        "node_type": "action",
-                        "title": "Discovery Questions",
-                        "content": f"That's exactly why most of my customers reach out! Tell me more - what specific challenges have you been facing? How long has this been going on?",
-                        "short_content": "Dig deeper into pain points",
-                        "stage": "discovery",
-                        "coaching_tips": ["Get specific details", "Show empathy", "Wait for full answer before responding", "Take notes"],
-                        "why_it_works": "By asking for specifics, you get data for ROI calculations, make the pain tangible, and show you care about THEIR situation.",
-                        "common_mistakes": ["Accepting vague answers", "Rushing to pitch", "Making it about the product"],
-                        "practice_tip": "Practice follow-up questions that start with 'Tell me more about...' or 'How does that affect...'",
-                        "children": [{
-                            "id": "customer-pain-1",
-                            "speaker": "customer",
-                            "node_type": "response",
-                            "title": "Reveals Pain Point",
-                            "content": "It's been going on for about 2 years now. We've tried a few things but nothing really worked. It's costing us a lot.",
-                            "short_content": "Shares specific pain and costs",
-                            "branch_label": "Shares Pain",
-                            "success_probability": 0.8,
-                            "customer_mindset": "Opening up, feeling heard. Starting to trust you because you're listening.",
-                            "signals_to_notice": ["Shares specific timeframes", "Mentions failed attempts", "Quantifies cost"],
-                            "children": [{
-                                "id": "seller-amplify-1",
-                                "speaker": "seller",
-                                "node_type": "action",
-                                "title": "Amplify the Pain",
-                                "content": "Two years - that's a long time to deal with this! If you don't mind me asking, what would you estimate you've spent trying to solve this? And what would it mean for your family if we could finally fix this for good?",
-                                "short_content": "Calculate total cost, future vision",
-                                "stage": "pain_amplification",
-                                "coaching_tips": ["Use specific numbers", "Paint picture of opportunity cost", "Connect to emotional impact"],
-                                "why_it_works": "Amplifying pain makes the problem feel urgent and the solution more valuable.",
-                                "common_mistakes": ["Moving too fast to solution", "Not quantifying the pain"],
-                                "practice_tip": "Practice calculating costs out loud: monthly × 12 × years = total wasted",
-                                "children": [{
-                                    "id": "outcome-ready",
+                    "title": "🔴 לקוח אדום - הדומיננטי",
+                    "content": "תקשיב, אני אדם עסוק. יש לי 15 דקות. מה יש לך להציע ומה זה עולה?",
+                    "short_content": "ישיר, חסר סבלנות, רוצה תוצאות",
+                    "branch_label": "🔴 אדום",
+                    "success_probability": 0.6,
+                    "customer_mindset": """האדום חושב:
+• 'אל תבזבז לי את הזמן'
+• 'תן לי את השורה התחתונה'
+• 'אני מקבל החלטות מהר'
+• 'אני רוצה לשלוט בשיחה'
+• 'תוכיח לי שאתה יודע מה אתה עושה'""",
+                    "signals_to_notice": [
+                        "מדבר מהר ובקול חזק",
+                        "קשר עין ישיר ואינטנסיבי",
+                        "יושב קדימה, תופס מקום",
+                        "מפסיק אותך באמצע משפט",
+                        "שואל 'כמה?' ו'מתי?' הרבה"
+                    ],
+                    "children": [
+                        {
+                            "id": "red-approach",
+                            "speaker": "seller",
+                            "node_type": "action",
+                            "title": "🔴 איך לדבר עם אדום",
+                            "content": f"""מעולה, אני מעריך את הישירות שלך. בוא ניגש לעניין:
+
+{product_display} יכול לחסוך לך 30-40% בהוצאות האנרגיה. התקנה תוך שבוע. החזר השקעה תוך 18 חודש.
+
+רוצה שאראה לך את המספרים?""",
+                            "short_content": "היה ישיר, תן מספרים, אל תבזבז זמן",
+                            "stage": "discovery",
+                            "coaching_tips": [
+                                "היה קצר ולעניין - אדומים שונאים 'פלאפל'",
+                                "דבר במספרים ועובדות",
+                                "תן לו להרגיש שהוא שולט",
+                                "אל תתנצל ואל תהסס",
+                                "היה בטוח בעצמך - הם מריחים חולשה"
+                            ],
+                            "why_it_works": "אדומים מכבדים עוצמה וישירות. אם תהיה רך או מהסס - הם יראו בך חלש ולא יסמכו עליך.",
+                            "common_mistakes": [
+                                "לספר סיפורים ארוכים",
+                                "להתנצל על המחיר",
+                                "לשאול יותר מדי שאלות אישיות",
+                                "להיות 'נחמד מדי'"
+                            ],
+                            "practice_tip": "תרגל להציג את המוצר ב-60 שניות בדיוק. השתמש בטיימר.",
+                            "children": [
+                                {
+                                    "id": "red-interested",
                                     "speaker": "customer",
-                                    "node_type": "outcome",
-                                    "title": "Ready for Solution",
-                                    "content": "Wow, I never thought about it that way. What exactly can you do to help?",
-                                    "short_content": "Engaged, wants to hear solution",
-                                    "branch_label": "Ready",
-                                    "success_probability": 0.85,
-                                    "customer_mindset": "Pain is clear, ready to hear how you can help.",
-                                    "signals_to_notice": ["Asks about solution", "Forward body language"]
-                                }]
-                            }]
-                        }]
-                    }]
+                                    "node_type": "response",
+                                    "title": "🔴 אדום מתעניין",
+                                    "content": "30-40%? תראה לי הוכחות. מי עוד בשכונה עשה את זה?",
+                                    "short_content": "רוצה הוכחות ותוצאות",
+                                    "branch_label": "מתעניין",
+                                    "success_probability": 0.75,
+                                    "customer_mindset": "מתחיל להאמין אבל צריך ראיות. לא סומך על מילים - רק על עובדות.",
+                                    "signals_to_notice": ["נשען קדימה", "שואל שאלות ספציפיות"],
+                                    "children": [
+                                        {
+                                            "id": "red-proof",
+                                            "speaker": "seller",
+                                            "node_type": "action",
+                                            "title": "🔴 תן לאדום הוכחות",
+                                            "content": f"""משפחת כהן ברחוב הסמוך התקינו לפני 8 חודשים. 
+הנה החשבונות שלהם: לפני - 1,800₪ בחודש. אחרי - 1,100₪.
+
+רוצה שאתקשר אליהם עכשיו? הם ישמחו לספר.""",
+                                            "short_content": "הוכחות מוחשיות ומספרים",
+                                            "stage": "solution",
+                                            "coaching_tips": [
+                                                "תמיד תהיה מוכן עם 3 דוגמאות מקומיות",
+                                                "הראה מסמכים אמיתיים",
+                                                "הצע שיחה עם לקוח קיים",
+                                                "אל תגזים - אדומים מריחים שקר"
+                                            ],
+                                            "why_it_works": "אדומים מאמינים לעובדות, לא להבטחות. ראיות מוחשיות = אמון.",
+                                            "common_mistakes": ["להבטיח יותר מדי", "לא להיות מוכן עם ראיות"],
+                                            "practice_tip": "צור תיקיית 'הוכחות' בטלפון עם תמונות וחשבונות של לקוחות מרוצים.",
+                                            "children": [
+                                                {
+                                                    "id": "red-close",
+                                                    "speaker": "customer",
+                                                    "node_type": "outcome",
+                                                    "title": "🔴 אדום מוכן לסגור",
+                                                    "content": "טוב, משכנעת. מתי אתה יכול להתחיל?",
+                                                    "short_content": "מוכן להחלטה",
+                                                    "branch_label": "סוגר",
+                                                    "success_probability": 0.9,
+                                                    "customer_mindset": "החליט. רוצה לסגור עכשיו ולהמשיך הלאה.",
+                                                    "signals_to_notice": ["שואל על לוחות זמנים", "מוציא לוח שנה"]
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                },
+                                {
+                                    "id": "red-objection",
+                                    "speaker": "customer",
+                                    "node_type": "response",
+                                    "title": "🔴 התנגדות אדום",
+                                    "content": "יקר מדי. המתחרים נותנים יותר זול.",
+                                    "short_content": "מתנגד למחיר",
+                                    "branch_label": "מתנגד",
+                                    "success_probability": 0.4,
+                                    "customer_mindset": "בודק אותך. רוצה לראות אם תתפרק או תעמוד על שלך.",
+                                    "signals_to_notice": ["טון תקיף", "משווה למתחרים"],
+                                    "children": [
+                                        {
+                                            "id": "red-handle-objection",
+                                            "speaker": "seller",
+                                            "node_type": "action",
+                                            "title": "🔴 טיפול בהתנגדות אדום",
+                                            "content": """אתה צודק שיש אופציות זולות יותר. השאלה היא לא מה עולה פחות היום - אלא מה יעלה לך יותר בטווח הארוך.
+
+המתחרים משתמשים בחומרים שמחזיקים 5 שנים. אנחנו - 25 שנה. תעשה את החשבון.""",
+                                            "short_content": "אל תתנצל, תן לוגיקה",
+                                            "stage": "objection",
+                                            "coaching_tips": [
+                                                "אל תוריד מחיר מיד - זה סימן חולשה",
+                                                "השתמש בלוגיקה, לא ברגש",
+                                                "תן לו 'לנצח' במשהו קטן",
+                                                "הצע ערך מוסף במקום הנחה"
+                                            ],
+                                            "why_it_works": "אדומים מכבדים מי שעומד על שלו. אם תתמוטט מיד - הם יחשבו שרימית אותם מההתחלה.",
+                                            "common_mistakes": ["להוריד מחיר מיד", "להתנצל", "להראות חולשה"],
+                                            "practice_tip": "תרגל 5 תשובות להתנגדויות מחיר בלי לומר 'אני יכול לתת הנחה'.",
+                                            "children": []
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
                 },
                 {
-                    "id": "skeptical-1",
+                    "id": "yellow-customer",
                     "speaker": "customer",
                     "node_type": "response",
-                    "title": "Customer Skeptical",
-                    "content": "I've heard about products like this before. They all claim to work but do they really?",
-                    "short_content": "Expresses doubt",
-                    "branch_label": "Skeptical",
-                    "success_probability": 0.4,
-                    "customer_mindset": "Has been burned before. Needs proof, not promises. Defensive posture.",
-                    "signals_to_notice": ["Arms crossed", "Leaning back", "Skeptical tone", "References past disappointments"],
-                    "children": [{
-                        "id": "seller-proof-1",
-                        "speaker": "seller",
-                        "node_type": "action",
-                        "title": "Provide Social Proof",
-                        "content": "That's a great question, and honestly, you SHOULD be skeptical! Let me show you some real results from customers right here in your area. This is the Johnson family on Oak Street - see the difference?",
-                        "short_content": "Validate skepticism, show proof",
-                        "stage": "solution",
-                        "coaching_tips": ["Validate their skepticism", "Use local examples", "Show visual proof", "Let results speak"],
-                        "why_it_works": "Agreeing with their skepticism disarms them. Local proof is more believable than distant claims.",
-                        "common_mistakes": ["Getting defensive", "Making more claims without proof"],
-                        "practice_tip": "Always have 3 local success stories ready with specific results.",
-                        "children": []
-                    }]
+                    "title": "🟡 לקוח צהוב - החברותי",
+                    "content": "היי! איזה כיף שבאת! אתה חייב לשמוע מה קרה לנו בשבוע שעבר... אה, ואיך הגעת לתחום הזה?",
+                    "short_content": "חברותי, מדבר הרבה, אוהב לספר סיפורים",
+                    "branch_label": "🟡 צהוב",
+                    "success_probability": 0.7,
+                    "customer_mindset": """הצהוב חושב:
+• 'איזה כיף אורח!'
+• 'בוא נכיר קודם'
+• 'אני רוצה שתאהב אותי'
+• 'החלטות קשות לי'
+• 'מה החברים יגידו?'""",
+                    "signals_to_notice": [
+                        "מדבר הרבה ובאנרגיה",
+                        "קופץ מנושא לנושא",
+                        "נוגע בך (יד על הכתף)",
+                        "מציע קפה/שתייה מיד",
+                        "משתף סיפורים אישיים"
+                    ],
+                    "children": [
+                        {
+                            "id": "yellow-approach",
+                            "speaker": "seller",
+                            "node_type": "action",
+                            "title": "🟡 איך לדבר עם צהוב",
+                            "content": f"""וואו, איזה סיפור! אני חייב לשמוע את ההמשך!
+
+אגב, אני בתחום הזה כבר 8 שנים ואני פשוט אוהב לעזור למשפחות. יש לי סיפור מטורף על משפחה בשכונה הסמוכה - הם היו בדיוק במצב שלכם...
+
+אתה צריך לשמוע מה קרה להם עם {product_display}!""",
+                            "short_content": "היה חברותי, ספר סיפורים, תן להם לדבר",
+                            "stage": "discovery",
+                            "coaching_tips": [
+                                "תן להם לדבר - הם צריכים את זה",
+                                "ספר סיפורים עם אנשים",
+                                "השתמש בהומור",
+                                "הראה התלהבות (גם אם מוגזמת)",
+                                "אל תהיה יבש או עסקי מדי"
+                            ],
+                            "why_it_works": "צהובים קונים מאנשים שהם אוהבים. אם יאהבו אותך - ימליצו עליך לכל העולם.",
+                            "common_mistakes": [
+                                "לקפוץ למספרים ועובדות",
+                                "להיות רשמי מדי",
+                                "לקטוע אותם באמצע סיפור",
+                                "לדחוף להחלטה"
+                            ],
+                            "practice_tip": "הכן 5 סיפורי לקוחות מעניינים עם התחלה, אמצע וסוף מפתיע.",
+                            "children": [
+                                {
+                                    "id": "yellow-excited",
+                                    "speaker": "customer",
+                                    "node_type": "response",
+                                    "title": "🟡 צהוב מתלהב",
+                                    "content": "וואו, זה נשמע מדהים! בעלי חייב לשמוע את זה! מתי אתה יכול לחזור כשהוא פה?",
+                                    "short_content": "מתלהב אבל רוצה אישור מאחרים",
+                                    "branch_label": "מתלהב",
+                                    "success_probability": 0.65,
+                                    "customer_mindset": "אוהב את הרעיון אבל פוחד להחליט לבד. צריך 'גיבוי'.",
+                                    "signals_to_notice": ["מדבר בהתלהבות", "מזכיר אנשים אחרים"],
+                                    "children": [
+                                        {
+                                            "id": "yellow-social-proof",
+                                            "speaker": "seller",
+                                            "node_type": "action",
+                                            "title": "🟡 תן לצהוב הוכחה חברתית",
+                                            "content": f"""בטח! אגב, משפחת לוי למטה התקינו את אותו הדבר. היא סיפרה לי שכל השכנות שואלות אותה על זה.
+
+תרצי שאשאיר לך כמה תמונות לפני/אחרי שתוכלי להראות לו? וגם יש לי סרטון קצר של לקוחות מספרים...""",
+                                            "short_content": "השתמש בהוכחה חברתית והמלצות",
+                                            "stage": "solution",
+                                            "coaching_tips": [
+                                                "הראה שאחרים כבר עשו את זה",
+                                                "תן חומרים שיכולים להראות לאחרים",
+                                                "הזכר שכנים/חברים",
+                                                "אל תלחץ - צהובים בורחים מלחץ"
+                                            ],
+                                            "why_it_works": "צהובים רוצים להרגיש שהם חלק מקבוצה, לא ראשונים לעשות משהו.",
+                                            "common_mistakes": ["ללחוץ להחלטה מידית", "לזלזל בצורך שלהם באישור"],
+                                            "practice_tip": "צור סרטון קצר (1 דקה) של לקוחות מרוצים מספרים על החוויה.",
+                                            "children": [
+                                                {
+                                                    "id": "yellow-close",
+                                                    "speaker": "customer",
+                                                    "node_type": "outcome",
+                                                    "title": "🟡 צהוב מוכן עם חברים",
+                                                    "content": "דיברתי עם השכנה והיא ממליצה בחום! בוא נעשה את זה!",
+                                                    "short_content": "קיבל אישור חברתי",
+                                                    "branch_label": "סוגר",
+                                                    "success_probability": 0.85,
+                                                    "customer_mindset": "מרגיש בטוח כי אחרים תומכים בהחלטה.",
+                                                    "signals_to_notice": ["מזכיר שדיבר עם אחרים", "נראה רגוע יותר"]
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                },
+                                {
+                                    "id": "yellow-distracted",
+                                    "speaker": "customer",
+                                    "node_type": "response",
+                                    "title": "🟡 צהוב מוסח",
+                                    "content": "אה כן, זה נשמע טוב... אה רגע, אתה חייב לראות את הגינה החדשה שלנו!",
+                                    "short_content": "קופץ מנושא לנושא",
+                                    "branch_label": "מוסח",
+                                    "success_probability": 0.4,
+                                    "customer_mindset": "לא ממוקד. צריך לעזור לו להתרכז בעדינות.",
+                                    "signals_to_notice": ["מחליף נושאים", "לא שואל שאלות על המוצר"],
+                                    "children": [
+                                        {
+                                            "id": "yellow-redirect",
+                                            "speaker": "seller",
+                                            "node_type": "action",
+                                            "title": "🟡 החזר צהוב למסלול",
+                                            "content": """וואו, הגינה מהממת! אתם בהחלט יודעים לטפח!
+
+אגב, דיברת קודם על החשבונות הגבוהים... תארי לך שהיית יכולה להשתמש בכסף הזה לעוד שיפורים לגינה! מה היית עושה עם 500₪ נוספים בחודש?""",
+                                            "short_content": "קשר לחזון שלהם, לא ללחוץ",
+                                            "stage": "discovery",
+                                            "coaching_tips": [
+                                                "אל תתעלם - הראה עניין אמיתי",
+                                                "קשר את ההסחה בחזרה למוצר",
+                                                "השתמש בחזון עתידי",
+                                                "היה סבלני - זה לוקח זמן"
+                                            ],
+                                            "why_it_works": "צהובים לא אוהבים שמתעלמים מהם. אם תכבד את ההסחה ותקשר אותה - ירגישו שמבינים אותם.",
+                                            "common_mistakes": ["להתעלם מההסחה", "להראות תסכול", "לדחוף חזק מדי"],
+                                            "practice_tip": "תרגל להחזיר שיחה למסלול עם 'אגב, דיברת קודם על...' + חזון.",
+                                            "children": []
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
                 },
                 {
-                    "id": "objection-price-1",
+                    "id": "green-customer",
                     "speaker": "customer",
                     "node_type": "response",
-                    "title": "Price Objection Early",
-                    "content": "Before we go any further - how much does this cost? I don't want to waste your time if it's out of our budget.",
-                    "short_content": "Asks about price immediately",
-                    "branch_label": "Price Question",
-                    "success_probability": 0.3,
-                    "customer_mindset": "Afraid of being sold something expensive. Wants to qualify you out quickly.",
-                    "signals_to_notice": ["Direct eye contact", "Arms crossed", "Rushed tone"],
-                    "children": [{
-                        "id": "seller-defer-1",
-                        "speaker": "seller",
-                        "node_type": "action",
-                        "title": "Defer Price, Build Value",
-                        "content": "I appreciate you being upfront! The investment depends on your specific situation and needs. But before we talk numbers, let me make sure this is even the right solution for you - would that be fair?",
-                        "short_content": "Defer price, establish value first",
-                        "stage": "objection",
-                        "coaching_tips": ["Never give price before value", "Use 'investment' not 'cost'", "Get permission to continue", "Stay calm and confident"],
-                        "why_it_works": "Deferring price while showing respect for their time builds trust. Getting permission keeps them engaged.",
-                        "common_mistakes": ["Giving a number immediately", "Getting defensive", "Losing confidence"],
-                        "practice_tip": "Practice the LAIR method: Listen, Acknowledge, Isolate, Respond.",
-                        "children": [
-                            {
-                                "id": "customer-agrees-1",
-                                "speaker": "customer",
-                                "node_type": "response",
-                                "title": "Agrees to Continue",
-                                "content": "Sure, that makes sense. Go ahead.",
-                                "short_content": "Agrees to hear more",
-                                "branch_label": "Agrees",
-                                "success_probability": 0.6,
-                                "customer_mindset": "Willing to give you a chance. Guard is lowering.",
-                                "signals_to_notice": ["Relaxed posture", "Nodding"],
-                                "children": []
-                            },
-                            {
-                                "id": "customer-insists-1",
-                                "speaker": "customer",
-                                "node_type": "response",
-                                "title": "Insists on Price",
-                                "content": "No, I really need a ballpark figure first.",
-                                "short_content": "Insists on knowing price",
-                                "branch_label": "Insists",
-                                "success_probability": 0.35,
-                                "customer_mindset": "Has a hard budget limit. Needs to know if this is even possible.",
-                                "signals_to_notice": ["Firm tone", "Won't move forward"],
-                                "children": []
-                            }
-                        ]
-                    }]
+                    "title": "🟢 לקוח ירוק - היציב",
+                    "content": "שלום... כן, אנחנו חשבנו על זה כבר זמן מה... רצינו לבדוק כמה אפשרויות לפני שמחליטים משהו...",
+                    "short_content": "רגוע, זהיר, לא ממהר להחליט",
+                    "branch_label": "🟢 ירוק",
+                    "success_probability": 0.5,
+                    "customer_mindset": """הירוק חושב:
+• 'אני לא רוצה לטעות'
+• 'מה המשפחה תגיד?'
+• 'צריך לחשוב על זה'
+• 'אני לא אוהב שינויים'
+• 'מה אם זה לא יעבוד?'""",
+                    "signals_to_notice": [
+                        "מדבר לאט ובשקט",
+                        "הרבה 'אממ' ו'צריך לחשוב'",
+                        "לא יוזם שאלות",
+                        "מסתכל על בן/בת הזוג",
+                        "מהנהן הרבה אבל לא מתחייב"
+                    ],
+                    "children": [
+                        {
+                            "id": "green-approach",
+                            "speaker": "seller",
+                            "node_type": "action",
+                            "title": "🟢 איך לדבר עם ירוק",
+                            "content": f"""אני מבין לגמרי. זו החלטה חשובה ושווה לקחת את הזמן.
+
+בוא נעשה ככה - אני אסביר לך בדיוק איך התהליך עובד, צעד אחר צעד, בלי שום התחייבות. ואם תרגיש שזה מתאים - נמשיך משם. נשמע הוגן?
+
+קודם כל, ספר לי קצת על המשפחה - כמה אתם? יש ילדים?""",
+                            "short_content": "היה סבלני, אל תלחץ, התמקד במשפחה",
+                            "stage": "discovery",
+                            "coaching_tips": [
+                                "דבר לאט - הם צריכים זמן לעבד",
+                                "הדגש ביטחון ויציבות",
+                                "אל תלחץ להחלטה",
+                                "התמקד באיך זה יעזור למשפחה",
+                                "תן הרבה זמן לשאלות"
+                            ],
+                            "why_it_works": "ירוקים פוחדים משינוי. אם תגרום להם להרגיש בטוחים ולא לחוצים - הם יתחברו אליך.",
+                            "common_mistakes": [
+                                "ללחוץ להחלטה מהירה",
+                                "לדבר על 'הזדמנות חד פעמית'",
+                                "להיות נלהב מדי",
+                                "לדבר מהר"
+                            ],
+                            "practice_tip": "תרגל לדבר ב-70% מהמהירות הרגילה שלך. הקלט ובדוק.",
+                            "children": [
+                                {
+                                    "id": "green-comfortable",
+                                    "speaker": "customer",
+                                    "node_type": "response",
+                                    "title": "🟢 ירוק מרגיש בנוח",
+                                    "content": "כן, אנחנו משפחה של 4. הילדים עדיין קטנים. אנחנו רוצים משהו שיהיה בטוח וטוב לטווח ארוך...",
+                                    "short_content": "נפתח, מדבר על המשפחה",
+                                    "branch_label": "נפתח",
+                                    "success_probability": 0.6,
+                                    "customer_mindset": "מתחיל להרגיש בטוח. מתמקד בטווח ארוך ובמשפחה.",
+                                    "signals_to_notice": ["משתף על המשפחה", "מדבר על עתיד", "שפת גוף נינוחה יותר"],
+                                    "children": [
+                                        {
+                                            "id": "green-safety",
+                                            "speaker": "seller",
+                                            "node_type": "action",
+                                            "title": "🟢 תן לירוק ביטחון",
+                                            "content": f"""זה בדיוק מה שאני שומע מהרבה הורים.
+
+{product_display} שלנו מגיע עם אחריות של 25 שנה - זה אומר שעד שהילדים יגמרו את הצבא, אתם מכוסים.
+
+ואגב, יש לנו תוכנית תחזוקה שנתית שכלולה במחיר - אנחנו באים, בודקים הכל, מוודאים שהכל תקין. בלי הפתעות.
+
+רוצה שאראה לך בדיוק מה כלול?""",
+                                            "short_content": "הדגש אחריות, יציבות, ביטחון",
+                                            "stage": "solution",
+                                            "coaching_tips": [
+                                                "הדגש אחריות וביטחון",
+                                                "דבר על טווח ארוך",
+                                                "הצג תמיכה מתמשכת",
+                                                "הסר את הסיכון"
+                                            ],
+                                            "why_it_works": "ירוקים צריכים להרגיש שאין סיכון. ככל שתסיר חששות - כך יתחברו.",
+                                            "common_mistakes": ["לדבר על 'חדשנות' ו'שינוי'", "להדגיש מהירות"],
+                                            "practice_tip": "הכן רשימה של 10 דרכים שאתה מפחית סיכון ללקוח.",
+                                            "children": [
+                                                {
+                                                    "id": "green-close",
+                                                    "speaker": "customer",
+                                                    "node_type": "outcome",
+                                                    "title": "🟢 ירוק מוכן (לאט)",
+                                                    "content": "אני חושב שאנחנו רוצים להתקדם... אפשר לחשוב על זה עוד יום-יומיים ולחזור אליך?",
+                                                    "short_content": "מעוניין אבל צריך זמן",
+                                                    "branch_label": "מתקדם",
+                                                    "success_probability": 0.75,
+                                                    "customer_mindset": "החליט ברגע שאמר 'רוצים להתקדם'. יום-יומיים זו פורמליות.",
+                                                    "signals_to_notice": ["שימוש ב'אנחנו'", "מבקש המשך קשר"]
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                },
+                                {
+                                    "id": "green-hesitant",
+                                    "speaker": "customer",
+                                    "node_type": "response",
+                                    "title": "🟢 ירוק מהסס",
+                                    "content": "אני לא יודע... זה נשמע טוב אבל... צריך לחשוב על זה...",
+                                    "short_content": "מהסס, לא בטוח",
+                                    "branch_label": "מהסס",
+                                    "success_probability": 0.3,
+                                    "customer_mindset": "חושש. צריך עוד ביטחון. לא מוכן להתחייב.",
+                                    "signals_to_notice": ["הרבה 'אבל'", "מסתכל למטה", "שפת גוף סגורה"],
+                                    "children": [
+                                        {
+                                            "id": "green-reassure",
+                                            "speaker": "seller",
+                                            "node_type": "action",
+                                            "title": "🟢 הרגע את הירוק",
+                                            "content": """אני מבין לחלוטין. זו החלטה חשובה ואין שום סיבה למהר.
+
+בוא נעשה ככה - אני אשאיר לך את כל החומרים, תשבו ביחד, תחשבו על זה בנחת.
+
+יש משהו ספציפי שמטריד אותך? אולי אני יכול לתת לך מידע שיעזור לך להחליט?""",
+                                            "short_content": "אל תלחץ, שאל מה מטריד",
+                                            "stage": "objection",
+                                            "coaching_tips": [
+                                                "אל תלחץ - זה יגרום לו לסגת",
+                                                "שאל מה בדיוק מטריד",
+                                                "תן זמן אמיתי",
+                                                "השאר חומרים כתובים"
+                                            ],
+                                            "why_it_works": "ירוקים צריכים לעבד לבד. אם תלחץ - תאבד אותם לנצח.",
+                                            "common_mistakes": ["ללחוץ 'רק היום'", "להתעלם מהחששות", "לדבר יותר מדי"],
+                                            "practice_tip": "תרגל לסיים שיחה עם 'קח את הזמן' ולהתכוון לזה.",
+                                            "children": []
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
                 },
                 {
-                    "id": "busy-1",
+                    "id": "blue-customer",
                     "speaker": "customer",
                     "node_type": "response",
-                    "title": "Customer Busy",
-                    "content": "Look, I only have about 10 minutes. Can you give me the quick version?",
-                    "short_content": "Limited time",
-                    "branch_label": "Limited Time",
-                    "success_probability": 0.25,
-                    "customer_mindset": "Genuinely busy or using time as an excuse. Either way, need to be efficient.",
-                    "signals_to_notice": ["Checking watch/phone", "Standing", "Rushed speech"],
-                    "children": []
+                    "title": "🔵 לקוח כחול - האנליטי",
+                    "content": "לפני שנתחיל - יש לי כמה שאלות. מה בדיוק ה-R-Value של החומר? איזה תקנים זה עומד בהם? יש לך מחקרים?",
+                    "short_content": "שואל הרבה שאלות טכניות",
+                    "branch_label": "🔵 כחול",
+                    "success_probability": 0.55,
+                    "customer_mindset": """הכחול חושב:
+• 'אני צריך את כל הנתונים'
+• 'אל תטעה אותי'
+• 'איפה ההוכחות?'
+• 'זה הגיוני?'
+• 'מה הפרטים הקטנים?'""",
+                    "signals_to_notice": [
+                        "שואל שאלות מפורטות",
+                        "רושם הערות",
+                        "לא מחייך הרבה",
+                        "שפה פורמלית",
+                        "רוצה מסמכים ומפרטים"
+                    ],
+                    "children": [
+                        {
+                            "id": "blue-approach",
+                            "speaker": "seller",
+                            "node_type": "action",
+                            "title": "🔵 איך לדבר עם כחול",
+                            "content": f"""שאלות מצוינות. אני אוהב לקוחות שעושים מחקר.
+
+ה-R-Value שלנו הוא 6.5 לאינץ', שזה הגבוה בשוק לסוג הזה. אנחנו עומדים בתקן ISO 9001 ו-EN 13501.
+
+הנה - זה הדו"ח של מעבדת התקנים. ופה יש לי מחקר של אוניברסיטת ת"א על יעילות אנרגטית.
+
+רוצה שאעבור על המספרים איתך?""",
+                            "short_content": "תן נתונים, מסמכים, מחקרים",
+                            "stage": "discovery",
+                            "coaching_tips": [
+                                "הגע מוכן עם כל המסמכים",
+                                "היה מדויק - כחולים תופסים טעויות",
+                                "אל תגזים או תעגל מספרים",
+                                "תן להם זמן לקרוא",
+                                "אם לא יודע - אמור 'אבדוק ואחזור אליך'"
+                            ],
+                            "why_it_works": "כחולים סומכים על נתונים, לא על רגשות. ככל שתהיה מדויק יותר - כך יסמכו עליך יותר.",
+                            "common_mistakes": [
+                                "לעגל מספרים ('בערך 30%')",
+                                "להמציא נתונים",
+                                "לנסות להיות חברותי מדי",
+                                "לדחוף להחלטה רגשית"
+                            ],
+                            "practice_tip": "הכן 'חוברת טכנית' עם כל המפרטים, תקנים ומחקרים.",
+                            "children": [
+                                {
+                                    "id": "blue-satisfied",
+                                    "speaker": "customer",
+                                    "node_type": "response",
+                                    "title": "🔵 כחול מרוצה מהנתונים",
+                                    "content": "אוקיי, המספרים נראים טוב. עכשיו תסביר לי בדיוק איך התהליך עובד - שלב אחר שלב.",
+                                    "short_content": "מרוצה, רוצה לדעת את התהליך",
+                                    "branch_label": "מרוצה",
+                                    "success_probability": 0.7,
+                                    "customer_mindset": "הנתונים עברו. עכשיו רוצה להבין את התהליך לפרטי פרטים.",
+                                    "signals_to_notice": ["מהנהן", "רושם עוד הערות", "שואל על התהליך"],
+                                    "children": [
+                                        {
+                                            "id": "blue-process",
+                                            "speaker": "seller",
+                                            "node_type": "action",
+                                            "title": "🔵 תן לכחול את התהליך",
+                                            "content": f"""בשמחה. התהליך שלנו מתחלק ל-5 שלבים:
+
+1. **בדיקה ראשונית** (שעה) - טכנאי בודק את המצב הקיים
+2. **תכנון** (3 ימים) - מהנדס מכין תוכנית מפורטת
+3. **אישור** - אתה מאשר את התוכנית לפני שמתחילים
+4. **התקנה** (2-3 ימים) - צוות מקצועי מבצע
+5. **בדיקת איכות** - בודקים שהכל לפי המפרט
+
+כל שלב מתועד ואתה מקבל דו"ח. שאלות?""",
+                                            "short_content": "פרט את התהליך צעד אחר צעד",
+                                            "stage": "solution",
+                                            "coaching_tips": [
+                                                "פרט כל שלב",
+                                                "תן לוחות זמנים מדויקים",
+                                                "הסבר מה קורה בכל שלב",
+                                                "הדגש שליטה ותיעוד"
+                                            ],
+                                            "why_it_works": "כחולים צריכים לדעת מה לצפות. ככל שיותר ברור - כך יותר שליטה = יותר נוח.",
+                                            "common_mistakes": ["לדבר באופן כללי", "לא לדעת תשובות", "לקפוץ שלבים"],
+                                            "practice_tip": "צור תרשים זרימה של התהליך שתוכל להראות.",
+                                            "children": [
+                                                {
+                                                    "id": "blue-close",
+                                                    "speaker": "customer",
+                                                    "node_type": "outcome",
+                                                    "title": "🔵 כחול מוכן לאחר מחקר",
+                                                    "content": "טוב, בדקתי את כל המסמכים. הכל נראה תקין. מתי נתחיל?",
+                                                    "short_content": "עשה מחקר, מוכן להתקדם",
+                                                    "branch_label": "סוגר",
+                                                    "success_probability": 0.85,
+                                                    "customer_mindset": "עשה את שיעורי הבית. החליט על סמך היגיון.",
+                                                    "signals_to_notice": ["מדבר בביטחון", "שואל על לוחות זמנים"]
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                },
+                                {
+                                    "id": "blue-skeptical",
+                                    "speaker": "customer",
+                                    "node_type": "response",
+                                    "title": "🔵 כחול מפקפק",
+                                    "content": "המספרים האלה נראים גבוהים מדי. יש לך מקורות בלתי תלויים שמאשרים את זה?",
+                                    "short_content": "מפקפק בנתונים",
+                                    "branch_label": "מפקפק",
+                                    "success_probability": 0.4,
+                                    "customer_mindset": "לא משוכנע. רוצה הוכחות חיצוניות, לא רק שלך.",
+                                    "signals_to_notice": ["מרים גבה", "מסתכל בספקנות על המסמכים"],
+                                    "children": [
+                                        {
+                                            "id": "blue-evidence",
+                                            "speaker": "seller",
+                                            "node_type": "action",
+                                            "title": "🔵 ספק לכחול ראיות חיצוניות",
+                                            "content": """שאלה לגיטימית לחלוטין. הנה מה שיש לי:
+
+1. דו"ח של מכון התקנים הישראלי - בלתי תלוי
+2. מחקר של הטכניון משנת 2023
+3. סקירה באתר של משרד האנרגיה
+
+ואם תרצה - אני יכול לתת לך טלפון של 3 לקוחות שתוכל לדבר איתם ישירות.
+
+מה יעזור לך לבדוק את זה?""",
+                                            "short_content": "ספק מקורות בלתי תלויים",
+                                            "stage": "objection",
+                                            "coaching_tips": [
+                                                "אל תיעלב - זו לא התקפה אישית",
+                                                "ספק מקורות חיצוניים",
+                                                "הצע קשר עם לקוחות קיימים",
+                                                "תן זמן לבדיקה"
+                                            ],
+                                            "why_it_works": "כחולים מכבדים את מי שמכבד את הצורך שלהם באימות עצמאי.",
+                                            "common_mistakes": ["להתגונן", "להעליב את האינטליגנציה שלהם", "לדחוף בלי הוכחות"],
+                                            "practice_tip": "הכן רשימת מקורות חיצוניים ובלתי תלויים שתומכים בטענות שלך.",
+                                            "children": []
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
                 }
             ]
         }]
