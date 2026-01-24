@@ -129,31 +129,6 @@ const SalesFlowPage = () => {
     }
   };
 
-  const handleAskAI = (node) => {
-    console.log('Ask AI about node:', node);
-  };
-
-  const handlePlayAudio = async (text) => {
-    try {
-      const response = await axios.post(`${API_URL}/api/tts`, {
-        text,
-        voice: 'nova',
-        hd: true,
-        speed: 0.9,
-      });
-      
-      if (response.data.audio_url) {
-        const audio = new Audio(`${API_URL}${response.data.audio_url}`);
-        await audio.play();
-      }
-    } catch (err) {
-      console.error('Error playing audio:', err);
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'en-US';
-      utterance.rate = 0.9;
-      window.speechSynthesis.speak(utterance);
-    }
-  };
 
   return (
     <div className="h-screen flex flex-col bg-gray-950">
@@ -285,8 +260,7 @@ const SalesFlowPage = () => {
                 <NodeDetailPanel
                   node={selectedNode}
                   onClose={() => setSelectedNode(null)}
-                  onAskAI={handleAskAI}
-                  onPlayAudio={handlePlayAudio}
+                  treeInfo={selectedTree}
                 />
               )}
             </>
