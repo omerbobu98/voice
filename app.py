@@ -5638,7 +5638,7 @@ def get_conversation_trees():
         return jsonify({'error': 'Authentication required', 'trees': []}), 401
     
     try:
-        client = get_supabase_client()
+        client = get_supabase()
         
         # Get user's trees and public/template trees
         result = client.table('conversation_trees').select('*').eq('user_id', user_id).order('created_at', desc=True).execute()
@@ -5658,7 +5658,7 @@ def get_conversation_tree(tree_id):
     user_id = get_user_id_from_token()
     
     try:
-        client = get_supabase_client()
+        client = get_supabase()
         
         # Get tree
         tree_result = client.table('conversation_trees').select('*').eq('id', tree_id).maybe_single().execute()
@@ -5720,7 +5720,7 @@ def create_conversation_tree():
     data = request.get_json()
     
     try:
-        client = get_supabase_client()
+        client = get_supabase()
         
         tree_data = {
             'user_id': user_id,
@@ -5758,7 +5758,7 @@ def generate_conversation_tree():
     name = data.get('name', f'Sales Flow - {product_type}')
     
     try:
-        client = get_supabase_client()
+        client = get_supabase()
         openai_client = OpenAI(api_key=OPENAI_API_KEY)
         
         # Generate tree structure using AI
@@ -5908,7 +5908,7 @@ def update_conversation_tree(tree_id):
     data = request.get_json()
     
     try:
-        client = get_supabase_client()
+        client = get_supabase()
         
         update_data = {
             'updated_at': 'now()'
@@ -5937,7 +5937,7 @@ def delete_conversation_tree(tree_id):
         return jsonify({'error': 'Authentication required'}), 401
     
     try:
-        client = get_supabase_client()
+        client = get_supabase()
         
         client.table('conversation_trees').delete().eq('id', tree_id).eq('user_id', user_id).execute()
         
@@ -5954,7 +5954,7 @@ def get_tree_node(node_id):
     user_id = get_user_id_from_token()
     
     try:
-        client = get_supabase_client()
+        client = get_supabase()
         
         node_result = client.table('tree_nodes').select('*, conversation_trees!inner(user_id, is_public, is_template)').eq('id', node_id).maybe_single().execute()
         
@@ -6011,7 +6011,7 @@ def node_chat():
         elif node_id:
             # Try to look up in database (only works for valid UUIDs)
             try:
-                client = get_supabase_client()
+                client = get_supabase()
                 node_result = client.table('tree_nodes').select('*, conversation_trees(product_type, industry)').eq('id', node_id).maybe_single().execute()
                 if node_result.data:
                     node = node_result.data
@@ -6069,7 +6069,7 @@ Keep answers focused and actionable. No fluff."""
         # Only save chat history for real DB nodes (not sample data)
         if not is_sample_node and node_id:
             try:
-                client = get_supabase_client()
+                client = get_supabase()
                 chat_result = client.table('tree_node_ai_chats').select('*').eq('user_id', user_id).eq('node_id', node_id).maybe_single().execute()
                 
                 if chat_result.data:
@@ -6110,7 +6110,7 @@ def create_tree_practice_session():
         return jsonify({'error': 'tree_id required'}), 400
     
     try:
-        client = get_supabase_client()
+        client = get_supabase()
         
         # Get tree's root node
         tree_result = client.table('conversation_trees').select('root_node_id').eq('id', tree_id).maybe_single().execute()
@@ -6147,7 +6147,7 @@ def simulation_respond():
     user_message = data.get('message')
     
     try:
-        client = get_supabase_client()
+        client = get_supabase()
         openai_client = OpenAI(api_key=OPENAI_API_KEY)
         
         # Get session and node context
