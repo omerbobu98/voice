@@ -5771,16 +5771,21 @@ def generate_conversation_tree():
         
         print(f"[generate_tree] Starting generation for {product_type}")
         
-        response = openai_client.chat.completions.create(
-            model="gpt-4.1",
-            messages=[
-                {"role": "system", "content": "You are an expert sales trainer. Return ONLY valid JSON. No markdown, no explanation, no code blocks. Start with { and end with }"},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.7,
-            max_tokens=8000,
-            response_format={"type": "json_object"}
-        )
+        try:
+            response = openai_client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": "You are an expert sales trainer. Return ONLY valid JSON. No markdown, no explanation, no code blocks. Start with { and end with }"},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.7,
+                max_tokens=4000,
+                response_format={"type": "json_object"},
+                timeout=45
+            )
+        except Exception as openai_err:
+            print(f"[generate_tree] OpenAI error: {openai_err}")
+            return jsonify({'error': f'AI generation failed: {str(openai_err)}'}), 500
         
         response_text = response.choices[0].message.content.strip()
         print(f"[generate_tree] Got response, length: {len(response_text)}")
