@@ -6968,6 +6968,197 @@ Return JSON with:
         return jsonify({'error': str(e)}), 500
 
 
+# =============================================
+# SALES MIND MAP ENDPOINTS
+# =============================================
+
+@app.route('/api/mind-map', methods=['GET'])
+def get_mind_map():
+    """Get all mind map categories and nodes"""
+    try:
+        client = get_supabase()
+        
+        # Get categories
+        categories_response = client.table('mind_map_categories').select('*').order('ring_level').execute()
+        categories = categories_response.data or []
+        
+        # Get nodes
+        nodes_response = client.table('mind_map_nodes').select('*').eq('is_template', True).order('order_index').execute()
+        nodes = nodes_response.data or []
+        
+        return jsonify({
+            'categories': categories,
+            'nodes': nodes
+        })
+    except Exception as e:
+        print(f"[mind_map] Error: {e}")
+        return jsonify({'error': str(e), 'categories': [], 'nodes': []}), 200
+
+
+@app.route('/api/mind-map/ai-generate', methods=['POST'])
+def mind_map_ai_generate():
+    """Generate AI response for a mind map node"""
+    try:
+        data = request.json
+        node_type = data.get('node_type', '')
+        node_title = data.get('node_title', '')
+        node_content = data.get('node_content', '')
+        question = data.get('question', '')
+        language = data.get('language', 'en')
+        
+        if not question:
+            return jsonify({'error': 'Question is required'}), 400
+        
+        system_prompt = f"""You are an expert sales coach helping salespeople improve their skills.
+
+Context:
+- Node Type: {node_type}
+- Node Title: {node_title}
+- Node Content: {node_content}
+
+The user is asking for help related to this sales content. Provide practical, actionable advice.
+
+Guidelines:
+- Be specific and give examples
+- Use the LAIR method (Listen, Acknowledge, Isolate, Respond) for objection handling
+- Include word-for-word scripts when helpful
+- Keep responses concise but valuable
+- If the language is Hebrew, respond in Hebrew
+
+Language: {'Hebrew' if language == 'he' else 'English'}"""
+
+        response = openai_client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": question}
+            ],
+            temperature=0.7,
+            max_tokens=1000
+        )
+        
+        ai_response = response.choices[0].message.content.strip()
+        
+        return jsonify({'response': ai_response})
+        
+    except Exception as e:
+        print(f"[mind_map_ai] Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/user-scripts', methods=['GET'])
+def get_user_scripts():
+    """Get user's saved scripts"""
+    user_id = get_user_id_from_token()
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    try:
+        client = get_supabase()
+        response = client.table('user_scripts').select('*').eq('user_id', user_id).order('created_at', desc=True).execute()
+        return jsonify({'scripts': response.data or []})
+    except Exception as e:
+        print(f"[user_scripts] Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/user-scripts', methods=['POST'])
+def save_user_script():
+    """Save a new user script"""
+    user_id = get_user_id_from_token()
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    try:
+        data = request.json
+        client = get_supabase()
+        
+        script_data = {
+            'user_id': user_id,
+            'title': data.get('title', 'Untitled Script'),
+            'content': data.get('content', ''),
+            'content_he': data.get('content_he'),
+            'category': data.get('category'),
+            'product_type': data.get('product_type', 'all'),
+            'objection_type': data.get('objection_type'),
+            'source_node_id': data.get('source_node_id'),
+            'tags': data.get('tags', []),
+        }
+        
+        response = client.table('user_scripts').insert(script_data).execute()
+        return jsonify({'script': response.data[0] if response.data else None})
+        
+    except Exception as e:
+        print(f"[save_script] Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/user-scripts/<script_id>', methods=['PUT'])
+def update_user_script(script_id):
+    """Update a user script"""
+    user_id = get_user_id_from_token()
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    try:
+        data = request.json
+        client = get_supabase()
+        
+        update_data = {}
+        for field in ['title', 'content', 'content_he', 'category', 'product_type', 'objection_type', 'is_favorite', 'tags']:
+            if field in data:
+                update_data[field] = data[field]
+        
+        if update_data:
+            response = client.table('user_scripts').update(update_data).eq('id', script_id).eq('user_id', user_id).execute()
+            return jsonify({'script': response.data[0] if response.data else None})
+        
+        return jsonify({'error': 'No fields to update'}), 400
+        
+    except Exception as e:
+        print(f"[update_script] Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/user-scripts/<script_id>', methods=['DELETE'])
+def delete_user_script(script_id):
+    """Delete a user script"""
+    user_id = get_user_id_from_token()
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    try:
+        client = get_supabase()
+        client.table('user_scripts').delete().eq('id', script_id).eq('user_id', user_id).execute()
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        print(f"[delete_script] Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/user-scripts/<script_id>/use', methods=['POST'])
+def increment_script_use(script_id):
+    """Increment usage counter for a script"""
+    user_id = get_user_id_from_token()
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    try:
+        client = get_supabase()
+        # Get current count
+        response = client.table('user_scripts').select('use_count').eq('id', script_id).eq('user_id', user_id).execute()
+        if response.data:
+            current_count = response.data[0].get('use_count', 0) or 0
+            client.table('user_scripts').update({'use_count': current_count + 1}).eq('id', script_id).execute()
+        
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        print(f"[increment_use] Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
 if __name__ == '__main__':
     print(f"[Server] Starting on port 5001 with Socket.IO support")
     print(f"[Server] Deepgram configured: {bool(DEEPGRAM_API_KEY)} (speaker diarization)")

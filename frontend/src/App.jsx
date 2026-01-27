@@ -24,6 +24,7 @@ import LiveCallPageMobile from './pages/LiveCallPageMobile'
 import AIAgentPage from './pages/AIAgentPage'
 import PracticePage from './pages/PracticePage'
 import SalesFlowPage from './pages/SalesFlowPageNew'
+import SalesMindMapPage from './pages/SalesMindMapPage'
 import { API_URL } from './lib/config'
 import { AnalysisInsights } from './components/analysis'
 import AIAssistant from './components/AIAssistant'
@@ -43,7 +44,7 @@ const getStages = (lang) => [
 const getNavItems = (lang) => [
   { id: 'dashboard', label: t('nav.dashboard', lang), icon: Home },
   { id: 'ai-agent', label: t('nav.aiAgent', lang), icon: Brain, highlight: true, isRoute: true },
-  { id: 'sales-flow', label: t('nav.salesFlow', lang) || 'Sales Flow', icon: GitBranch },
+  { id: 'mind-map', label: lang === 'he' ? 'מפת מכירות' : 'Mind Map', icon: GitBranch, highlight: true },
   { id: 'story-bank', label: t('nav.storyBank', lang), icon: BookMarked },
   { id: 'upload', label: t('nav.newCall', lang), icon: Upload },
   { id: 'calls', label: t('nav.callHistory', lang), icon: History },
@@ -2115,8 +2116,8 @@ function MainApp() {
           {activeTab === 'story-bank' && (
             <StoryBankContent />
           )}
-          {activeTab === 'sales-flow' && (
-            <SalesFlowPage />
+          {activeTab === 'mind-map' && (
+            <SalesMindMapPage />
           )}
           {activeTab === 'upload' && (
             <>
@@ -2875,10 +2876,10 @@ function App() {
           <AIAgentPage />
         </ProtectedRoute>
       } />
-      {/* Sales Flow Route */}
-      <Route path="/sales-flow" element={
+      {/* Mind Map Route */}
+      <Route path="/mind-map" element={
         <ProtectedRoute>
-          <SalesFlowPage />
+          <SalesMindMapPage />
         </ProtectedRoute>
       } />
       <Route path="*" element={<Navigate to="/" replace />} />
